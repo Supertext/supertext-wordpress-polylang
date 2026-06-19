@@ -1,0 +1,6 @@
+# Copy this file to deploy.local.ps1 and fill in your credentials.
+# deploy.local.ps1 is gitignored and will never be committed.
+$Server          = 'your-sftp-host'
+$Username        = 'your-sftp-username'
+$Password        = 'your-sftp-password'
+$RemotePluginDir = '/home/your-username/public_html/your-site/wp-content/plugins/supertext'

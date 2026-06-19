@@ -1,0 +1,26 @@
+# WordPress
+wp-config.php
+wp-content/uploads/
+
+# Dependencies (if composer is added later)
+/vendor/
+/node_modules/
+
+# Build artifacts
+*.zip
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.idea/
+.vscode/
+*.swp
+
+# Local deploy credentials — never commit
+deploy.local.ps1
+deploy.log
+
+# Debug artifacts
+supertext-debug.log
