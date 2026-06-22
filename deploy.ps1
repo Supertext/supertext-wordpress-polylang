@@ -23,19 +23,15 @@ function Get-AutoCommitMessage {
 
     # Map file path fragments to readable labels (first match wins, order matters)
     $labelMap = [ordered]@{
-        'admin/class-supertext-bulk-actions' = 'bulk actions'
-        'admin/class-supertext-admin'        = 'admin settings'
-        'admin/partials'                     = 'settings page'
-        'admin/js'                           = 'admin JS'
-        'admin/css'                          = 'admin CSS'
-        'includes/class-supertext-deepl'     = 'DeepL proxy'
-        'includes/class-supertext-api'       = 'API client'
-        'includes/class-supertext-activator' = 'activator'
-        'includes/class-supertext'           = 'plugin core'
-        'supertext.php'                      = 'main plugin file'
-        'uninstall.php'                      = 'uninstall handler'
-        'languages/'                         = 'translations'
-        'deploy'                             = 'deploy config'
+        'includes/Machine_Translation/Client'   = 'MT client'
+        'includes/Machine_Translation/Service'  = 'MT service'
+        'includes/Machine_Translation/Settings' = 'MT settings'
+        'includes/Machine_Translation'          = 'MT integration'
+        'supertext-polylang.php'                = 'main plugin file'
+        'uninstall.php'                         = 'uninstall handler'
+        'languages/'                            = 'translations'
+        'README'                                = 'docs'
+        'deploy'                                = 'deploy config'
     }
 
     $labels   = [System.Collections.Generic.List[string]]::new()
@@ -262,7 +258,17 @@ Write-Host "Using WinSCP: $WinScp" -ForegroundColor Cyan
 
 # ── Step 3: SFTP sync ─────────────────────────────────────────────────────────
 $LocalDirUnix = $LocalDir.Replace('\', '/')
+
+# Ensure the remote plugin directory exists (synchronize won't create the target root
+# on a first deploy). Tolerate "already exists" by ignoring the exit code.
+$null = Invoke-WinScpScript -WinScp $WinScp -LogPath "$LocalDir\deploy.log" -ScriptLines @(
+    'option batch abort', 'option confirm off',
+    "open sftp://${Username}:${Password}@${Server}/ -hostkey=*",
+    "mkdir ""$RemotePluginDir""", 'exit'
+)
+
 $ScriptContent = @"
+option batch abort
 option confirm off
 open sftp://${Username}:${Password}@${Server}/ -hostkey=*
 synchronize remote -delete -criteria=either -filemask="|.git\;.gitignore;deploy.ps1;deploy.local.ps1;deploy.local.ps1.example;deploy.log;supertext-debug.log;README.md" "$LocalDirUnix" "$RemotePluginDir"
