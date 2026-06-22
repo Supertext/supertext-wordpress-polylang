@@ -68,6 +68,9 @@ add_filter(
 // Register the "Supertext" admin page (status, Polylang settings link, Patch button).
 \Supertext\Polylang\Admin\Page::init();
 
+// Register the plugin's own settings (human/order API credentials + environment).
+\Supertext\Polylang\Admin\Settings::init();
+
 // Add the "Supertext AI/Human Translation" bulk actions to the posts list table.
 \Supertext\Polylang\Admin\Bulk_Actions::init();
 

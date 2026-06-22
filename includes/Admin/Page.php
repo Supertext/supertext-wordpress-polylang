@@ -211,6 +211,15 @@ class Page {
 					<?php esc_html_e( 'Open Polylang → Languages → Settings → Machine Translation', 'supertext-polylang' ); ?>
 				</a>
 			</p>
+
+			<h2 style="margin-top:2em;"><?php esc_html_e( 'Human translation (orders)', 'supertext-polylang' ); ?></h2>
+			<p class="description" style="max-width:640px;">
+				<?php esc_html_e( 'Professional (human) translation orders use a separate credential from the AI translation API key. Enter your Supertext account email and Legacy API Key below.', 'supertext-polylang' ); ?>
+			</p>
+			<?php
+			settings_errors( Settings::GROUP );
+			Settings::render_form();
+			?>
 		</div>
 		<?php
 	}
