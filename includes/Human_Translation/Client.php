@@ -90,7 +90,23 @@ class Client {
 
 		$raw  = (string) wp_remote_retrieve_body( $response );
 		$data = json_decode( $raw, true );
-		if ( ! is_array( $data ) || ! isset( $data['Id'] ) ) {
+
+		// The upload endpoint returns a JSON array of document objects (one per
+		// uploaded file). Pick the document with the highest Id (the one we just added).
+		$document_id = 0;
+		if ( is_array( $data ) ) {
+			if ( isset( $data['Id'] ) ) {
+				$document_id = (int) $data['Id']; // Defensive: single-object response.
+			} else {
+				foreach ( $data as $item ) {
+					if ( is_array( $item ) && isset( $item['Id'] ) ) {
+						$document_id = max( $document_id, (int) $item['Id'] );
+					}
+				}
+			}
+		}
+
+		if ( $document_id <= 0 ) {
 			return new WP_Error(
 				'supertext_no_document_id',
 				sprintf(
@@ -101,7 +117,7 @@ class Client {
 			);
 		}
 
-		return (int) $data['Id'];
+		return $document_id;
 	}
 
 	/**
