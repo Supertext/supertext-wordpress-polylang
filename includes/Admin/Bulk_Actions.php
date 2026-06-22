@@ -11,6 +11,8 @@ use WP_Post;
 use WP_Screen;
 use PLL_Export_Container;
 use PLL_Export_Data_From_Posts;
+use Supertext\Polylang\Human_Translation\Client as Human_Client;
+use Supertext\Polylang\Human_Translation\Content as Human_Content;
 use WP_Syntex\Polylang_Pro\Modules\Machine_Translation\Data;
 use WP_Syntex\Polylang_Pro\Modules\Machine_Translation\Factory;
 use WP_Syntex\Polylang_Pro\Modules\Machine_Translation\Processor;
@@ -31,11 +33,11 @@ class Bulk_Actions {
 	const ACTION_AI    = 'supertext_ai_translation';
 	const ACTION_HUMAN = 'supertext_human_translation';
 
-	/** Human translation product types (Supertext option ID => label). */
+	/** Human translation product types (Supertext OrderTypeConfigurationId => label). */
 	const HUMAN_SERVICES = array(
-		54 => 'Übersetzung BASIC',
-		55 => 'Übersetzung PREMIUM',
-		56 => 'Übersetzung CREATIVE',
+		166 => 'Übersetzung BASIC',
+		167 => 'Übersetzung PREMIUM',
+		168 => 'Übersetzung CREATIVE',
 	);
 
 	/** Human translation delivery / express options (Supertext option ID => label). */
@@ -196,6 +198,9 @@ class Bulk_Actions {
 		}
 
 		if ( self::ACTION_HUMAN === $action ) {
+			if ( ! Settings::is_configured() ) {
+				return add_query_arg( 'supertext_error', 'human_not_configured', $redirect_url );
+			}
 			$service_id = (int) ( $_REQUEST['supertext_service_id'] ?? 0 ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended
 			if ( ! isset( self::HUMAN_SERVICES[ $service_id ] ) ) {
 				return add_query_arg( 'supertext_error', 'no_service', $redirect_url );
@@ -212,7 +217,7 @@ class Bulk_Actions {
 		foreach ( $post_ids as $post_id ) {
 			$ok = self::ACTION_AI === $action
 				? self::ai_translate( (int) $post_id, $target_lang )
-				: self::create_human_draft( (int) $post_id, $target_lang, $service_id, $express );
+				: self::submit_human_order( (int) $post_id, $target_lang, $service_id, $express );
 
 			$ok ? $created++ : $errors++;
 		}
@@ -304,59 +309,92 @@ class Bulk_Actions {
 	}
 
 	/**
-	 * Creates a linked draft copy for human translation and records the chosen
-	 * Supertext product + delivery on it.
+	 * Places a human-translation order with Supertext: builds the content HTML,
+	 * uploads it, and creates the order. Response handling (the callback) is wired
+	 * up separately.
 	 *
 	 * @param int    $post_id     Source post ID.
 	 * @param string $target_lang Target language slug.
-	 * @param int    $service_id  Supertext product ID.
-	 * @param string $express     Supertext delivery option.
+	 * @param int    $service_id  Supertext OrderTypeConfigurationId.
+	 * @param string $express     Supertext DeliveryId.
 	 * @return bool
 	 */
-	private static function create_human_draft( int $post_id, string $target_lang, int $service_id, string $express ): bool {
+	private static function submit_human_order( int $post_id, string $target_lang, int $service_id, string $express ): bool {
 		if ( ! function_exists( 'PLL' ) || ! isset( PLL()->model ) ) {
 			return false;
 		}
 
-		$model = PLL()->model;
-		$post  = get_post( $post_id );
-		$lang  = $model->get_language( $target_lang );
+		$model  = PLL()->model;
+		$post   = get_post( $post_id );
+		$lang   = $model->get_language( $target_lang );
+		$source = $model->post->get_language( $post_id );
 
-		if ( ! $post instanceof WP_Post || ! $lang ) {
+		if ( ! $post instanceof WP_Post || ! $lang || ! $source ) {
 			return false;
 		}
 
-		if ( $model->post->get_translation( $post_id, $target_lang ) ) {
+		// Avoid placing a duplicate (paid) order for the same target language.
+		if ( get_post_meta( $post_id, '_supertext_order_' . $target_lang, true ) ) {
 			return false;
 		}
 
-		$new_post_id = wp_insert_post(
-			array(
-				'post_type'    => $post->post_type,
-				'post_title'   => $post->post_title,
-				'post_content' => $post->post_content,
-				'post_status'  => 'draft',
-			)
+		$html = Human_Content::build_html( $post, $lang, $model );
+		if ( '' === trim( wp_strip_all_tags( $html ) ) ) {
+			return false; // Nothing translatable.
+		}
+
+		$title    = '' !== $post->post_title ? $post->post_title : 'post-' . $post_id;
+		$filename = sanitize_file_name( $title );
+		$filename = ( '' !== $filename ? $filename : 'content-' . $post_id ) . '.html';
+
+		$client = new Human_Client();
+
+		$document_id = $client->upload_file( $html, $filename );
+		if ( is_wp_error( $document_id ) ) {
+			return false;
+		}
+
+		$order = array(
+			'DeliveryId'               => (int) $express,
+			'OrderName'                => $title,
+			'OrderTypeConfigurationId' => $service_id,
+			'ContentType'              => 'text/html',
+			'Referrer'                 => 'Supertext for Polylang',
+			'SystemName'               => 'WordPress',
+			'SystemVersion'            => get_bloginfo( 'version' ),
+			'ComponentName'            => 'supertext-polylang',
+			'ComponentVersion'         => SUPERTEXT_POLYLANG_VERSION,
+			'SourceLang'               => (string) strtok( (string) $source->w3c, '-' ), // 2-letter primary subtag.
+			'TargetLanguages'          => array( $lang->w3c ),
+			'ReferenceData'            => (string) $post_id,
+			'CallbackUrl'              => rest_url( 'supertext-polylang/v1/order-callback' ),
+			'Files'                    => array(
+				array(
+					'Comment' => 'WordPress content',
+					'Id'      => $document_id,
+				),
+			),
 		);
 
-		if ( is_wp_error( $new_post_id ) || ! $new_post_id ) {
+		$result = $client->create_order( $order );
+		if ( is_wp_error( $result ) ) {
 			return false;
 		}
 
-		$model->post->set_language( $new_post_id, $lang );
-
-		$translations = function_exists( 'pll_get_post_translations' ) ? pll_get_post_translations( $post_id ) : array();
-		$source_lang  = $model->post->get_language( $post_id );
-		if ( $source_lang ) {
-			$translations[ $source_lang->slug ] = $post_id;
-		}
-		$translations[ $target_lang ] = $new_post_id;
-		$model->post->save_translations( $new_post_id, $translations );
-
-		// Record the chosen product + delivery so the order can be placed once the
-		// Supertext human-translation (order) API is wired up. See HANDOFF.md §7/§9.
-		update_post_meta( $new_post_id, '_supertext_service_id', $service_id );
-		update_post_meta( $new_post_id, '_supertext_express', $express );
+		// Record the order so we can reconcile it when the callback is implemented.
+		update_post_meta(
+			$post_id,
+			'_supertext_order_' . $target_lang,
+			wp_json_encode(
+				array(
+					'document_id' => $document_id,
+					'service_id'  => $service_id,
+					'delivery_id' => (int) $express,
+					'target'      => $lang->w3c,
+					'response'    => $result,
+				)
+			)
+		);
 
 		return true;
 	}
@@ -378,7 +416,8 @@ class Bulk_Actions {
 			'no_lang'           => array( 'error', __( 'Please select a target language before applying a Supertext translation action.', 'supertext-polylang' ) ),
 			'no_service'        => array( 'error', __( 'Please select a translation type before applying Supertext Human Translation.', 'supertext-polylang' ) ),
 			'no_delivery'       => array( 'error', __( 'Please select a delivery option before applying Supertext Human Translation.', 'supertext-polylang' ) ),
-			'mt_not_configured' => array( 'error', __( 'No active Supertext machine-translation service. Configure it in Polylang → Languages → Settings → Machine Translation.', 'supertext-polylang' ) ),
+			'mt_not_configured'    => array( 'error', __( 'No active Supertext machine-translation service. Configure it in Polylang → Languages → Settings → Machine Translation.', 'supertext-polylang' ) ),
+			'human_not_configured' => array( 'error', __( 'Supertext human-translation credentials are not configured. Add your account email and Legacy API Key on the Supertext settings page.', 'supertext-polylang' ) ),
 		);
 
 		if ( isset( $messages[ $error ] ) ) {
@@ -403,7 +442,7 @@ class Bulk_Actions {
 				/* translators: 1: number of posts, 2: translation type */
 				? _n( '%1$d translation created via Supertext %2$s.', '%1$d translations created via Supertext %2$s.', $created, 'supertext-polylang' )
 				/* translators: 1: number of posts, 2: translation type */
-				: _n( '%1$d draft created for Supertext %2$s.', '%1$d drafts created for Supertext %2$s.', $created, 'supertext-polylang' );
+				: _n( '%1$d order submitted to Supertext %2$s.', '%1$d orders submitted to Supertext %2$s.', $created, 'supertext-polylang' );
 
 			printf(
 				'<div class="notice notice-success is-dismissible"><p>%s</p></div>',
