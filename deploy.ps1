@@ -6,6 +6,9 @@
     1. Stages all changes, commits with an auto-generated message, and pushes to origin/main.
     2. Syncs the plugin directory to the remote WordPress plugins folder via WinSCP SFTP,
        excluding .git, deploy.ps1, and README.md.
+    3. Patches the server's Polylang Pro (Factory.php) to expose the `pll_mt_services`
+       filter so Supertext can register as a machine-translation service. Idempotent and
+       self-healing across Polylang updates; backs up the original to Factory.php.bak.
     Requires WinSCP to be installed (https://winscp.net).
 .PARAMETER CommitMessage
     Optional commit message. Auto-generated from changed files if omitted.
@@ -68,6 +71,114 @@ function Get-AutoCommitMessage {
             else                                                  { 'Update' }
 
     return "$verb $($labels -join ', ')"
+}
+
+# Runs a WinSCP script (same CLI approach as the sync step) and returns its exit code.
+function Invoke-WinScpScript {
+    param(
+        [Parameter(Mandatory)] [string]$WinScp,
+        [Parameter(Mandatory)] [string[]]$ScriptLines,
+        [Parameter(Mandatory)] [string]$LogPath
+    )
+    $tmp = [System.IO.Path]::GetTempFileName() + '.winscp'
+    Set-Content -Path $tmp -Value ($ScriptLines -join "`r`n") -Encoding UTF8
+    try {
+        & $WinScp /script="$tmp" /log="$LogPath" | Out-Null
+        return $LASTEXITCODE
+    }
+    finally {
+        Remove-Item -Path $tmp -Force -ErrorAction SilentlyContinue
+    }
+}
+
+<#
+.SYNOPSIS
+    Ensures Polylang Pro on the server exposes the `pll_mt_services` filter so the
+    Supertext service can register itself.
+.DESCRIPTION
+    Idempotent (uses the same WinSCP CLI approach as the sync step): downloads
+    Polylang's Machine_Translation/Factory.php; if it does not yet contain the
+    filter, backs it up to Factory.php.bak and replaces `return self::SERVICES;`
+    with `return apply_filters( 'pll_mt_services', self::SERVICES );`, then uploads
+    it back. Safe to run on every deploy — it re-applies the patch after a Polylang
+    update (which would otherwise overwrite it). Never aborts the deploy on failure.
+#>
+function Update-PolylangFactoryPatch {
+    param(
+        [Parameter(Mandatory)] [string]$WinScp,
+        [Parameter(Mandatory)] [string]$Server,
+        [Parameter(Mandatory)] [string]$Username,
+        [Parameter(Mandatory)] [string]$Password,
+        [Parameter(Mandatory)] [string]$PolylangDir,
+        [Parameter(Mandatory)] [string]$LogPath
+    )
+
+    $open   = "open sftp://${Username}:${Password}@${Server}/ -hostkey=*"
+    $tmpDir = Join-Path $env:TEMP ('pllpatch_' + [guid]::NewGuid().ToString('N'))
+    New-Item -ItemType Directory -Path $tmpDir -Force | Out-Null
+    $localFile = Join-Path $tmpDir 'Factory.php'
+
+    try {
+        # Factory.php lives under src/modules/ (Polylang 3.8+) or modules/ (3.7).
+        $candidates = @(
+            "$PolylangDir/src/modules/Machine_Translation/Factory.php",
+            "$PolylangDir/modules/Machine_Translation/Factory.php"
+        )
+
+        $remotePath = $null
+        foreach ($c in $candidates) {
+            if (Test-Path $localFile) { Remove-Item $localFile -Force }
+            $rc = Invoke-WinScpScript -WinScp $WinScp -LogPath $LogPath -ScriptLines @(
+                'option batch abort', 'option confirm off', $open,
+                "get ""$c"" ""$localFile""", 'exit'
+            )
+            if ($rc -eq 0 -and (Test-Path $localFile)) { $remotePath = $c; break }
+        }
+        if (-not $remotePath) {
+            Write-Warning "Polylang Factory.php not found under $PolylangDir — skipping patch."
+            return
+        }
+
+        $content = [System.IO.File]::ReadAllText($localFile)
+
+        if ($content -match 'pll_mt_services') {
+            Write-Host "Polylang already patched (pll_mt_services filter present)." -ForegroundColor DarkGray
+            return
+        }
+        if ($content -notmatch 'return self::SERVICES;') {
+            Write-Warning "Expected 'return self::SERVICES;' not found in Factory.php — Polylang internals may have changed. Skipping patch."
+            return
+        }
+
+        # Back up the pristine file (overwriting an older .bak with pristine content is harmless).
+        $rcBak = Invoke-WinScpScript -WinScp $WinScp -LogPath $LogPath -ScriptLines @(
+            'option batch abort', 'option confirm off', $open,
+            "put ""$localFile"" ""$remotePath.bak""", 'exit'
+        )
+        if ($rcBak -ne 0) { Write-Warning "Could not write Factory.php.bak (continuing)." }
+
+        $patched = $content -replace 'return self::SERVICES;', "return apply_filters( 'pll_mt_services', self::SERVICES );"
+
+        # Write UTF-8 WITHOUT BOM — a BOM before <?php breaks PHP ("headers already sent").
+        $utf8NoBom = New-Object System.Text.UTF8Encoding($false)
+        [System.IO.File]::WriteAllText($localFile, $patched, $utf8NoBom)
+
+        $rcPut = Invoke-WinScpScript -WinScp $WinScp -LogPath $LogPath -ScriptLines @(
+            'option batch abort', 'option confirm off', $open,
+            "put ""$localFile"" ""$remotePath""", 'exit'
+        )
+        if ($rcPut -eq 0) {
+            Write-Host "Patched Polylang Factory.php (added pll_mt_services filter)." -ForegroundColor Green
+        } else {
+            Write-Warning "Failed to upload patched Factory.php (exit $rcPut) — check deploy.log."
+        }
+    }
+    catch {
+        Write-Warning "Polylang patch step failed: $($_.Exception.Message). The plugin was still deployed; apply the patch manually if needed."
+    }
+    finally {
+        if (Test-Path $tmpDir) { Remove-Item $tmpDir -Recurse -Force -ErrorAction SilentlyContinue }
+    }
 }
 
 $ErrorActionPreference = 'Stop'
@@ -175,3 +286,16 @@ try {
 finally {
     Remove-Item -Path $TempScript -Force -ErrorAction SilentlyContinue
 }
+
+# ── Step 4: Patch Polylang so Supertext can register as an MT service ──────────
+# Derive the Polylang folder from the plugins directory (sibling of our plugin),
+# unless deploy.local.ps1 sets $PolylangDir explicitly.
+if (-not (Get-Variable -Name 'PolylangDir' -ValueOnly -ErrorAction SilentlyContinue)) {
+    $pluginsDir  = $RemotePluginDir.TrimEnd('/')
+    $pluginsDir  = $pluginsDir.Substring(0, $pluginsDir.LastIndexOf('/'))
+    $PolylangDir = "$pluginsDir/polylang-pro"
+}
+
+Write-Host "Ensuring Polylang exposes the pll_mt_services filter ($PolylangDir) ..." -ForegroundColor Cyan
+Update-PolylangFactoryPatch -WinScp $WinScp -Server $Server -Username $Username -Password $Password `
+    -PolylangDir $PolylangDir -LogPath "$LocalDir\deploy.log"

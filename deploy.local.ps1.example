@@ -3,4 +3,9 @@
 $Server          = 'your-sftp-host'
 $Username        = 'your-sftp-username'
 $Password        = 'your-sftp-password'
-$RemotePluginDir = '/home/your-username/public_html/your-site/wp-content/plugins/supertext'
+$RemotePluginDir = '/home/your-username/public_html/your-site/wp-content/plugins/supertext-polylang'
+
+# Optional. The server path to the Polylang Pro plugin folder, patched on each deploy
+# so Supertext can register as an MT service. If omitted, it is derived as a sibling
+# of $RemotePluginDir named 'polylang-pro'.
+# $PolylangDir = '/home/your-username/public_html/your-site/wp-content/plugins/polylang-pro'
