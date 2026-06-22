@@ -53,19 +53,38 @@ class Page {
 	 * @return void
 	 */
 	public static function register_menu(): void {
-		$icon = defined( 'SUPERTEXT_POLYLANG_FILE' )
-			? plugins_url( 'assets/icon-v2-32.png', SUPERTEXT_POLYLANG_FILE )
-			: 'dashicons-translation';
-
 		add_menu_page(
 			__( 'Supertext', 'supertext-polylang' ),
 			__( 'Supertext', 'supertext-polylang' ),
 			'manage_options',
 			self::SLUG,
 			array( self::class, 'render' ),
-			$icon,
+			self::menu_icon(),
 			81
 		);
+	}
+
+	/**
+	 * Returns the admin-menu icon.
+	 *
+	 * Uses a base64-encoded SVG data URI so WordPress renders it as a crisp,
+	 * properly-aligned menu background (a plain image URL is rendered as a loose
+	 * <img> and sits misaligned). Falls back to a Dashicon if the file is missing.
+	 *
+	 * @return string
+	 */
+	private static function menu_icon(): string {
+		if ( defined( 'SUPERTEXT_POLYLANG_DIR' ) ) {
+			$svg = SUPERTEXT_POLYLANG_DIR . 'assets/Supertext_S_Glow_White_RGB.svg';
+			if ( is_readable( $svg ) ) {
+				$data = file_get_contents( $svg ); // phpcs:ignore WordPress.WP.AlternativeFunctions
+				if ( is_string( $data ) && '' !== $data ) {
+					return 'data:image/svg+xml;base64,' . base64_encode( $data ); // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions
+				}
+			}
+		}
+
+		return 'dashicons-translation';
 	}
 
 	/**
