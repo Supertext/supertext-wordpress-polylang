@@ -111,11 +111,22 @@ class Settings implements Settings_Interface {
 	}
 
 	/**
-	 * Prints error notices. Nothing extra is needed for Supertext.
+	 * Prints the section heading.
+	 *
+	 * Polylang renders each service's fields one after another with no separation.
+	 * This callback runs just before our settings table opens, so we use it to add a
+	 * titled, spaced "Supertext" section header (with the logo) to mark where the
+	 * Supertext settings begin.
 	 *
 	 * @return void
 	 */
-	public function print_notices() {}
+	public function print_notices() {
+		printf(
+			'<h2 class="title" style="margin-top:2.5em;padding-top:1.5em;border-top:1px solid #dcdcde;display:flex;align-items:center;gap:8px;">%s<span>%s</span></h2>',
+			$this->service->get_icon(), // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- safe markup built by the service.
+			esc_html( $this->service->get_name() )
+		);
+	}
 
 	/**
 	 * Prints the settings fields.
