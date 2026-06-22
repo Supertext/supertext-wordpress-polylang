@@ -132,11 +132,19 @@ class Client implements Client_Interface {
 			);
 		}
 
+		// Supertext expects the source language as a primary (2-letter) subtag,
+		// e.g. "de" — not a regional code like "de-CH" — otherwise the language pair
+		// is rejected (INVALID_LANGUAGE_PAIR). The target keeps its regional code.
+		$source_code = $source_language instanceof PLL_Language ? $this->resolve_code( $source_language ) : '';
+		if ( '' !== $source_code ) {
+			$source_code = (string) strtok( $source_code, '-' );
+		}
+
 		// 1. Submit the whole entity as a single HTML file.
 		$file_id = $this->submit_file(
 			$this->build_html( $sources ),
 			$target_code,
-			$source_language instanceof PLL_Language ? $this->resolve_code( $source_language ) : '',
+			$source_code,
 			$this->get_politeness( $target_language )
 		);
 		if ( is_wp_error( $file_id ) ) {
