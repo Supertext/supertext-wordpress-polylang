@@ -99,6 +99,10 @@ class Service implements Service_Interface {
 			'height'  => '20',
 			'xmlns'   => 'http://www.w3.org/2000/svg',
 			'viewBox' => '0 0 20 20',
+			// The block editor renders this as a single monochrome <path>. We tag the
+			// <svg> so our editor CSS can paint the real (full-colour) logo over it as a
+			// background; the path below is the graceful fallback if that CSS is absent.
+			'className' => 'supertext-mt-icon',
 			'path_d'  => 'M4 2.5h12A1.5 1.5 0 0 1 17.5 4v12A1.5 1.5 0 0 1 16 17.5H4A1.5 1.5 0 0 1 2.5 16V4A1.5 1.5 0 0 1 4 2.5Zm8.7 4.2c-.7-.5-1.6-.8-2.7-.8-1.9 0-3.2 1-3.2 2.5 0 1.4 1 2 2.7 2.4 1.3.3 1.7.5 1.7 1 0 .5-.5.8-1.3.8-.9 0-1.7-.4-2.3-1l-1.1 1.3c.8.8 2 1.3 3.3 1.3 2 0 3.4-1 3.4-2.6 0-1.5-1.1-2.1-2.8-2.5-1.2-.3-1.6-.4-1.6-.9 0-.4.4-.7 1.1-.7.8 0 1.5.3 2 .8l1.1-1.3Z',
 		);
 	}

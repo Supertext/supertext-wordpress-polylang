@@ -66,6 +66,28 @@ add_filter(
 );
 
 /**
+ * Paints the full-colour Supertext logo over the block-editor MT-service icon.
+ *
+ * Polylang's block editor renders the service icon as a single monochrome SVG
+ * path (it only accepts `path_d`), so a colour PNG can't be passed through. Our
+ * Service tags that `<svg>` with `.supertext-mt-icon`; here we set the logo as its
+ * background and hide the fallback path — entirely within our plugin, no JS patch.
+ */
+add_action(
+	'enqueue_block_editor_assets',
+	function (): void {
+		$logo = plugins_url( 'assets/icon-v2-128.png', SUPERTEXT_POLYLANG_FILE );
+		$css  = sprintf(
+			'svg.supertext-mt-icon{background:url("%s") center/contain no-repeat !important;}svg.supertext-mt-icon > *{display:none !important;}',
+			esc_url( $logo )
+		);
+		wp_register_style( 'supertext-polylang-editor', false );
+		wp_enqueue_style( 'supertext-polylang-editor' );
+		wp_add_inline_style( 'supertext-polylang-editor', $css );
+	}
+);
+
+/**
  * Warns in the admin if Polylang Pro is missing or has not been patched to expose
  * the `pll_mt_services` filter (without it, this plugin silently does nothing).
  */
