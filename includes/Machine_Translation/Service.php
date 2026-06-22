@@ -39,17 +39,21 @@ class Service implements Service_Interface {
 	/**
 	 * Constructor.
 	 *
-	 * @param array     $options Service's options.
+	 * Polylang builds the service with `$options['machine_translation_services']['supertext']`,
+	 * which may be missing (and thus `null`) until the option has been saved once — so
+	 * we accept any value and coerce to an array rather than type-hinting `array`.
+	 *
+	 * @param mixed     $options Service's options (array, or null/missing before first save).
 	 * @param PLL_Model $model   Polylang's model.
 	 */
-	public function __construct( array $options, PLL_Model $model ) {
+	public function __construct( $options, PLL_Model $model ) {
 		$this->service_options = array_merge(
 			array(
 				'api_key'   => '',
 				'endpoint'  => '',
 				'languages' => array(),
 			),
-			$options
+			is_array( $options ) ? $options : array()
 		);
 		$this->model = $model;
 	}
