@@ -68,6 +68,9 @@ add_filter(
 // Register the "Supertext" admin page (status, Polylang settings link, Patch button).
 \Supertext\Polylang\Admin\Page::init();
 
+// Translate YOOtheme Pro page-builder layouts field-by-field (instead of as a JSON blob).
+\Supertext\Polylang\Integrations\YooTheme\Integration::init();
+
 /**
  * Paints the full-colour Supertext logo over the block-editor MT-service icon.
  *
