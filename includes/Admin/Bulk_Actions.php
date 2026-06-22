@@ -40,8 +40,9 @@ class Bulk_Actions {
 		168 => 'Übersetzung CREATIVE',
 	);
 
-	/** Human translation delivery / express options (Supertext option ID => label). */
+	/** Human translation delivery options (Supertext DeliveryId => label). */
 	const EXPRESS_OPTIONS = array(
+		'1' => 'Express',
 		'2' => '24h',
 		'3' => '48h',
 		'4' => '3 Tage',
