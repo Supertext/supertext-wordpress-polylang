@@ -208,7 +208,10 @@ class Client implements Client_Interface {
 			array(
 				'name'     => 'file',
 				'filename' => 'content.html',
-				'type'     => 'text/html; charset=utf-8',
+				// Supertext matches the part's Content-Type against an allow-list verbatim,
+				// so it must be exactly "text/html" — a "; charset=..." suffix triggers
+				// 415 FILETYPE_NOT_ALLOWED. (The document itself declares UTF-8 via <meta>.)
+				'type'     => 'text/html',
 				'content'  => $html,
 			)
 		);
