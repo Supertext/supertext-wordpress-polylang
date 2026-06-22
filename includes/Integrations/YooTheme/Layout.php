@@ -42,7 +42,23 @@ class Layout {
 	 * @return string[]
 	 */
 	public static function translatable_keys(): array {
-		/** @var string[] $keys */
+		/**
+		 * Filters the YOOtheme layout prop keys whose string values are translated.
+		 *
+		 * Only props with one of these keys *and* a non-empty string value are sent
+		 * for translation; everything else (structure, CSS, ids, URLs, selects…) is
+		 * left untouched. Add a key here to translate an extra text prop.
+		 *
+		 * Example:
+		 *     add_filter( 'supertext_polylang_yootheme_fields', function ( array $keys ) {
+		 *         $keys[] = 'subtitle';
+		 *         return $keys;
+		 *     } );
+		 *
+		 * @since 0.3.0
+		 *
+		 * @param string[] $keys Default translatable prop keys.
+		 */
 		$keys = apply_filters(
 			'supertext_polylang_yootheme_fields',
 			array( 'content', 'title', 'meta', 'alt', 'image_alt' )
@@ -57,7 +73,16 @@ class Layout {
 	 * @return string[]
 	 */
 	private static function content_skip_types(): array {
-		/** @var string[] $types */
+		/**
+		 * Filters the YOOtheme element types whose `content` prop must NOT be translated.
+		 *
+		 * Some elements store non-prose in `content` (e.g. the `code` element holds raw
+		 * code). Their `content` is skipped so it isn't mangled by the translator.
+		 *
+		 * @since 0.3.0
+		 *
+		 * @param string[] $types Element type names to skip for the `content` prop.
+		 */
 		$types = apply_filters( 'supertext_polylang_yootheme_skip_content_types', array( 'code' ) );
 
 		return array_map( 'strval', $types );

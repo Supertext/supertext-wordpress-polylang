@@ -57,6 +57,36 @@ is a small number of file calls, comfortably under the file endpoint's 1-req-per
 
 Politeness is derived from the locale: `*_formal` → `more`, `*_informal` → `less`.
 
+## YOOtheme Pro page-builder integration
+
+YOOtheme stores each page's layout as JSON inside an HTML comment in `post_content`
+(`<!-- {…} -->`). Translating that blob with any translator corrupts the JSON, so this
+plugin translates it **field-by-field** via Polylang's export/import hooks
+(`pll_export_post_fields`, `pll_after_post_export`, `pll_filter_translated_post`) — the same
+pipeline used by both XLIFF and the Supertext MT path. Only **string-valued** props in the
+translatable set are touched; structure, CSS, ids, and URLs are left intact. See
+`includes/Integrations/YooTheme/`. The hooks register automatically — no configuration
+needed.
+
+#### YOOtheme filters
+
+| Filter | Default | Purpose |
+|--------|---------|---------|
+| `supertext_polylang_yootheme_fields` | `['content','title','meta','alt','image_alt']` | Prop keys whose **string** values are translated |
+| `supertext_polylang_yootheme_skip_content_types` | `['code']` | Element types whose `content` prop must NOT be translated (raw code) |
+
+```php
+// Translate an extra YOOtheme text prop (e.g. a custom element's "subtitle").
+add_filter( 'supertext_polylang_yootheme_fields', function ( array $keys ): array {
+    $keys[] = 'subtitle';
+    return $keys;
+} );
+```
+
+> All filters above are applied on every run with their built-in defaults, so the plugin
+> works out of the box. Adding a callback (in an mu-plugin, theme `functions.php`, or this
+> plugin) is only needed to *extend* the defaults.
+
 ## Required Polylang patch (one line)
 
 Polylang Pro keeps its MT services in a **hardcoded const** with no registration hook:
