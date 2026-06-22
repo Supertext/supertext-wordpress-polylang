@@ -65,6 +65,9 @@ add_filter(
 	}
 );
 
+// Register the "Supertext" admin page (status, Polylang settings link, Patch button).
+\Supertext\Polylang\Admin\Page::init();
+
 /**
  * Paints the full-colour Supertext logo over the block-editor MT-service icon.
  *
@@ -114,8 +117,10 @@ add_action(
 			true
 		) ) {
 			printf(
-				'<div class="notice notice-warning"><p>%s</p></div>',
-				esc_html__( 'Supertext for Polylang: Polylang Pro is active but has not been patched to expose the "pll_mt_services" filter, so Supertext cannot register as a translation service yet. See the plugin README ("Polylang patch").', 'supertext-polylang' )
+				'<div class="notice notice-warning"><p>%s <a href="%s">%s</a></p></div>',
+				esc_html__( 'Supertext for Polylang: Polylang Pro is active but has not been patched to expose the "pll_mt_services" filter, so Supertext cannot register as a translation service yet.', 'supertext-polylang' ),
+				esc_url( admin_url( 'admin.php?page=' . \Supertext\Polylang\Admin\Page::SLUG ) ),
+				esc_html__( 'Patch Polylang now →', 'supertext-polylang' )
 			);
 		}
 	}
