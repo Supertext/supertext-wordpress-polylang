@@ -88,9 +88,17 @@ class Client {
 			return $response;
 		}
 
-		$data = json_decode( (string) wp_remote_retrieve_body( $response ), true );
+		$raw  = (string) wp_remote_retrieve_body( $response );
+		$data = json_decode( $raw, true );
 		if ( ! is_array( $data ) || ! isset( $data['Id'] ) ) {
-			return new WP_Error( 'supertext_no_document_id', __( 'Supertext did not return a document id for the uploaded file.', 'supertext-polylang' ) );
+			return new WP_Error(
+				'supertext_no_document_id',
+				sprintf(
+					/* translators: %s is the raw API response. */
+					__( 'Supertext did not return a document id for the uploaded file. Response: %s', 'supertext-polylang' ),
+					mb_substr( wp_strip_all_tags( $raw ), 0, 200 )
+				)
+			);
 		}
 
 		return (int) $data['Id'];

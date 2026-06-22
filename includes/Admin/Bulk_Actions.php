@@ -7,6 +7,7 @@ namespace Supertext\Polylang\Admin;
 
 defined( 'ABSPATH' ) || exit;
 
+use WP_Error;
 use WP_Post;
 use WP_Screen;
 use PLL_Export_Container;
@@ -212,15 +213,27 @@ class Bulk_Actions {
 			}
 		}
 
-		$created = 0;
-		$errors  = 0;
+		$created        = 0;
+		$errors         = 0;
+		$error_messages = array();
 
 		foreach ( $post_ids as $post_id ) {
-			$ok = self::ACTION_AI === $action
+			$res = self::ACTION_AI === $action
 				? self::ai_translate( (int) $post_id, $target_lang )
 				: self::submit_human_order( (int) $post_id, $target_lang, $service_id, $express );
 
-			$ok ? $created++ : $errors++;
+			if ( true === $res ) {
+				$created++;
+			} else {
+				$errors++;
+				if ( is_wp_error( $res ) ) {
+					$error_messages[] = $res->get_error_message();
+				}
+			}
+		}
+
+		if ( ! empty( $error_messages ) ) {
+			set_transient( 'supertext_polylang_bulk_errors_' . get_current_user_id(), array_values( array_unique( $error_messages ) ), 60 );
 		}
 
 		return add_query_arg(
@@ -318,11 +331,11 @@ class Bulk_Actions {
 	 * @param string $target_lang Target language slug.
 	 * @param int    $service_id  Supertext OrderTypeConfigurationId.
 	 * @param string $express     Supertext DeliveryId.
-	 * @return bool
+	 * @return true|WP_Error
 	 */
-	private static function submit_human_order( int $post_id, string $target_lang, int $service_id, string $express ): bool {
+	private static function submit_human_order( int $post_id, string $target_lang, int $service_id, string $express ) {
 		if ( ! function_exists( 'PLL' ) || ! isset( PLL()->model ) ) {
-			return false;
+			return new WP_Error( 'supertext_no_pll', __( 'Polylang is not available.', 'supertext-polylang' ) );
 		}
 
 		$model  = PLL()->model;
@@ -331,17 +344,25 @@ class Bulk_Actions {
 		$source = $model->post->get_language( $post_id );
 
 		if ( ! $post instanceof WP_Post || ! $lang || ! $source ) {
-			return false;
+			return new WP_Error( 'supertext_invalid', __( 'Invalid post, or missing source/target language.', 'supertext-polylang' ) );
 		}
 
 		// Avoid placing a duplicate (paid) order for the same target language.
 		if ( get_post_meta( $post_id, '_supertext_order_' . $target_lang, true ) ) {
-			return false;
+			return new WP_Error(
+				'supertext_already_ordered',
+				sprintf(
+					/* translators: 1: post title, 2: language slug. */
+					__( 'An order already exists for "%1$s" (%2$s).', 'supertext-polylang' ),
+					get_the_title( $post_id ),
+					$target_lang
+				)
+			);
 		}
 
 		$html = Human_Content::build_html( $post, $lang, $model );
 		if ( '' === trim( wp_strip_all_tags( $html ) ) ) {
-			return false; // Nothing translatable.
+			return new WP_Error( 'supertext_empty', __( 'No translatable content found in this post.', 'supertext-polylang' ) );
 		}
 
 		$title    = '' !== $post->post_title ? $post->post_title : 'post-' . $post_id;
@@ -352,7 +373,7 @@ class Bulk_Actions {
 
 		$document_id = $client->upload_file( $html, $filename );
 		if ( is_wp_error( $document_id ) ) {
-			return false;
+			return $document_id;
 		}
 
 		$order = array(
@@ -379,7 +400,7 @@ class Bulk_Actions {
 
 		$result = $client->create_order( $order );
 		if ( is_wp_error( $result ) ) {
-			return false;
+			return $result;
 		}
 
 		// Record the order so we can reconcile it when the callback is implemented.
@@ -452,15 +473,29 @@ class Bulk_Actions {
 		}
 
 		if ( $errors ) {
+			$detail_key = 'supertext_polylang_bulk_errors_' . get_current_user_id();
+			$details    = get_transient( $detail_key );
+			delete_transient( $detail_key );
+
+			$list = '';
+			if ( is_array( $details ) && ! empty( $details ) ) {
+				$items = '';
+				foreach ( $details as $message ) {
+					$items .= '<li>' . esc_html( $message ) . '</li>';
+				}
+				$list = '<ul style="list-style:disc;margin-left:1.5em;">' . $items . '</ul>';
+			}
+
 			printf(
-				'<div class="notice notice-error is-dismissible"><p>%s</p></div>',
+				'<div class="notice notice-error is-dismissible"><p>%s</p>%s</div>',
 				esc_html(
 					sprintf(
 						/* translators: number of failures */
-						_n( '%d post could not be submitted (already translated, or an error occurred).', '%d posts could not be submitted (already translated, or an error occurred).', $errors, 'supertext-polylang' ),
+						_n( '%d item could not be submitted:', '%d items could not be submitted:', $errors, 'supertext-polylang' ),
 						$errors
 					)
-				)
+				),
+				$list // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- each message escaped above.
 			);
 		}
 	}
