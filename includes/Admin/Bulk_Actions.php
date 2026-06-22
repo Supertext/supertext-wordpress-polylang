@@ -116,7 +116,7 @@ class Bulk_Actions {
 		<span id="supertext-lang-picker" style="display:none;">
 			<label for="supertext_target_lang" class="screen-reader-text"><?php esc_html_e( 'Target language', 'supertext-polylang' ); ?></label>
 			<select name="supertext_target_lang" id="supertext_target_lang">
-				<option value=""><?php esc_html_e( '— Target language —', 'supertext-polylang' ); ?></option>
+				<option value=""><?php esc_html_e( 'Target language', 'supertext-polylang' ); ?></option>
 				<?php foreach ( $languages as $slug => $name ) : ?>
 					<option value="<?php echo esc_attr( $slug ); ?>"><?php echo esc_html( $name ); ?></option>
 				<?php endforeach; ?>
@@ -125,7 +125,7 @@ class Bulk_Actions {
 		<span id="supertext-service-picker" style="display:none;">
 			<label for="supertext_service_id" class="screen-reader-text"><?php esc_html_e( 'Translation type', 'supertext-polylang' ); ?></label>
 			<select name="supertext_service_id" id="supertext_service_id">
-				<option value=""><?php esc_html_e( '— Translation type —', 'supertext-polylang' ); ?></option>
+				<option value=""><?php esc_html_e( 'Translation type', 'supertext-polylang' ); ?></option>
 				<?php foreach ( self::HUMAN_SERVICES as $id => $label ) : ?>
 					<option value="<?php echo esc_attr( $id ); ?>"><?php echo esc_html( $label ); ?></option>
 				<?php endforeach; ?>
@@ -134,7 +134,7 @@ class Bulk_Actions {
 		<span id="supertext-express-picker" style="display:none;">
 			<label for="supertext_express" class="screen-reader-text"><?php esc_html_e( 'Delivery', 'supertext-polylang' ); ?></label>
 			<select name="supertext_express" id="supertext_express">
-				<option value=""><?php esc_html_e( '— Delivery —', 'supertext-polylang' ); ?></option>
+				<option value=""><?php esc_html_e( 'Delivery', 'supertext-polylang' ); ?></option>
 				<?php foreach ( self::EXPRESS_OPTIONS as $value => $label ) : ?>
 					<option value="<?php echo esc_attr( $value ); ?>"><?php echo esc_html( $label ); ?></option>
 				<?php endforeach; ?>
