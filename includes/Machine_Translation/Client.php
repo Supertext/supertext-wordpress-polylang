@@ -441,16 +441,19 @@ class Client implements Client_Interface {
 			$args
 		);
 
-		$response = wp_remote_request( $this->route . ltrim( $endpoint, '/' ), $args );
+		$url      = $this->route . ltrim( $endpoint, '/' );
+		$response = wp_remote_request( $url, $args );
 		if ( is_wp_error( $response ) ) {
+			$this->debug_log( sprintf( '%s %s -> transport error: %s', $method, $url, $response->get_error_message() ) );
 			return $response;
 		}
 
-		$error = $this->check_status_code(
-			(int) wp_remote_retrieve_response_code( $response ),
-			(string) wp_remote_retrieve_body( $response )
-		);
+		$code = (int) wp_remote_retrieve_response_code( $response );
+		$body = (string) wp_remote_retrieve_body( $response );
+
+		$error = $this->check_status_code( $code, $body );
 		if ( $error->has_errors() ) {
+			$this->debug_log( sprintf( '%s %s -> HTTP %d | %s', $method, $url, $code, substr( $body, 0, 1000 ) ) );
 			return $error;
 		}
 
@@ -479,7 +482,7 @@ class Client implements Client_Interface {
 	 * @param string $body The response body.
 	 * @return WP_Error
 	 */
-	private function check_status_code( int $code, string $body = '' ): WP_Error { // phpcs:ignore VariableAnalysis.CodeAnalysis.VariableAnalysis.UnusedVariable
+	private function check_status_code( int $code, string $body = '' ): WP_Error {
 		if ( $code >= 200 && $code < 300 ) {
 			return new WP_Error();
 		}
@@ -487,23 +490,51 @@ class Client implements Client_Interface {
 		switch ( $code ) {
 			case 401:
 			case 403:
-				return new WP_Error( 'supertext_authentication_failure', __( 'Authentication failure. Please check your Supertext API key.', 'supertext-polylang' ) );
+				$errcode = 'supertext_authentication_failure';
+				$message = __( 'Authentication failure. Please check your Supertext API key.', 'supertext-polylang' );
+				break;
 			case 404:
-				return new WP_Error( 'supertext_not_found', __( 'The requested Supertext resource was not found.', 'supertext-polylang' ) );
+				$errcode = 'supertext_not_found';
+				$message = __( 'The requested Supertext resource was not found.', 'supertext-polylang' );
+				break;
 			case 413:
-				return new WP_Error( 'supertext_payload_too_large', __( 'The document is too large for Supertext to translate.', 'supertext-polylang' ) );
+				$errcode = 'supertext_payload_too_large';
+				$message = __( 'The document is too large for Supertext to translate.', 'supertext-polylang' );
+				break;
 			case 429:
-				return new WP_Error( 'supertext_too_many_requests', __( 'Too many requests to Supertext. Please try again shortly.', 'supertext-polylang' ) );
+				$errcode = 'supertext_too_many_requests';
+				$message = __( 'Too many requests to Supertext. Please try again shortly.', 'supertext-polylang' );
+				break;
 			case 500:
 			case 502:
 			case 503:
-				return new WP_Error( 'supertext_service_unavailable', __( 'Supertext service unavailable.', 'supertext-polylang' ) );
+				$errcode = 'supertext_service_unavailable';
+				$message = __( 'Supertext service unavailable.', 'supertext-polylang' );
+				break;
 			default:
-				return new WP_Error(
-					'supertext_unexpected_status_code',
-					/* translators: %d is an HTTP status code. */
-					sprintf( __( 'Supertext sent an unexpected status code %d.', 'supertext-polylang' ), $code )
-				);
+				$errcode = 'supertext_unexpected_status_code';
+				/* translators: %d is an HTTP status code. */
+				$message = sprintf( __( 'Supertext sent an unexpected status code %d.', 'supertext-polylang' ), $code );
+		}
+
+		// Surface the server's own message (helps diagnose 404s / bad requests).
+		$detail = wp_strip_all_tags( trim( $body ) );
+		if ( '' !== $detail ) {
+			$message .= ' — ' . mb_substr( $detail, 0, 200 );
+		}
+
+		return new WP_Error( $errcode, $message );
+	}
+
+	/**
+	 * Logs a diagnostic line when WP_DEBUG is on.
+	 *
+	 * @param string $message The message.
+	 * @return void
+	 */
+	private function debug_log( string $message ): void {
+		if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
+			error_log( '[supertext-polylang] ' . $message ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
 		}
 	}
 

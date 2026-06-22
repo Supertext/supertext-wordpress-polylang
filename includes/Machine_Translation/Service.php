@@ -104,19 +104,37 @@ class Service implements Service_Interface {
 	}
 
 	/**
-	 * Returns the service's logo as an svg vector.
+	 * Returns the service's logo.
+	 *
+	 * Uses the Supertext PNG logo (rendered raw by Polylang's metabox button and
+	 * settings). The block-editor sidebar builds its icon from
+	 * {@see get_icon_properties()} instead, where a raster can't be used — it falls
+	 * back to the SVG mark there.
 	 *
 	 * @return string
 	 */
 	public function get_icon(): string {
-		$p = $this->get_icon_properties();
+		$src = defined( 'SUPERTEXT_POLYLANG_FILE' )
+			? plugins_url( 'assets/icon-v2-128.png', SUPERTEXT_POLYLANG_FILE )
+			: '';
+
+		if ( '' === $src ) {
+			// Fallback to the vector mark if the plugin constant is unavailable.
+			$p = $this->get_icon_properties();
+			return sprintf(
+				'<svg width="%s" height="%s" xmlns="%s" viewBox="%s"><path d="%s"/></svg>',
+				$p['width'],
+				$p['height'],
+				$p['xmlns'],
+				$p['viewBox'],
+				$p['path_d']
+			);
+		}
+
 		return sprintf(
-			'<svg width="%s" height="%s" xmlns="%s" viewBox="%s"><path d="%s"/></svg>',
-			$p['width'],
-			$p['height'],
-			$p['xmlns'],
-			$p['viewBox'],
-			$p['path_d']
+			'<img src="%s" width="20" height="20" alt="%s" style="display:inline-block;vertical-align:middle;border-radius:3px;" />',
+			esc_url( $src ),
+			esc_attr( $this->get_name() )
 		);
 	}
 
