@@ -49,9 +49,12 @@ class Service implements Service_Interface {
 	public function __construct( $options, PLL_Model $model ) {
 		$this->service_options = array_merge(
 			array(
-				'api_key'   => '',
-				'endpoint'  => '',
-				'languages' => array(),
+				'api_key'       => '',
+				'endpoint'      => '',
+				'languages'     => array(),
+				'environment'   => 'live',
+				'human_email'   => '',
+				'human_api_key' => '',
 			),
 			is_array( $options ) ? $options : array()
 		);
@@ -183,6 +186,59 @@ class Service implements Service_Interface {
 					'type' => 'string',
 				),
 			),
+			// Human / professional translation order API (separate Basic credentials).
+			'environment'   => array(
+				'type' => 'string',
+				'enum' => array( 'testing', 'staging', 'live' ),
+			),
+			'human_email'   => array(
+				'type' => 'string',
+			),
+			'human_api_key' => array(
+				'type' => 'string',
+			),
+		);
+	}
+
+	/**
+	 * Base URL of the selected Supertext environment (for the human/order API).
+	 *
+	 * @var array<string, string>
+	 */
+	const ENVIRONMENTS = array(
+		'testing' => 'https://testing.supertext.com/',
+		'staging' => 'https://staging.supertext.com/',
+		'live'    => 'https://www.supertext.com/',
+	);
+
+	/**
+	 * Returns the configured Supertext environment slug.
+	 *
+	 * @return string
+	 */
+	public function get_environment(): string {
+		$env = (string) ( $this->service_options['environment'] ?? 'live' );
+		return isset( self::ENVIRONMENTS[ $env ] ) ? $env : 'live';
+	}
+
+	/**
+	 * Returns the base URL of the configured environment (for the human/order API).
+	 *
+	 * @return string
+	 */
+	public function get_human_base_url(): string {
+		return self::ENVIRONMENTS[ $this->get_environment() ];
+	}
+
+	/**
+	 * Returns the human/order API Basic-auth credentials (email + Legacy API Key).
+	 *
+	 * @return array{email: string, api_key: string}
+	 */
+	public function get_human_credentials(): array {
+		return array(
+			'email'   => (string) ( $this->service_options['human_email'] ?? '' ),
+			'api_key' => (string) ( $this->service_options['human_api_key'] ?? '' ),
 		);
 	}
 

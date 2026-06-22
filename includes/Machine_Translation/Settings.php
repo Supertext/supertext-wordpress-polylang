@@ -170,7 +170,80 @@ class Settings implements Settings_Interface {
 			</td>
 		</tr>
 		<?php
+		$this->print_human_fields();
 		$this->print_language_mapping();
+	}
+
+	/**
+	 * Prints the human-translation (order API) credential fields.
+	 *
+	 * The professional/human order API authenticates with HTTP Basic using the
+	 * account email + "Legacy API Key" — a separate credential from the AI API key
+	 * above — against the selected Supertext environment.
+	 *
+	 * @return void
+	 */
+	private function print_human_fields() {
+		$environment = (string) ( $this->options['environment'] ?? 'live' );
+		$email       = (string) ( $this->options['human_email'] ?? '' );
+		$legacy_key  = (string) ( $this->options['human_api_key'] ?? '' );
+
+		$environments = array(
+			'live'    => __( 'Live (www.supertext.com)', 'supertext-polylang' ),
+			'staging' => __( 'Staging (staging.supertext.com)', 'supertext-polylang' ),
+			'testing' => __( 'Testing (testing.supertext.com)', 'supertext-polylang' ),
+		);
+		?>
+		<tr>
+			<th scope="row"><?php esc_html_e( 'Human translation', 'supertext-polylang' ); ?></th>
+			<td>
+				<p class="description" style="margin-bottom:8px;">
+					<?php esc_html_e( 'Credentials for professional (human) translation orders. These use HTTP Basic auth with your account email and "Legacy API Key" — separate from the AI API key above.', 'supertext-polylang' ); ?>
+				</p>
+			</td>
+		</tr>
+		<tr>
+			<th scope="row"><label for="pll-supertext-environment"><?php esc_html_e( 'Environment', 'supertext-polylang' ); ?></label></th>
+			<td>
+				<select name="<?php echo esc_attr( $this->input_base_name . '[environment]' ); ?>" id="pll-supertext-environment">
+					<?php foreach ( $environments as $value => $label ) : ?>
+						<option value="<?php echo esc_attr( $value ); ?>" <?php selected( $environment, $value ); ?>>
+							<?php echo esc_html( $label ); ?>
+						</option>
+					<?php endforeach; ?>
+				</select>
+				<p class="description"><?php esc_html_e( 'Supertext environment for human-translation orders.', 'supertext-polylang' ); ?></p>
+			</td>
+		</tr>
+		<tr>
+			<th scope="row"><label for="pll-supertext-email"><?php esc_html_e( 'Account email', 'supertext-polylang' ); ?></label></th>
+			<td>
+				<input
+					name="<?php echo esc_attr( $this->input_base_name . '[human_email]' ); ?>"
+					id="pll-supertext-email"
+					type="email"
+					autocomplete="off"
+					class="regular-text"
+					value="<?php echo esc_attr( $email ); ?>"
+				/>
+				<p class="description"><?php esc_html_e( 'The email (username) of your Supertext account.', 'supertext-polylang' ); ?></p>
+			</td>
+		</tr>
+		<tr>
+			<th scope="row"><label for="pll-supertext-legacy-key"><?php esc_html_e( 'Legacy API Key', 'supertext-polylang' ); ?></label></th>
+			<td>
+				<input
+					name="<?php echo esc_attr( $this->input_base_name . '[human_api_key]' ); ?>"
+					id="pll-supertext-legacy-key"
+					type="password"
+					autocomplete="off"
+					class="regular-text"
+					value="<?php echo esc_attr( $legacy_key ); ?>"
+				/>
+				<p class="description"><?php esc_html_e( 'Your Supertext "Legacy API Key" (used with the account email for order requests).', 'supertext-polylang' ); ?></p>
+			</td>
+		</tr>
+		<?php
 	}
 
 	/**
