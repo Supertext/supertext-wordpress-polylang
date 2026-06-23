@@ -304,9 +304,9 @@ class Bulk_Actions {
 	 *
 	 * @param int    $post_id     Source post ID.
 	 * @param string $target_lang Target language slug.
-	 * @return bool
+	 * @return bool|WP_Error
 	 */
-	private static function ai_translate( int $post_id, string $target_lang ): bool {
+	private static function ai_translate( int $post_id, string $target_lang ) {
 		if ( ! function_exists( 'PLL' ) || ! isset( PLL()->model ) ) {
 			return false;
 		}
@@ -318,6 +318,19 @@ class Bulk_Actions {
 
 		if ( ! $post instanceof WP_Post || ! $lang ) {
 			return false;
+		}
+
+		$source = $model->post->get_language( $post_id );
+		if ( $source && $source->slug === $target_lang ) {
+			return new WP_Error(
+				'supertext_same_language',
+				sprintf(
+					/* translators: 1: post title, 2: language slug. */
+					__( '"%1$s": source and target language are the same (%2$s).', 'supertext-polylang' ),
+					get_the_title( $post_id ),
+					$target_lang
+				)
+			);
 		}
 
 		// Don't pre-create/translate if a translation already exists: Polylang's
@@ -381,6 +394,19 @@ class Bulk_Actions {
 
 		if ( ! $post instanceof WP_Post || ! $lang || ! $source ) {
 			return new WP_Error( 'supertext_invalid', __( 'Invalid post, or missing source/target language.', 'supertext-polylang' ) );
+		}
+
+		// Never order a translation into the post's own language.
+		if ( $source->slug === $target_lang ) {
+			return new WP_Error(
+				'supertext_same_language',
+				sprintf(
+					/* translators: 1: post title, 2: language slug. */
+					__( '"%1$s": source and target language are the same (%2$s).', 'supertext-polylang' ),
+					$post->post_title,
+					$target_lang
+				)
+			);
 		}
 
 		// Avoid placing a duplicate (paid) order for the same target language.
