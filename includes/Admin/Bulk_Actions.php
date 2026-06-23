@@ -403,17 +403,29 @@ class Bulk_Actions {
 			return $result;
 		}
 
+		// The order endpoint returns an array of order objects (one per target
+		// language). Capture the order id(s) so we can reconcile on callback.
+		$order_ids = array();
+		if ( is_array( $result ) ) {
+			foreach ( $result as $entry ) {
+				if ( is_array( $entry ) && isset( $entry['Id'] ) ) {
+					$order_ids[] = (int) $entry['Id'];
+				}
+			}
+		}
+
 		// Record the order so we can reconcile it when the callback is implemented.
 		update_post_meta(
 			$post_id,
 			'_supertext_order_' . $target_lang,
 			wp_json_encode(
 				array(
+					'order_ids'   => $order_ids,
 					'document_id' => $document_id,
 					'service_id'  => $service_id,
 					'delivery_id' => (int) $express,
 					'target'      => $lang->w3c,
-					'response'    => $result,
+					'ordered_at'  => gmdate( 'c' ),
 				)
 			)
 		);
