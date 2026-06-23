@@ -2,7 +2,7 @@
 /**
  * Plugin Name:       Supertext for Polylang
  * Plugin URI:        https://github.com/Supertext/supertext-wordpress-polylang
- * Description:       Adds Supertext as a native machine-translation service in Polylang Pro. Translates content directly through Supertext — no DeepL proxy required.
+ * Description:       Adds Supertext as a native machine-translation and human translation service in Polylang Pro.
  * Version:           0.1.0
  * Requires PHP:      8.1
  * Author:            Supertext
