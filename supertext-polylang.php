@@ -71,6 +71,9 @@ add_filter(
 // Register the plugin's own settings (human/order API credentials + environment).
 \Supertext\Polylang\Admin\Settings::init();
 
+// Register the "Orders" submenu (list / refresh / cancel human-translation orders).
+\Supertext\Polylang\Admin\Orders_Page::init();
+
 // Add the "Supertext AI/Human Translation" bulk actions to the posts list table.
 \Supertext\Polylang\Admin\Bulk_Actions::init();
 

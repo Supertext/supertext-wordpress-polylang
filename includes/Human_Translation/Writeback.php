@@ -122,6 +122,12 @@ class Writeback {
 
 		self::debug_log( sprintf( 'writeback done: post=%d lang=%s filled=%d', (int) $post_id, $lang, $filled ) );
 
+		// Update the order registry status (from the callback body if present).
+		$status = is_array( $body ) && ! empty( $body['Status'] ) ? (string) $body['Status'] : 'Completed';
+		foreach ( (array) $order_ids as $oid ) {
+			Orders::update( (int) $oid, array( 'status' => $status, 'completed_at' => gmdate( 'c' ) ) );
+		}
+
 		update_post_meta(
 			(int) $post_id,
 			'_supertext_order_completed_' . $lang,

@@ -15,6 +15,7 @@ use PLL_Export_Data_From_Posts;
 use Supertext\Polylang\Human_Translation\Callback as Human_Callback;
 use Supertext\Polylang\Human_Translation\Client as Human_Client;
 use Supertext\Polylang\Human_Translation\Content as Human_Content;
+use Supertext\Polylang\Human_Translation\Orders as Human_Orders;
 use WP_Syntex\Polylang_Pro\Modules\Machine_Translation\Data;
 use WP_Syntex\Polylang_Pro\Modules\Machine_Translation\Factory;
 use WP_Syntex\Polylang_Pro\Modules\Machine_Translation\Processor;
@@ -413,6 +414,22 @@ class Bulk_Actions {
 					$order_ids[] = (int) $entry['Id'];
 				}
 			}
+		}
+
+		// Add each order to the registry shown on the Orders admin page.
+		foreach ( $order_ids as $oid ) {
+			Human_Orders::record(
+				array(
+					'order_id'    => $oid,
+					'post_id'     => $post_id,
+					'lang'        => $target_lang,
+					'target'      => $lang->w3c,
+					'type_id'     => $service_id,
+					'delivery_id' => (int) $express,
+					'order_name'  => $title,
+					'status'      => 'New',
+				)
+			);
 		}
 
 		// Record the order so we can reconcile it when the callback is implemented.
