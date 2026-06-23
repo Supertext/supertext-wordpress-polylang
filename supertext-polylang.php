@@ -77,6 +77,9 @@ add_filter(
 // Register the REST callback Supertext calls when a human-translation order is done.
 \Supertext\Polylang\Human_Translation\Callback::init();
 
+// Write completed human-translation orders back into the target posts.
+\Supertext\Polylang\Human_Translation\Writeback::init();
+
 // Translate YOOtheme Pro page-builder layouts field-by-field (instead of as a JSON blob).
 \Supertext\Polylang\Integrations\YooTheme\Integration::init();
 

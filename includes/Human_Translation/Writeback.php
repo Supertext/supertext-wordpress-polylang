@@ -1,0 +1,221 @@
+<?php
+/**
+ * @package Supertext_Polylang
+ */
+
+namespace Supertext\Polylang\Human_Translation;
+
+defined( 'ABSPATH' ) || exit;
+
+use DOMDocument;
+use DOMXPath;
+use WP_Post;
+use PLL_Export_Container;
+use PLL_Export_Data_From_Posts;
+use Supertext\Polylang\Machine_Translation\Client as MT_Client;
+use WP_Syntex\Polylang_Pro\Modules\Machine_Translation\Data;
+use WP_Syntex\Polylang_Pro\Modules\Machine_Translation\Processor;
+
+/**
+ * Writes a completed human-translation order back into the target post.
+ *
+ * Hooked on the callback's `supertext_polylang_order_completed` action: downloads
+ * the Final file(s), parses them by `data-pll-id` (= base64 translation context),
+ * re-runs the export to get the matching entries, fills in the translations, and
+ * saves through Polylang's MT Processor — the same path the AI translation uses,
+ * so the YOOtheme/ACF write-back integrations apply automatically.
+ *
+ * @since 0.7.0
+ */
+class Writeback {
+	/**
+	 * Registers the hook.
+	 *
+	 * @return void
+	 */
+	public static function init(): void {
+		add_action( 'supertext_polylang_order_completed', array( self::class, 'process' ), 10, 4 );
+	}
+
+	/**
+	 * Processes a completed order callback.
+	 *
+	 * @param int[]  $order_ids Completed order id(s).
+	 * @param int    $post_id   Source post id (from ReferenceData).
+	 * @param string $lang      Target language slug (from ReferenceData).
+	 * @param mixed  $body      Raw decoded callback body (the order object).
+	 * @return void
+	 */
+	public static function process( $order_ids, $post_id, $lang, $body ): void {
+		if ( ! function_exists( 'PLL' ) || ! isset( PLL()->model ) ) {
+			return;
+		}
+
+		$polylang = PLL();
+		$model    = $polylang->model;
+		$post     = get_post( (int) $post_id );
+		$target   = $model->get_language( $lang );
+
+		if ( ! $post instanceof WP_Post || ! $target ) {
+			self::debug_log( sprintf( 'writeback aborted: post %d or language %s not found', (int) $post_id, $lang ) );
+			return;
+		}
+
+		$files = self::final_files( $body );
+		if ( empty( $files ) ) {
+			self::debug_log( 'writeback: no Final files in callback, nothing to do' );
+			return;
+		}
+
+		// Download + parse the translated file(s) into a context => translation map.
+		$client = new Client();
+		$map    = array();
+		foreach ( $files as $file ) {
+			$html = $client->download_file( (int) $file['Id'], (string) $file['Name'] );
+			if ( is_wp_error( $html ) ) {
+				self::debug_log( sprintf( 'writeback: failed to download file %d: %s', (int) $file['Id'], $html->get_error_message() ) );
+				continue;
+			}
+			$map += self::parse_html( $html );
+		}
+
+		if ( empty( $map ) ) {
+			self::debug_log( 'writeback: no translatable strings parsed from the downloaded file(s)' );
+			return;
+		}
+
+		// Rebuild the export container for the source post and fill in the translations.
+		$curlang_backup    = $polylang->curlang;
+		$polylang->curlang = null;
+
+		$container = new PLL_Export_Container( Data::class );
+		$export    = new PLL_Export_Data_From_Posts( $model );
+		$export->send_to_export( $container, array( $post ), $target, array( 'include_translated_items' => true ) );
+
+		$filled = 0;
+		foreach ( $container as $data ) {
+			if ( ! $data instanceof Data ) {
+				continue;
+			}
+			foreach ( $data->get() as $entities ) {
+				foreach ( $entities as $translations ) {
+					foreach ( $translations->entries as $entry ) {
+						if ( isset( $map[ $entry->context ] ) ) {
+							$entry->translations = array( $map[ $entry->context ] );
+							$filled++;
+						}
+					}
+				}
+			}
+		}
+
+		// Save through the MT processor (creates/updates the linked translation,
+		// runs the YOOtheme/ACF write-back). The client is unused by save().
+		$processor = new Processor( $polylang, new MT_Client( array() ) );
+		$result    = $processor->save( $container );
+
+		$polylang->curlang = $curlang_backup;
+
+		if ( is_wp_error( $result ) && $result->has_errors() ) {
+			self::debug_log( 'writeback save errors: ' . $result->get_error_message() );
+		}
+
+		self::debug_log( sprintf( 'writeback done: post=%d lang=%s filled=%d', (int) $post_id, $lang, $filled ) );
+
+		update_post_meta(
+			(int) $post_id,
+			'_supertext_order_completed_' . $lang,
+			wp_json_encode(
+				array(
+					'order_ids'   => array_map( 'intval', (array) $order_ids ),
+					'file_ids'    => array_map( static fn( $f ) => (int) $f['Id'], $files ),
+					'strings'     => $filled,
+					'completed_at' => gmdate( 'c' ),
+				)
+			)
+		);
+	}
+
+	/**
+	 * Returns the Final (translated) files from the callback body.
+	 *
+	 * @param mixed $body Decoded callback body.
+	 * @return array[] List of { Id, Name } file descriptors.
+	 */
+	private static function final_files( $body ): array {
+		$files = array();
+
+		if ( ! is_array( $body ) || empty( $body['Files'] ) || ! is_array( $body['Files'] ) ) {
+			return $files;
+		}
+
+		foreach ( $body['Files'] as $file ) {
+			if ( ! is_array( $file ) || ! isset( $file['Id'] ) ) {
+				continue;
+			}
+			if ( ( $file['DocumentType'] ?? '' ) !== 'Final' ) {
+				continue;
+			}
+			$files[] = array(
+				'Id'   => (int) $file['Id'],
+				'Name' => (string) ( $file['Name'] ?? ( $file['Id'] . '.html' ) ),
+			);
+		}
+
+		return $files;
+	}
+
+	/**
+	 * Parses translated HTML into a map of translation context => translated string.
+	 *
+	 * @param string $html Translated HTML document.
+	 * @return array<string, string>
+	 */
+	private static function parse_html( string $html ): array {
+		$out = array();
+
+		$dom      = new DOMDocument();
+		$previous = libxml_use_internal_errors( true );
+		$dom->loadHTML( '<?xml encoding="utf-8" ?>' . $html, LIBXML_NOERROR | LIBXML_NOWARNING );
+		libxml_clear_errors();
+		libxml_use_internal_errors( $previous );
+
+		$xpath = new DOMXPath( $dom );
+		$nodes = $xpath->query( '//div[@data-pll-id]' );
+		if ( false === $nodes ) {
+			return $out;
+		}
+
+		foreach ( $nodes as $node ) {
+			if ( ! $node instanceof \DOMElement ) {
+				continue;
+			}
+
+			$context = base64_decode( $node->getAttribute( 'data-pll-id' ), true );
+			if ( false === $context ) {
+				continue;
+			}
+
+			$inner = '';
+			foreach ( $node->childNodes as $child ) {
+				$inner .= (string) $dom->saveHTML( $child );
+			}
+
+			$out[ $context ] = trim( $inner );
+		}
+
+		return $out;
+	}
+
+	/**
+	 * Logs a diagnostic line when WP_DEBUG is on.
+	 *
+	 * @param string $message The message.
+	 * @return void
+	 */
+	private static function debug_log( string $message ): void {
+		if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
+			error_log( '[supertext-polylang][writeback] ' . $message ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
+		}
+	}
+}

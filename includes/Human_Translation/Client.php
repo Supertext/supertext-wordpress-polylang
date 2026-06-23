@@ -146,6 +146,22 @@ class Client {
 	}
 
 	/**
+	 * Downloads a translated file by its document id.
+	 *
+	 * @param int    $file_id The Supertext file/document id.
+	 * @param string $name    The file name (as given in the callback).
+	 * @return string|WP_Error The file contents (HTML) on success.
+	 */
+	public function download_file( int $file_id, string $name ) {
+		$response = $this->request( 'GET', 'storage/file/' . $file_id . '/' . rawurlencode( $name ) );
+		if ( is_wp_error( $response ) ) {
+			return $response;
+		}
+
+		return (string) wp_remote_retrieve_body( $response );
+	}
+
+	/**
 	 * Performs an authenticated request against the human/order API.
 	 *
 	 * @param string $method   HTTP method.
