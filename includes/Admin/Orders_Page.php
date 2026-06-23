@@ -144,6 +144,17 @@ class Orders_Page {
 	}
 
 	/**
+	 * Statuses considered "collected" (hidden by the "In progress" filter).
+	 *
+	 * @return string[] Lower-cased status strings.
+	 */
+	private static function collected_statuses(): array {
+		/** @var string[] $statuses */
+		$statuses = apply_filters( 'supertext_polylang_collected_statuses', array( 'Collected' ) );
+		return array_map( 'strtolower', array_map( 'strval', $statuses ) );
+	}
+
+	/**
 	 * Renders the orders table.
 	 *
 	 * @return void
@@ -165,6 +176,15 @@ class Orders_Page {
 		}
 
 		$orders = Orders::all();
+
+		// Status filter: "in_progress" (default) hides collected orders; "all" shows everything.
+		$view         = ( isset( $_GET['view'] ) && 'all' === sanitize_key( wp_unslash( $_GET['view'] ) ) ) ? 'all' : 'in_progress'; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+		$collected    = self::collected_statuses();
+		$is_collected = static function ( $order ) use ( $collected ) {
+			return in_array( strtolower( (string) ( $order['status'] ?? '' ) ), $collected, true );
+		};
+		$in_progress_count = count( array_filter( $orders, static fn( $o ) => ! $is_collected( $o ) ) );
+		$visible           = 'all' === $view ? $orders : array_filter( $orders, static fn( $o ) => ! $is_collected( $o ) );
 		?>
 		<div class="wrap">
 			<h1><?php esc_html_e( 'Supertext Orders', 'supertext-polylang' ); ?></h1>
@@ -194,7 +214,19 @@ class Orders_Page {
 			<?php if ( empty( $orders ) ) : ?>
 				<p><?php esc_html_e( 'No orders yet.', 'supertext-polylang' ); ?></p>
 			<?php else : ?>
-				<table class="widefat striped">
+				<ul class="subsubsub">
+					<li>
+						<a href="<?php echo esc_url( admin_url( 'admin.php?page=' . self::SLUG ) ); ?>" class="<?php echo 'in_progress' === $view ? 'current' : ''; ?>">
+							<?php esc_html_e( 'In progress', 'supertext-polylang' ); ?> <span class="count">(<?php echo (int) $in_progress_count; ?>)</span>
+						</a> |
+					</li>
+					<li>
+						<a href="<?php echo esc_url( admin_url( 'admin.php?page=' . self::SLUG . '&view=all' ) ); ?>" class="<?php echo 'all' === $view ? 'current' : ''; ?>">
+							<?php esc_html_e( 'All', 'supertext-polylang' ); ?> <span class="count">(<?php echo (int) count( $orders ); ?>)</span>
+						</a>
+					</li>
+				</ul>
+				<table class="widefat striped" style="clear:both;">
 					<thead>
 						<tr>
 							<th><?php esc_html_e( 'Order', 'supertext-polylang' ); ?></th>
@@ -208,7 +240,10 @@ class Orders_Page {
 						</tr>
 					</thead>
 					<tbody>
-						<?php foreach ( $orders as $order ) : ?>
+						<?php if ( empty( $visible ) ) : ?>
+							<tr><td colspan="8"><?php esc_html_e( 'No orders to show in this view.', 'supertext-polylang' ); ?></td></tr>
+						<?php endif; ?>
+						<?php foreach ( $visible as $order ) : ?>
 							<?php
 							$type_label     = Bulk_Actions::HUMAN_SERVICES[ (int) $order['type_id'] ] ?? (string) $order['type_id'];
 							$delivery_label = Bulk_Actions::EXPRESS_OPTIONS[ (string) $order['delivery_id'] ] ?? (string) $order['delivery_id'];
