@@ -207,7 +207,15 @@ class Orders_Page {
 				<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
 					<input type="hidden" name="action" value="<?php echo esc_attr( self::REFRESH_ACTION ); ?>" />
 					<?php wp_nonce_field( self::REFRESH_ACTION ); ?>
-					<?php submit_button( __( 'Refresh statuses', 'supertext-polylang' ), 'secondary', 'submit', false ); ?>
+					<?php
+					submit_button(
+						__( 'Refresh statuses', 'supertext-polylang' ),
+						'secondary',
+						'submit',
+						false,
+						array( 'title' => esc_attr__( 'Refreshes each order\'s status from the Supertext system.', 'supertext-polylang' ) )
+					);
+					?>
 				</form>
 			</p>
 
