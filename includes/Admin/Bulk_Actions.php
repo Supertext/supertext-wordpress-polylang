@@ -544,7 +544,8 @@ class Bulk_Actions {
 				/* translators: 1: number of posts, 2: translation type */
 				: _n( '%1$d order submitted to Supertext %2$s.', '%1$d orders submitted to Supertext %2$s.', $created, 'supertext-polylang' );
 
-			$message = sprintf( $template, $created, $label );
+			$count_message = sprintf( $template, $created, $label );
+			$orders_html   = '';
 
 			if ( self::ACTION_HUMAN === $action ) {
 				$order_key = 'supertext_polylang_bulk_orders_' . get_current_user_id();
@@ -552,17 +553,27 @@ class Bulk_Actions {
 				delete_transient( $order_key );
 
 				if ( is_array( $order_ids ) && ! empty( $order_ids ) ) {
-					$message .= ' ' . sprintf(
-						/* translators: %s is a comma-separated list of order ids. */
-						_n( 'Order ID: %s', 'Order IDs: %s', count( $order_ids ), 'supertext-polylang' ),
-						implode( ', ', array_map( 'intval', $order_ids ) )
+					$links = array();
+					foreach ( $order_ids as $oid ) {
+						$oid     = (int) $oid;
+						$links[] = sprintf(
+							'<a href="%s" target="_blank" rel="noopener">%d</a>',
+							esc_url( Settings::order_url( $oid ) ),
+							$oid
+						);
+					}
+					$orders_html = ' ' . sprintf(
+						/* translators: %s is a comma-separated list of order id links. */
+						esc_html( _n( 'Order ID: %s', 'Order IDs: %s', count( $order_ids ), 'supertext-polylang' ) ),
+						implode( ', ', $links )
 					);
 				}
 			}
 
 			printf(
-				'<div class="notice notice-success is-dismissible"><p>%s</p></div>',
-				esc_html( $message )
+				'<div class="notice notice-success is-dismissible"><p>%s%s</p></div>',
+				esc_html( $count_message ),
+				$orders_html // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- order ids + URLs escaped above.
 			);
 		}
 

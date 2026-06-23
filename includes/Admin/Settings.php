@@ -131,6 +131,19 @@ class Settings {
 	}
 
 	/**
+	 * Returns the URL of an order's detail page in the configured environment,
+	 * e.g. https://www.supertext.com/en/orders/737522.
+	 *
+	 * @param int $order_id The order id.
+	 * @return string
+	 */
+	public static function order_url( int $order_id ): string {
+		/** @var string $locale */
+		$locale = apply_filters( 'supertext_polylang_order_url_locale', 'en' );
+		return self::base_url() . $locale . '/orders/' . $order_id;
+	}
+
+	/**
 	 * Returns the human/order API account email.
 	 *
 	 * @return string

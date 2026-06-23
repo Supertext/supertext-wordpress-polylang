@@ -233,7 +233,11 @@ class Orders_Page {
 							$is_open        = empty( $order['completed_at'] ) && 'Cancelled' !== ( $order['status'] ?? '' );
 							?>
 							<tr>
-								<td><?php echo esc_html( (string) $order['order_id'] ); ?></td>
+								<td>
+									<a href="<?php echo esc_url( Settings::order_url( (int) $order['order_id'] ) ); ?>" target="_blank" rel="noopener">
+										<?php echo esc_html( (string) $order['order_id'] ); ?>
+									</a>
+								</td>
 								<td>
 									<?php if ( $order['post_id'] ) : ?>
 										<a href="<?php echo esc_url( get_edit_post_link( (int) $order['post_id'] ) ); ?>">
