@@ -166,17 +166,6 @@ class Client {
 	}
 
 	/**
-	 * Cancels an order by setting its status.
-	 *
-	 * @param int $order_id  The order id.
-	 * @param int $status_id The "cancelled" status id.
-	 * @return array|WP_Error
-	 */
-	public function cancel_order( int $order_id, int $status_id ) {
-		return $this->request( 'PUT', 'api/v1/order/status/' . $order_id . '/' . $status_id );
-	}
-
-	/**
 	 * Downloads a translated file by its document id.
 	 *
 	 * @param int    $file_id The Supertext file/document id.

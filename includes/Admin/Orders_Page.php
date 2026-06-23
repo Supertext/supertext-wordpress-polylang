@@ -73,19 +73,10 @@ class Orders_Page {
 	}
 
 	/**
-	 * The "cancelled" status id used to cancel an order.
-	 *
-	 * Set via the `supertext_polylang_cancel_status_id` filter. 0 disables cancel
-	 * until the correct id is configured.
-	 *
-	 * @return int
-	 */
-	private static function cancel_status_id(): int {
-		return (int) apply_filters( 'supertext_polylang_cancel_status_id', 0 );
-	}
-
-	/**
 	 * Handles cancelling an order.
+	 *
+	 * This is an internal cancel: it marks the order Cancelled and removes the
+	 * per-post lock so the post can be ordered again. It does not call Supertext.
 	 *
 	 * @return void
 	 */
@@ -95,22 +86,18 @@ class Orders_Page {
 		}
 		check_admin_referer( self::CANCEL_ACTION );
 
-		$order_id  = isset( $_POST['order_id'] ) ? (int) $_POST['order_id'] : 0;
-		$status_id = self::cancel_status_id();
+		$order_id = isset( $_POST['order_id'] ) ? (int) $_POST['order_id'] : 0;
+		$order    = $order_id > 0 ? Orders::get( $order_id ) : null;
 
-		if ( $order_id <= 0 ) {
-			self::notice( 'error', __( 'Missing order id.', 'supertext-polylang' ) );
-		} elseif ( $status_id <= 0 ) {
-			self::notice( 'error', __( 'Cancelling is not configured yet (cancel status id is unknown).', 'supertext-polylang' ) );
+		if ( null === $order ) {
+			self::notice( 'error', __( 'Order not found.', 'supertext-polylang' ) );
 		} else {
-			$result = ( new Human_Client() )->cancel_order( $order_id, $status_id );
-			if ( is_wp_error( $result ) ) {
-				/* translators: %s is an error message. */
-				self::notice( 'error', sprintf( __( 'Could not cancel the order: %s', 'supertext-polylang' ), $result->get_error_message() ) );
-			} else {
-				Orders::update( $order_id, array( 'status' => 'Cancelled' ) );
-				self::notice( 'success', __( 'Order cancelled.', 'supertext-polylang' ) );
+			// Remove the per-post/language lock so the post can be ordered again.
+			if ( ! empty( $order['post_id'] ) && ! empty( $order['lang'] ) ) {
+				delete_post_meta( (int) $order['post_id'], '_supertext_order_' . $order['lang'] );
 			}
+			Orders::update( $order_id, array( 'status' => 'Cancelled' ) );
+			self::notice( 'success', __( 'Order cancelled. You can order this post again.', 'supertext-polylang' ) );
 		}
 
 		wp_safe_redirect( admin_url( 'admin.php?page=' . self::SLUG ) );
@@ -177,8 +164,7 @@ class Orders_Page {
 			);
 		}
 
-		$orders        = Orders::all();
-		$can_cancel_id = self::cancel_status_id() > 0;
+		$orders = Orders::all();
 		?>
 		<div class="wrap">
 			<h1><?php esc_html_e( 'Supertext Orders', 'supertext-polylang' ); ?></h1>
@@ -229,15 +215,13 @@ class Orders_Page {
 								<td><?php echo esc_html( (string) ( $order['status'] ?? '' ) ); ?></td>
 								<td><?php echo esc_html( (string) ( $order['created_at'] ?? '' ) ); ?></td>
 								<td>
-									<?php if ( $is_open && $can_cancel_id ) : ?>
-										<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" onsubmit="return confirm('<?php echo esc_js( __( 'Cancel this order?', 'supertext-polylang' ) ); ?>');">
+									<?php if ( $is_open ) : ?>
+										<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" onsubmit="return confirm('<?php echo esc_js( __( 'Cancel this order? You will be able to order this post again.', 'supertext-polylang' ) ); ?>');">
 											<input type="hidden" name="action" value="<?php echo esc_attr( self::CANCEL_ACTION ); ?>" />
 											<input type="hidden" name="order_id" value="<?php echo esc_attr( (string) $order['order_id'] ); ?>" />
 											<?php wp_nonce_field( self::CANCEL_ACTION ); ?>
 											<?php submit_button( __( 'Cancel', 'supertext-polylang' ), 'delete small', 'submit', false ); ?>
 										</form>
-									<?php elseif ( $is_open ) : ?>
-										<span class="description"><?php esc_html_e( 'Cancel unavailable', 'supertext-polylang' ); ?></span>
 									<?php else : ?>
 										—
 									<?php endif; ?>
@@ -246,9 +230,6 @@ class Orders_Page {
 						<?php endforeach; ?>
 					</tbody>
 				</table>
-				<?php if ( ! $can_cancel_id ) : ?>
-					<p class="description"><?php esc_html_e( 'Cancelling is disabled until the Supertext "cancelled" status id is configured.', 'supertext-polylang' ); ?></p>
-				<?php endif; ?>
 			<?php endif; ?>
 		</div>
 		<?php
