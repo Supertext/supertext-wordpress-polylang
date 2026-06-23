@@ -35,6 +35,18 @@ class Content {
 	 * @return string
 	 */
 	public static function build_html( WP_Post $post, PLL_Language $target_lang, PLL_Model $model ): string {
+		return self::render( self::collect( $post, $target_lang, $model ) );
+	}
+
+	/**
+	 * Collects the translatable entries for a post via the export pipeline.
+	 *
+	 * @param WP_Post      $post        Source post.
+	 * @param PLL_Language $target_lang Target language.
+	 * @param PLL_Model    $model       Polylang model.
+	 * @return array<int, array{context: string, singular: string}>
+	 */
+	public static function collect( WP_Post $post, PLL_Language $target_lang, PLL_Model $model ): array {
 		$container = new PLL_Export_Container( Data::class );
 		$export    = new PLL_Export_Data_From_Posts( $model );
 
@@ -43,25 +55,41 @@ class Content {
 		// drops the post and we'd build an empty file ("no translatable content").
 		$export->send_to_export( $container, array( $post ), $target_lang, array( 'include_translated_items' => true ) );
 
-		$html = "<!DOCTYPE html>\n<html><head><meta charset=\"utf-8\"></head><body>\n";
-
+		$entries = array();
 		foreach ( $container as $data ) {
 			if ( ! $data instanceof Data ) {
 				continue;
 			}
-
 			foreach ( $data->get() as $entities ) {
 				foreach ( $entities as $translations ) {
 					foreach ( $translations->entries as $entry ) {
 						if ( '' === $entry->singular ) {
 							continue;
 						}
-
-						$marker = base64_encode( (string) $entry->context );
-						$html  .= '<div data-pll-id="' . esc_attr( $marker ) . '">' . $entry->singular . "</div>\n";
+						$entries[] = array(
+							'context'  => (string) $entry->context,
+							'singular' => (string) $entry->singular,
+						);
 					}
 				}
 			}
+		}
+
+		return $entries;
+	}
+
+	/**
+	 * Renders collected entries into the HTML document for upload.
+	 *
+	 * @param array<int, array{context: string, singular: string}> $entries Entries.
+	 * @return string
+	 */
+	public static function render( array $entries ): string {
+		$html = "<!DOCTYPE html>\n<html><head><meta charset=\"utf-8\"></head><body>\n";
+
+		foreach ( $entries as $entry ) {
+			$marker = base64_encode( $entry['context'] );
+			$html  .= '<div data-pll-id="' . esc_attr( $marker ) . '">' . $entry['singular'] . "</div>\n";
 		}
 
 		$html .= '</body></html>';

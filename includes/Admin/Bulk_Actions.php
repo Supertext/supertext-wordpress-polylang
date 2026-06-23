@@ -396,10 +396,24 @@ class Bulk_Actions {
 			);
 		}
 
-		$html = Human_Content::build_html( $post, $lang, $model );
-		if ( '' === trim( wp_strip_all_tags( $html ) ) ) {
-			return new WP_Error( 'supertext_empty', __( 'No translatable content found in this post.', 'supertext-polylang' ) );
+		$entries = Human_Content::collect( $post, $lang, $model );
+		if ( empty( $entries ) ) {
+			$is_yoo = \Supertext\Polylang\Integrations\YooTheme\Layout::is_layout( (string) $post->post_content );
+			return new WP_Error(
+				'supertext_empty',
+				sprintf(
+					/* translators: 1: source lang, 2: target lang, 3: builder type, 4: content length, 5: title length. */
+					__( 'No translatable content found in this post. (source=%1$s, target=%2$s, builder=%3$s, content=%4$d bytes, title=%5$d chars)', 'supertext-polylang' ),
+					$source->slug,
+					$lang->w3c,
+					$is_yoo ? 'yootheme' : 'standard',
+					strlen( (string) $post->post_content ),
+					strlen( (string) $post->post_title )
+				)
+			);
 		}
+
+		$html = Human_Content::render( $entries );
 
 		$title    = '' !== $post->post_title ? $post->post_title : 'post-' . $post_id;
 		$filename = sanitize_file_name( $title );
