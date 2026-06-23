@@ -13,12 +13,15 @@ use WP_REST_Response;
 /**
  * REST callback that Supertext calls when a human-translation order is done.
  *
- * The request body looks like the order object(s); we only need the order `Id`.
- * For now this is a placeholder that authenticates the request and extracts the
- * order id(s) — fetching and writing back the translated files is the next step.
+ * The request body looks like the order object(s). We identify and authenticate
+ * the callback via the `ReferenceData` field we set on the order — a signed
+ * `{post_id}:{lang}:{hmac}` string (HMAC of post+lang with a site secret). Because
+ * the secret travels in the signed token (not the URL) and comes back with the
+ * callback, an attacker can't forge a valid ReferenceData, so the public endpoint
+ * only acts on genuine callbacks.
  *
- * The endpoint is public (Supertext's servers call it), so it is protected by a
- * shared token embedded in the callback URL.
+ * Fetching/writing back the translated files is the next step; for now this
+ * authenticates, identifies the post + language, and extracts the order id(s).
  *
  * @since 0.6.0
  */
@@ -38,11 +41,11 @@ class Callback {
 	const ROUTE = '/order-callback';
 
 	/**
-	 * Option storing the shared callback token.
+	 * Option storing the site secret used to sign ReferenceData.
 	 *
 	 * @var string
 	 */
-	const TOKEN_OPTION = 'supertext_polylang_callback_token';
+	const SECRET_OPTION = 'supertext_polylang_callback_token';
 
 	/**
 	 * Registers the REST route.
@@ -54,7 +57,8 @@ class Callback {
 	}
 
 	/**
-	 * Registers the callback route.
+	 * Registers the callback route. It is public; authentication is done via the
+	 * signed `ReferenceData` in the body.
 	 *
 	 * @return void
 	 */
@@ -65,80 +69,160 @@ class Callback {
 			array(
 				'methods'             => 'POST',
 				'callback'            => array( self::class, 'handle' ),
-				'permission_callback' => array( self::class, 'verify_token' ),
+				'permission_callback' => '__return_true',
 			)
 		);
 	}
 
 	/**
-	 * Returns the full callback URL (including the security token) to send with orders.
+	 * Returns the callback URL to send with orders.
 	 *
 	 * @return string
 	 */
 	public static function url(): string {
-		return add_query_arg( 'token', self::token(), rest_url( self::NS . self::ROUTE ) );
+		return rest_url( self::NS . self::ROUTE );
 	}
 
 	/**
-	 * Returns the shared token, creating it on first use.
+	 * Builds the signed `ReferenceData` value for an order: `{post_id}:{lang}:{hmac}`.
 	 *
+	 * @param int    $post_id Source post ID.
+	 * @param string $lang    Target language slug.
 	 * @return string
 	 */
-	public static function token(): string {
-		$token = get_option( self::TOKEN_OPTION );
-		if ( ! is_string( $token ) || '' === $token ) {
-			$token = wp_generate_password( 32, false );
-			update_option( self::TOKEN_OPTION, $token, false );
-		}
-		return $token;
+	public static function reference_data( int $post_id, string $lang ): string {
+		return $post_id . ':' . $lang . ':' . self::sign( $post_id, $lang );
 	}
 
 	/**
-	 * Verifies the request token.
-	 *
-	 * @param WP_REST_Request $request Request.
-	 * @return bool
-	 */
-	public static function verify_token( WP_REST_Request $request ): bool {
-		$provided = (string) $request->get_param( 'token' );
-		return '' !== $provided && hash_equals( self::token(), $provided );
-	}
-
-	/**
-	 * Handles the callback: extracts the order id(s) from the body.
+	 * Handles the callback: authenticates via ReferenceData, then extracts the
+	 * order id(s) and identifies the target post + language.
 	 *
 	 * @param WP_REST_Request $request Request.
 	 * @return WP_REST_Response
 	 */
 	public static function handle( WP_REST_Request $request ): WP_REST_Response {
-		$body      = $request->get_json_params();
+		$body    = $request->get_json_params();
+		$context = self::parse_reference_data( self::extract_reference_data( $body ) );
+
+		if ( null === $context ) {
+			self::debug_log( 'callback rejected: invalid or missing ReferenceData' );
+			return new WP_REST_Response( array( 'ok' => false, 'message' => 'Invalid or missing ReferenceData.' ), 403 );
+		}
+
 		$order_ids = self::extract_order_ids( $body );
 
-		self::debug_log( 'callback received, order ids: ' . wp_json_encode( $order_ids ) );
-
-		if ( empty( $order_ids ) ) {
-			return new WP_REST_Response( array( 'ok' => false, 'message' => 'No order id found in request body.' ), 400 );
-		}
+		self::debug_log(
+			sprintf( 'callback ok: post=%d lang=%s orders=%s', $context['post_id'], $context['lang'], wp_json_encode( $order_ids ) )
+		);
 
 		/**
 		 * Fires when Supertext reports a completed human-translation order.
 		 *
 		 * Next step will hook this to fetch the translated files for each order id
-		 * and write them back into the corresponding posts.
+		 * and write them back into the target post/language.
 		 *
 		 * @since 0.6.0
 		 *
-		 * @param int[] $order_ids The completed order id(s).
-		 * @param mixed $body      The raw decoded request body.
+		 * @param int[]  $order_ids The completed order id(s).
+		 * @param int    $post_id   The source post id (from ReferenceData).
+		 * @param string $lang      The target language slug (from ReferenceData).
+		 * @param mixed  $body      The raw decoded request body.
 		 */
-		do_action( 'supertext_polylang_order_completed', $order_ids, $body );
+		do_action( 'supertext_polylang_order_completed', $order_ids, $context['post_id'], $context['lang'], $body );
 
-		return new WP_REST_Response( array( 'ok' => true, 'received' => $order_ids ), 200 );
+		return new WP_REST_Response(
+			array(
+				'ok'       => true,
+				'post'     => $context['post_id'],
+				'lang'     => $context['lang'],
+				'received' => $order_ids,
+			),
+			200
+		);
 	}
 
 	/**
-	 * Extracts order id(s) from the callback body, which may be a single order
-	 * object or an array of them.
+	 * Returns the site secret, creating it on first use.
+	 *
+	 * @return string
+	 */
+	public static function secret(): string {
+		$secret = get_option( self::SECRET_OPTION );
+		if ( ! is_string( $secret ) || '' === $secret ) {
+			$secret = wp_generate_password( 32, false );
+			update_option( self::SECRET_OPTION, $secret, false );
+		}
+		return $secret;
+	}
+
+	/**
+	 * Computes the HMAC for a post + language.
+	 *
+	 * @param int    $post_id Post ID.
+	 * @param string $lang    Language slug.
+	 * @return string
+	 */
+	private static function sign( int $post_id, string $lang ): string {
+		return hash_hmac( 'sha256', $post_id . ':' . $lang, self::secret() );
+	}
+
+	/**
+	 * Validates a `ReferenceData` string and returns its post id + language.
+	 *
+	 * @param string $reference The reference string.
+	 * @return array{post_id: int, lang: string}|null Null if invalid.
+	 */
+	private static function parse_reference_data( string $reference ) {
+		$parts = explode( ':', $reference, 3 );
+		if ( count( $parts ) !== 3 ) {
+			return null;
+		}
+
+		list( $post_id, $lang, $token ) = $parts;
+		$post_id = (int) $post_id;
+
+		if ( $post_id <= 0 || '' === $lang ) {
+			return null;
+		}
+
+		if ( ! hash_equals( self::sign( $post_id, $lang ), (string) $token ) ) {
+			return null;
+		}
+
+		return array(
+			'post_id' => $post_id,
+			'lang'    => $lang,
+		);
+	}
+
+	/**
+	 * Extracts the `ReferenceData` value from the callback body (single order
+	 * object or an array of them).
+	 *
+	 * @param mixed $body Decoded JSON body.
+	 * @return string
+	 */
+	private static function extract_reference_data( $body ): string {
+		if ( ! is_array( $body ) ) {
+			return '';
+		}
+
+		if ( isset( $body['ReferenceData'] ) && is_string( $body['ReferenceData'] ) ) {
+			return $body['ReferenceData'];
+		}
+
+		foreach ( $body as $entry ) {
+			if ( is_array( $entry ) && isset( $entry['ReferenceData'] ) && is_string( $entry['ReferenceData'] ) ) {
+				return $entry['ReferenceData'];
+			}
+		}
+
+		return '';
+	}
+
+	/**
+	 * Extracts order id(s) from the callback body.
 	 *
 	 * @param mixed $body Decoded JSON body.
 	 * @return int[]
@@ -152,12 +236,11 @@ class Callback {
 
 		if ( isset( $body['Id'] ) ) {
 			$ids[] = (int) $body['Id'];
-			return $ids;
-		}
-
-		foreach ( $body as $entry ) {
-			if ( is_array( $entry ) && isset( $entry['Id'] ) ) {
-				$ids[] = (int) $entry['Id'];
+		} else {
+			foreach ( $body as $entry ) {
+				if ( is_array( $entry ) && isset( $entry['Id'] ) ) {
+					$ids[] = (int) $entry['Id'];
+				}
 			}
 		}
 

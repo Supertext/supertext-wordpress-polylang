@@ -389,7 +389,7 @@ class Bulk_Actions {
 			'ComponentVersion'         => SUPERTEXT_POLYLANG_VERSION,
 			'SourceLang'               => (string) strtok( (string) $source->w3c, '-' ), // 2-letter primary subtag.
 			'TargetLanguages'          => array( $lang->w3c ),
-			'ReferenceData'            => (string) $post_id,
+			'ReferenceData'            => Human_Callback::reference_data( $post_id, $target_lang ),
 			'CallbackUrl'              => Human_Callback::url(),
 			'Files'                    => array(
 				array(
