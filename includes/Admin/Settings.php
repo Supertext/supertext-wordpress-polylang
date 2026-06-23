@@ -253,7 +253,19 @@ class Settings {
 							class="regular-text"
 							value="<?php echo esc_attr( $current['human_api_key'] ); ?>"
 						/>
-						<p class="description"><?php esc_html_e( 'Your Supertext "Legacy API Key" (used with the account email, via HTTP Basic auth, for order requests).', 'supertext-polylang' ); ?></p>
+						<p class="description">
+							<?php
+							printf(
+								/* translators: %s is a link to the Supertext account settings page. */
+								esc_html__( 'Your Supertext "Legacy API Key" (used with the account email, via HTTP Basic auth, for order requests). Find it in your %s.', 'supertext-polylang' ),
+								sprintf(
+									'<a href="%s" target="_blank" rel="noopener">%s</a>',
+									esc_url( self::base_url() . 'services/customer/accountsettings' ),
+									esc_html__( 'Supertext account settings', 'supertext-polylang' )
+								)
+							); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- link built from escaped parts.
+							?>
+						</p>
 					</td>
 				</tr>
 				<tr>

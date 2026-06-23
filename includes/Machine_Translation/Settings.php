@@ -149,7 +149,17 @@ class Settings implements Settings_Interface {
 					value="<?php echo esc_attr( $api_key ); ?>"
 				/>
 				<p class="description">
-					<?php esc_html_e( 'Your Supertext API key. The service becomes active once a key is saved.', 'supertext-polylang' ); ?>
+					<?php
+					printf(
+						/* translators: %s is a link to the Supertext API integrations page. */
+						esc_html__( 'Your Supertext API key. The service becomes active once a key is saved. Generate it on %s (requires the Admin role).', 'supertext-polylang' ),
+						sprintf(
+							'<a href="%s" target="_blank" rel="noopener">%s</a>',
+							esc_url( 'https://www.supertext.com/en/integrations/api' ),
+							esc_html__( 'supertext.com → Integrations → API', 'supertext-polylang' )
+						)
+					); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- link built from escaped parts.
+					?>
 				</p>
 			</td>
 		</tr>
