@@ -59,7 +59,7 @@ class Callback {
 	 *
 	 * @var int
 	 */
-	const LOG_MAX = 5;
+	const LOG_MAX = 1;
 
 	/**
 	 * Registers the REST route.
