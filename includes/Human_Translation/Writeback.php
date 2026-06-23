@@ -109,6 +109,13 @@ class Writeback {
 			}
 		}
 
+		// Polylang's create_post_translation() uses get_default_post_to_edit(), an
+		// admin-only function that isn't loaded during a REST callback. Load it so
+		// saving works outside wp-admin.
+		if ( ! function_exists( 'get_default_post_to_edit' ) ) {
+			require_once ABSPATH . 'wp-admin/includes/post.php';
+		}
+
 		// Save through the MT processor (creates/updates the linked translation,
 		// runs the YOOtheme/ACF write-back). The client is unused by save().
 		$processor = new Processor( $polylang, new MT_Client( array() ) );
