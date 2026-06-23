@@ -40,6 +40,17 @@ class Client implements Client_Interface {
 	const DEFAULT_ROUTE = 'https://api.supertext.com/v1/';
 
 	/**
+	 * Selectable AI API environments => base URL.
+	 *
+	 * @var array<string, string>
+	 */
+	const ENVIRONMENTS = array(
+		'live'    => 'https://api.supertext.com/v1/',
+		'staging' => 'https://api.staging.supertext.com/v1/',
+		'testing' => 'https://api.testing.supertext.com/v1/',
+	);
+
+	/**
 	 * The Supertext API key.
 	 *
 	 * @var string

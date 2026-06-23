@@ -164,19 +164,17 @@ class Settings implements Settings_Interface {
 			</td>
 		</tr>
 		<tr>
-			<th scope="row"><label for="pll-supertext-endpoint"><?php esc_html_e( 'API endpoint', 'supertext-polylang' ); ?></label></th>
+			<th scope="row"><label for="pll-supertext-endpoint"><?php esc_html_e( 'Environment', 'supertext-polylang' ); ?></label></th>
 			<td>
-				<input
-					name="<?php echo esc_attr( $this->input_base_name . '[endpoint]' ); ?>"
-					id="pll-supertext-endpoint"
-					type="url"
-					class="regular-text"
-					placeholder="<?php echo esc_attr( Client::DEFAULT_ROUTE ); ?>"
-					value="<?php echo esc_attr( $endpoint ); ?>"
-				/>
-				<p class="description">
-					<?php esc_html_e( 'Optional. Override the translation API base URL. Leave empty to use the default.', 'supertext-polylang' ); ?>
-				</p>
+				<select name="<?php echo esc_attr( $this->input_base_name . '[endpoint]' ); ?>" id="pll-supertext-endpoint">
+					<?php foreach ( Client::ENVIRONMENTS as $key => $url ) : ?>
+						<?php $is_selected = ( $endpoint === $url ) || ( '' === $endpoint && 'live' === $key ); ?>
+						<option value="<?php echo esc_attr( $url ); ?>" <?php selected( $is_selected, true ); ?>>
+							<?php echo esc_html( ucfirst( $key ) . ' (' . preg_replace( '#^https?://#', '', rtrim( $url, '/' ) ) . ')' ); ?>
+						</option>
+					<?php endforeach; ?>
+				</select>
+				<p class="description"><?php esc_html_e( 'Supertext environment for AI machine translation.', 'supertext-polylang' ); ?></p>
 			</td>
 		</tr>
 		<?php
