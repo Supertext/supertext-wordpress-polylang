@@ -36,6 +36,9 @@ class Bulk_Actions {
 	const ACTION_AI    = 'supertext_ai_translation';
 	const ACTION_HUMAN = 'supertext_human_translation';
 
+	/** User meta storing the last-selected order options (to pre-fill next time). */
+	const PREFS_META = 'supertext_polylang_last_order';
+
 	/** Human translation product types (Supertext OrderTypeConfigurationId => label). */
 	const HUMAN_SERVICES = array(
 		166 => 'Übersetzung BASIC',
@@ -117,14 +120,18 @@ class Bulk_Actions {
 	 * @return void
 	 */
 	public static function render_pickers(): void {
-		$languages = self::get_polylang_languages();
+		$languages   = self::get_polylang_languages();
+		$prefs       = self::get_user_prefs();
+		$sel_lang    = (string) ( $prefs['lang'] ?? '' );
+		$sel_service = (int) ( $prefs['service_id'] ?? 0 );
+		$sel_express = (string) ( $prefs['express'] ?? '' );
 		?>
 		<span id="supertext-lang-picker" style="display:none;">
 			<label for="supertext_target_lang" class="screen-reader-text"><?php esc_html_e( 'Target language', 'supertext-polylang' ); ?></label>
 			<select name="supertext_target_lang" id="supertext_target_lang">
 				<option value=""><?php esc_html_e( 'Target language', 'supertext-polylang' ); ?></option>
 				<?php foreach ( $languages as $slug => $name ) : ?>
-					<option value="<?php echo esc_attr( $slug ); ?>"><?php echo esc_html( $name ); ?></option>
+					<option value="<?php echo esc_attr( $slug ); ?>" <?php selected( $sel_lang, $slug ); ?>><?php echo esc_html( $name ); ?></option>
 				<?php endforeach; ?>
 			</select>
 		</span>
@@ -133,7 +140,7 @@ class Bulk_Actions {
 			<select name="supertext_service_id" id="supertext_service_id">
 				<option value=""><?php esc_html_e( 'Translation type', 'supertext-polylang' ); ?></option>
 				<?php foreach ( self::HUMAN_SERVICES as $id => $label ) : ?>
-					<option value="<?php echo esc_attr( $id ); ?>"><?php echo esc_html( $label ); ?></option>
+					<option value="<?php echo esc_attr( $id ); ?>" <?php selected( $sel_service, $id ); ?>><?php echo esc_html( $label ); ?></option>
 				<?php endforeach; ?>
 			</select>
 		</span>
@@ -142,11 +149,21 @@ class Bulk_Actions {
 			<select name="supertext_express" id="supertext_express">
 				<option value=""><?php esc_html_e( 'Delivery', 'supertext-polylang' ); ?></option>
 				<?php foreach ( self::EXPRESS_OPTIONS as $value => $label ) : ?>
-					<option value="<?php echo esc_attr( $value ); ?>"><?php echo esc_html( $label ); ?></option>
+					<option value="<?php echo esc_attr( $value ); ?>" <?php selected( $sel_express, $value ); ?>><?php echo esc_html( $label ); ?></option>
 				<?php endforeach; ?>
 			</select>
 		</span>
 		<?php
+	}
+
+	/**
+	 * Returns the current user's last-selected order options.
+	 *
+	 * @return array{lang?: string, service_id?: int, express?: string}
+	 */
+	private static function get_user_prefs(): array {
+		$prefs = get_user_meta( get_current_user_id(), self::PREFS_META, true );
+		return is_array( $prefs ) ? $prefs : array();
 	}
 
 	/**
@@ -215,27 +232,44 @@ class Bulk_Actions {
 			}
 		}
 
+		// Remember the user's selections to pre-fill the dropdowns next time.
+		$prefs         = self::get_user_prefs();
+		$prefs['lang'] = $target_lang;
+		if ( self::ACTION_HUMAN === $action ) {
+			$prefs['service_id'] = $service_id;
+			$prefs['express']    = $express;
+		}
+		update_user_meta( get_current_user_id(), self::PREFS_META, $prefs );
+
 		$created        = 0;
 		$errors         = 0;
 		$error_messages = array();
+		$order_ids_all  = array();
 
 		foreach ( $post_ids as $post_id ) {
 			$res = self::ACTION_AI === $action
 				? self::ai_translate( (int) $post_id, $target_lang )
 				: self::submit_human_order( (int) $post_id, $target_lang, $service_id, $express );
 
-			if ( true === $res ) {
-				$created++;
-			} else {
+			if ( $res instanceof WP_Error || false === $res ) {
 				$errors++;
 				if ( is_wp_error( $res ) ) {
 					$error_messages[] = $res->get_error_message();
+				}
+			} else {
+				$created++;
+				if ( is_array( $res ) ) {
+					$order_ids_all = array_merge( $order_ids_all, $res );
 				}
 			}
 		}
 
 		if ( ! empty( $error_messages ) ) {
 			set_transient( 'supertext_polylang_bulk_errors_' . get_current_user_id(), array_values( array_unique( $error_messages ) ), 60 );
+		}
+
+		if ( ! empty( $order_ids_all ) ) {
+			set_transient( 'supertext_polylang_bulk_orders_' . get_current_user_id(), array_values( array_map( 'intval', $order_ids_all ) ), 60 );
 		}
 
 		return add_query_arg(
@@ -333,7 +367,7 @@ class Bulk_Actions {
 	 * @param string $target_lang Target language slug.
 	 * @param int    $service_id  Supertext OrderTypeConfigurationId.
 	 * @param string $express     Supertext DeliveryId.
-	 * @return true|WP_Error
+	 * @return int[]|WP_Error Order id(s) on success.
 	 */
 	private static function submit_human_order( int $post_id, string $target_lang, int $service_id, string $express ) {
 		if ( ! function_exists( 'PLL' ) || ! isset( PLL()->model ) ) {
@@ -448,7 +482,7 @@ class Bulk_Actions {
 			)
 		);
 
-		return true;
+		return $order_ids;
 	}
 
 	/**
@@ -496,9 +530,25 @@ class Bulk_Actions {
 				/* translators: 1: number of posts, 2: translation type */
 				: _n( '%1$d order submitted to Supertext %2$s.', '%1$d orders submitted to Supertext %2$s.', $created, 'supertext-polylang' );
 
+			$message = sprintf( $template, $created, $label );
+
+			if ( self::ACTION_HUMAN === $action ) {
+				$order_key = 'supertext_polylang_bulk_orders_' . get_current_user_id();
+				$order_ids = get_transient( $order_key );
+				delete_transient( $order_key );
+
+				if ( is_array( $order_ids ) && ! empty( $order_ids ) ) {
+					$message .= ' ' . sprintf(
+						/* translators: %s is a comma-separated list of order ids. */
+						_n( 'Order ID: %s', 'Order IDs: %s', count( $order_ids ), 'supertext-polylang' ),
+						implode( ', ', array_map( 'intval', $order_ids ) )
+					);
+				}
+			}
+
 			printf(
 				'<div class="notice notice-success is-dismissible"><p>%s</p></div>',
-				esc_html( sprintf( $template, $created, $label ) )
+				esc_html( $message )
 			);
 		}
 

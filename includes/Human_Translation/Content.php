@@ -37,7 +37,11 @@ class Content {
 	public static function build_html( WP_Post $post, PLL_Language $target_lang, PLL_Model $model ): string {
 		$container = new PLL_Export_Container( Data::class );
 		$export    = new PLL_Export_Data_From_Posts( $model );
-		$export->send_to_export( $container, array( $post ), $target_lang );
+
+		// `include_translated_items => true` so the source is exported even when a
+		// translation already exists in the target language; otherwise the exporter
+		// drops the post and we'd build an empty file ("no translatable content").
+		$export->send_to_export( $container, array( $post ), $target_lang, array( 'include_translated_items' => true ) );
 
 		$html = "<!DOCTYPE html>\n<html><head><meta charset=\"utf-8\"></head><body>\n";
 
