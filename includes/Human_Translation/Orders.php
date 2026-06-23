@@ -7,6 +7,8 @@ namespace Supertext\Polylang\Human_Translation;
 
 defined( 'ABSPATH' ) || exit;
 
+use WP_Query;
+
 /**
  * Registry of human-translation orders placed through the plugin.
  *
@@ -90,6 +92,67 @@ class Orders {
 		);
 
 		update_option( self::OPTION, $orders, false );
+	}
+
+	/**
+	 * Backfills the registry from the `_supertext_order_{lang}` post metas that
+	 * orders wrote before the registry existed.
+	 *
+	 * @return int Number of orders imported.
+	 */
+	public static function backfill(): int {
+		if ( ! function_exists( 'PLL' ) || ! isset( PLL()->model ) ) {
+			return 0;
+		}
+
+		$imported = 0;
+
+		foreach ( PLL()->model->get_languages_list() as $lang ) {
+			$meta_key = '_supertext_order_' . $lang->slug;
+
+			$query = new WP_Query(
+				array(
+					'post_type'        => 'any',
+					'post_status'      => 'any',
+					'posts_per_page'   => -1,
+					'fields'           => 'ids',
+					'meta_key'         => $meta_key, // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_key
+					'no_found_rows'    => true,
+					'suppress_filters' => true,
+				)
+			);
+
+			foreach ( $query->posts as $post_id ) {
+				$data = json_decode( (string) get_post_meta( (int) $post_id, $meta_key, true ), true );
+				if ( ! is_array( $data ) || empty( $data['order_ids'] ) ) {
+					continue;
+				}
+
+				foreach ( (array) $data['order_ids'] as $order_id ) {
+					$order_id = (int) $order_id;
+					if ( $order_id <= 0 || null !== self::get( $order_id ) ) {
+						continue; // Invalid, or already in the registry.
+					}
+
+					self::record(
+						array(
+							'order_id'    => $order_id,
+							'post_id'     => (int) $post_id,
+							'lang'        => $lang->slug,
+							'target'      => (string) ( $data['target'] ?? '' ),
+							'type_id'     => (int) ( $data['service_id'] ?? 0 ),
+							'delivery_id' => (int) ( $data['delivery_id'] ?? 0 ),
+							'order_name'  => get_the_title( (int) $post_id ),
+							'status'      => 'Unknown',
+							'created_at'  => (string) ( $data['ordered_at'] ?? gmdate( 'c' ) ),
+						)
+					);
+					$imported++;
+				}
+			}
+		}
+
+		return $imported;
 	}
 
 	/**

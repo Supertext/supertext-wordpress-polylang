@@ -39,6 +39,13 @@ class Orders_Page {
 	const REFRESH_ACTION = 'supertext_polylang_refresh_orders';
 
 	/**
+	 * admin-post action: import pre-registry orders from post meta.
+	 *
+	 * @var string
+	 */
+	const IMPORT_ACTION = 'supertext_polylang_import_orders';
+
+	/**
 	 * Transient key for one-off notices.
 	 *
 	 * @var string
@@ -54,6 +61,26 @@ class Orders_Page {
 		add_action( 'admin_menu', array( self::class, 'register_menu' ), 11 );
 		add_action( 'admin_post_' . self::CANCEL_ACTION, array( self::class, 'handle_cancel' ) );
 		add_action( 'admin_post_' . self::REFRESH_ACTION, array( self::class, 'handle_refresh' ) );
+		add_action( 'admin_post_' . self::IMPORT_ACTION, array( self::class, 'handle_import' ) );
+	}
+
+	/**
+	 * Imports orders placed before the registry existed (from post meta).
+	 *
+	 * @return void
+	 */
+	public static function handle_import(): void {
+		if ( ! current_user_can( 'manage_options' ) ) {
+			wp_die( esc_html__( 'You are not allowed to do this.', 'supertext-polylang' ) );
+		}
+		check_admin_referer( self::IMPORT_ACTION );
+
+		$count = Orders::backfill();
+
+		/* translators: %d is a number of orders. */
+		self::notice( 'success', sprintf( _n( 'Imported %d existing order.', 'Imported %d existing orders.', $count, 'supertext-polylang' ), $count ) );
+		wp_safe_redirect( admin_url( 'admin.php?page=' . self::SLUG ) );
+		exit;
 	}
 
 	/**
@@ -169,11 +196,18 @@ class Orders_Page {
 		<div class="wrap">
 			<h1><?php esc_html_e( 'Supertext Orders', 'supertext-polylang' ); ?></h1>
 
-			<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" style="margin:1em 0;">
-				<input type="hidden" name="action" value="<?php echo esc_attr( self::REFRESH_ACTION ); ?>" />
-				<?php wp_nonce_field( self::REFRESH_ACTION ); ?>
-				<?php submit_button( __( 'Refresh statuses', 'supertext-polylang' ), 'secondary', 'submit', false ); ?>
-			</form>
+			<p style="margin:1em 0;display:flex;gap:8px;">
+				<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
+					<input type="hidden" name="action" value="<?php echo esc_attr( self::REFRESH_ACTION ); ?>" />
+					<?php wp_nonce_field( self::REFRESH_ACTION ); ?>
+					<?php submit_button( __( 'Refresh statuses', 'supertext-polylang' ), 'secondary', 'submit', false ); ?>
+				</form>
+				<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
+					<input type="hidden" name="action" value="<?php echo esc_attr( self::IMPORT_ACTION ); ?>" />
+					<?php wp_nonce_field( self::IMPORT_ACTION ); ?>
+					<?php submit_button( __( 'Import existing orders', 'supertext-polylang' ), 'secondary', 'submit', false ); ?>
+				</form>
+			</p>
 
 			<?php if ( empty( $orders ) ) : ?>
 				<p><?php esc_html_e( 'No orders yet.', 'supertext-polylang' ); ?></p>
