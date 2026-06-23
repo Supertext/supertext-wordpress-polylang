@@ -11,18 +11,31 @@ use Supertext\Polylang\Human_Translation\Callback;
 use Supertext\Polylang\Machine_Translation\Service;
 
 /**
- * The "Supertext" admin page: status overview, a link to Polylang's Machine
- * Translation settings, and a one-click "Patch Polylang" button.
+ * The "Supertext" admin pages, split into Status, Settings and Debug.
  *
  * @since 0.2.0
  */
 class Page {
 	/**
-	 * Admin page slug.
+	 * Top-level / Status page slug.
 	 *
 	 * @var string
 	 */
 	const SLUG = 'supertext-polylang';
+
+	/**
+	 * Settings page slug.
+	 *
+	 * @var string
+	 */
+	const SETTINGS_SLUG = 'supertext-polylang-settings';
+
+	/**
+	 * Debug page slug.
+	 *
+	 * @var string
+	 */
+	const DEBUG_SLUG = 'supertext-polylang-debug';
 
 	/**
 	 * admin-post action name for applying the patch.
@@ -51,30 +64,14 @@ class Page {
 	 * @return void
 	 */
 	public static function init(): void {
-		add_action( 'admin_menu', array( self::class, 'register_menu' ) );
+		add_action( 'admin_menu', array( self::class, 'register_menu' ), 10 );
+		add_action( 'admin_menu', array( self::class, 'register_debug_menu' ), 12 );
 		add_action( 'admin_post_' . self::PATCH_ACTION, array( self::class, 'handle_patch' ) );
 		add_action( 'admin_post_' . self::CLEAR_LOG_ACTION, array( self::class, 'handle_clear_log' ) );
 	}
 
 	/**
-	 * Clears the recorded callback log.
-	 *
-	 * @return void
-	 */
-	public static function handle_clear_log(): void {
-		if ( ! current_user_can( 'manage_options' ) ) {
-			wp_die( esc_html__( 'You are not allowed to do this.', 'supertext-polylang' ) );
-		}
-		check_admin_referer( self::CLEAR_LOG_ACTION );
-
-		Callback::clear_log();
-
-		wp_safe_redirect( admin_url( 'admin.php?page=' . self::SLUG ) );
-		exit;
-	}
-
-	/**
-	 * Registers the top-level menu.
+	 * Registers the top-level menu + Status and Settings submenus.
 	 *
 	 * @return void
 	 */
@@ -84,18 +81,48 @@ class Page {
 			__( 'Supertext', 'supertext-polylang' ),
 			'manage_options',
 			self::SLUG,
-			array( self::class, 'render' ),
+			array( self::class, 'render_status' ),
 			self::menu_icon(),
 			81
+		);
+
+		add_submenu_page(
+			self::SLUG,
+			__( 'Status', 'supertext-polylang' ),
+			__( 'Status', 'supertext-polylang' ),
+			'manage_options',
+			self::SLUG,
+			array( self::class, 'render_status' )
+		);
+
+		add_submenu_page(
+			self::SLUG,
+			__( 'Settings', 'supertext-polylang' ),
+			__( 'Settings', 'supertext-polylang' ),
+			'manage_options',
+			self::SETTINGS_SLUG,
+			array( self::class, 'render_settings' )
 		);
 	}
 
 	/**
-	 * Returns the admin-menu icon.
+	 * Registers the Debug submenu (later, so it appears after Orders).
 	 *
-	 * Uses a base64-encoded SVG data URI so WordPress renders it as a crisp,
-	 * properly-aligned menu background (a plain image URL is rendered as a loose
-	 * <img> and sits misaligned). Falls back to a Dashicon if the file is missing.
+	 * @return void
+	 */
+	public static function register_debug_menu(): void {
+		add_submenu_page(
+			self::SLUG,
+			__( 'Debug', 'supertext-polylang' ),
+			__( 'Debug', 'supertext-polylang' ),
+			'manage_options',
+			self::DEBUG_SLUG,
+			array( self::class, 'render_debug' )
+		);
+	}
+
+	/**
+	 * Returns the admin-menu icon (base64 SVG data URI).
 	 *
 	 * @return string
 	 */
@@ -126,27 +153,35 @@ class Page {
 
 		$result = Patch::apply();
 
-		if ( is_wp_error( $result ) ) {
-			$notice = array(
-				'type' => 'error',
-				'text' => $result->get_error_message(),
-			);
-		} else {
-			$notice = array(
-				'type' => 'success',
-				'text' => __( 'Polylang was patched successfully. Supertext can now register as a machine-translation service.', 'supertext-polylang' ),
-			);
-		}
+		$notice = is_wp_error( $result )
+			? array( 'type' => 'error', 'text' => $result->get_error_message() )
+			: array( 'type' => 'success', 'text' => __( 'Polylang was patched successfully. Supertext can now register as a machine-translation service.', 'supertext-polylang' ) );
 
 		set_transient( self::NOTICE_TRANSIENT . '_' . get_current_user_id(), $notice, 60 );
 
-		wp_safe_redirect( admin_url( 'admin.php?page=' . self::SLUG ) );
+		wp_safe_redirect( admin_url( 'admin.php?page=' . self::SETTINGS_SLUG ) );
 		exit;
 	}
 
 	/**
-	 * Returns the URL of Polylang's settings page (where the Machine Translation
-	 * module lives).
+	 * Clears the recorded callback log.
+	 *
+	 * @return void
+	 */
+	public static function handle_clear_log(): void {
+		if ( ! current_user_can( 'manage_options' ) ) {
+			wp_die( esc_html__( 'You are not allowed to do this.', 'supertext-polylang' ) );
+		}
+		check_admin_referer( self::CLEAR_LOG_ACTION );
+
+		Callback::clear_log();
+
+		wp_safe_redirect( admin_url( 'admin.php?page=' . self::DEBUG_SLUG ) );
+		exit;
+	}
+
+	/**
+	 * Returns the URL of Polylang's settings page.
 	 *
 	 * @return string
 	 */
@@ -155,11 +190,26 @@ class Page {
 	}
 
 	/**
-	 * Renders the admin page.
+	 * Prints the page header (logo + title).
+	 *
+	 * @param string $title Page title.
+	 * @return void
+	 */
+	private static function header( string $title ): void {
+		$logo = defined( 'SUPERTEXT_POLYLANG_FILE' ) ? plugins_url( 'assets/icon-v2-64.png', SUPERTEXT_POLYLANG_FILE ) : '';
+		echo '<h1 style="display:flex;align-items:center;gap:10px;">';
+		if ( $logo ) {
+			printf( '<img src="%s" width="32" height="32" alt="" style="border-radius:6px;" />', esc_url( $logo ) );
+		}
+		echo esc_html( $title ) . '</h1>';
+	}
+
+	/**
+	 * Status page.
 	 *
 	 * @return void
 	 */
-	public static function render(): void {
+	public static function render_status(): void {
 		if ( ! current_user_can( 'manage_options' ) ) {
 			return;
 		}
@@ -167,28 +217,9 @@ class Page {
 		$polylang = Patch::polylang_available();
 		$patched  = $polylang && Patch::is_patched();
 		$active   = self::service_is_active();
-
-		$logo = defined( 'SUPERTEXT_POLYLANG_FILE' ) ? plugins_url( 'assets/icon-v2-64.png', SUPERTEXT_POLYLANG_FILE ) : '';
-
-		// One-off notice from the patch handler.
-		$notice_key = self::NOTICE_TRANSIENT . '_' . get_current_user_id();
-		$notice     = get_transient( $notice_key );
-		if ( is_array( $notice ) ) {
-			delete_transient( $notice_key );
-			printf(
-				'<div class="notice notice-%s is-dismissible"><p>%s</p></div>',
-				esc_attr( 'error' === $notice['type'] ? 'error' : 'success' ),
-				esc_html( $notice['text'] )
-			);
-		}
 		?>
 		<div class="wrap">
-			<h1 style="display:flex;align-items:center;gap:10px;">
-				<?php if ( $logo ) : ?>
-					<img src="<?php echo esc_url( $logo ); ?>" width="32" height="32" alt="" style="border-radius:6px;" />
-				<?php endif; ?>
-				<?php esc_html_e( 'Supertext for Polylang', 'supertext-polylang' ); ?>
-			</h1>
+			<?php self::header( __( 'Supertext for Polylang', 'supertext-polylang' ) ); ?>
 
 			<h2><?php esc_html_e( 'Status', 'supertext-polylang' ); ?></h2>
 			<table class="widefat striped" style="max-width:640px;">
@@ -213,7 +244,46 @@ class Page {
 				</tbody>
 			</table>
 
-			<h2 style="margin-top:2em;"><?php esc_html_e( 'Setup', 'supertext-polylang' ); ?></h2>
+			<?php if ( ! $patched || ! $active ) : ?>
+				<p style="margin-top:1em;">
+					<a class="button button-primary" href="<?php echo esc_url( admin_url( 'admin.php?page=' . self::SETTINGS_SLUG ) ); ?>">
+						<?php esc_html_e( 'Go to Settings', 'supertext-polylang' ); ?>
+					</a>
+				</p>
+			<?php endif; ?>
+		</div>
+		<?php
+	}
+
+	/**
+	 * Settings page: setup (patch + configure) and human translation services.
+	 *
+	 * @return void
+	 */
+	public static function render_settings(): void {
+		if ( ! current_user_can( 'manage_options' ) ) {
+			return;
+		}
+
+		$polylang = Patch::polylang_available();
+		$patched  = $polylang && Patch::is_patched();
+
+		// One-off notice from the patch handler.
+		$notice_key = self::NOTICE_TRANSIENT . '_' . get_current_user_id();
+		$notice     = get_transient( $notice_key );
+		if ( is_array( $notice ) ) {
+			delete_transient( $notice_key );
+			printf(
+				'<div class="notice notice-%s is-dismissible"><p>%s</p></div>',
+				esc_attr( 'error' === $notice['type'] ? 'error' : 'success' ),
+				esc_html( $notice['text'] )
+			);
+		}
+		?>
+		<div class="wrap">
+			<?php self::header( __( 'Supertext Settings', 'supertext-polylang' ) ); ?>
+
+			<h2><?php esc_html_e( 'Setup', 'supertext-polylang' ); ?></h2>
 
 			<p>
 				<strong><?php esc_html_e( '1. Patch Polylang', 'supertext-polylang' ); ?></strong><br />
@@ -229,7 +299,7 @@ class Page {
 			<?php endif; ?>
 
 			<p style="margin-top:2em;">
-				<strong><?php esc_html_e( '2. Configure the service', 'supertext-polylang' ); ?></strong><br />
+				<strong><?php esc_html_e( '2. Configure the AI service', 'supertext-polylang' ); ?></strong><br />
 				<?php esc_html_e( 'Enable Machine Translation, choose Supertext, enter your API key, and map your languages in the Polylang settings.', 'supertext-polylang' ); ?>
 			</p>
 			<p>
@@ -238,13 +308,31 @@ class Page {
 				</a>
 			</p>
 
-			<h2 style="margin-top:2em;"><?php esc_html_e( 'Human translation (orders)', 'supertext-polylang' ); ?></h2>
+			<h2 style="margin-top:2em;"><?php esc_html_e( 'Translation Services (human)', 'supertext-polylang' ); ?></h2>
 			<p class="description" style="max-width:640px;">
 				<?php esc_html_e( 'Professional (human) translation orders use a separate credential from the AI translation API key. Enter your Supertext account email and Legacy API Key below.', 'supertext-polylang' ); ?>
 			</p>
 			<?php
 			settings_errors( Settings::GROUP );
 			Settings::render_form();
+			?>
+		</div>
+		<?php
+	}
+
+	/**
+	 * Debug page: order callback log.
+	 *
+	 * @return void
+	 */
+	public static function render_debug(): void {
+		if ( ! current_user_can( 'manage_options' ) ) {
+			return;
+		}
+		?>
+		<div class="wrap">
+			<?php
+			self::header( __( 'Supertext Debug', 'supertext-polylang' ) );
 			self::render_callback_log();
 			?>
 		</div>
@@ -252,16 +340,16 @@ class Page {
 	}
 
 	/**
-	 * Renders the recorded order-callback payloads (for debugging the return path).
+	 * Renders the recorded order-callback payloads.
 	 *
 	 * @return void
 	 */
 	private static function render_callback_log(): void {
 		$entries = Callback::get_log();
 		?>
-		<h2 style="margin-top:2em;"><?php esc_html_e( 'Order callbacks (debug)', 'supertext-polylang' ); ?></h2>
+		<h2 style="margin-top:1em;"><?php esc_html_e( 'Order callbacks (debug)', 'supertext-polylang' ); ?></h2>
 		<p class="description" style="max-width:640px;">
-			<?php esc_html_e( 'The most recent payloads Supertext POSTed to the callback URL are recorded here, so we can see exactly what the system sends when an order completes.', 'supertext-polylang' ); ?>
+			<?php esc_html_e( 'The most recent payload Supertext POSTed to the callback URL is recorded here, so we can see exactly what the system sends when an order completes.', 'supertext-polylang' ); ?>
 		</p>
 		<p><code><?php echo esc_html( Callback::url() ); ?></code></p>
 
@@ -289,7 +377,7 @@ class Page {
 	}
 
 	/**
-	 * Pretty-prints a JSON string if possible; returns it unchanged otherwise.
+	 * Pretty-prints a JSON string if possible.
 	 *
 	 * @param string $raw Raw body.
 	 * @return string
