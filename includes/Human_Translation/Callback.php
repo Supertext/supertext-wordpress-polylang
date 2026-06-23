@@ -48,6 +48,20 @@ class Callback {
 	const SECRET_OPTION = 'supertext_polylang_callback_token';
 
 	/**
+	 * Option storing the most recent raw callbacks (for inspection).
+	 *
+	 * @var string
+	 */
+	const LOG_OPTION = 'supertext_polylang_callback_log';
+
+	/**
+	 * How many recent callbacks to keep.
+	 *
+	 * @var int
+	 */
+	const LOG_MAX = 5;
+
+	/**
 	 * Registers the REST route.
 	 *
 	 * @return void
@@ -102,6 +116,10 @@ class Callback {
 	 * @return WP_REST_Response
 	 */
 	public static function handle( WP_REST_Request $request ): WP_REST_Response {
+		// Record the raw payload first, so we capture exactly what Supertext sends
+		// even if it fails validation or has an unexpected shape.
+		self::record( $request );
+
 		$body    = $request->get_json_params();
 		$context = self::parse_reference_data( self::extract_reference_data( $body ) );
 
@@ -140,6 +158,47 @@ class Callback {
 			),
 			200
 		);
+	}
+
+	/**
+	 * Records the raw incoming callback for later inspection (keeps the last few).
+	 *
+	 * @param WP_REST_Request $request Request.
+	 * @return void
+	 */
+	private static function record( WP_REST_Request $request ): void {
+		$entry = array(
+			'time'         => gmdate( 'c' ),
+			'method'       => $request->get_method(),
+			'content_type' => (string) $request->get_header( 'content_type' ),
+			'query'        => $request->get_query_params(),
+			'body'         => mb_substr( (string) $request->get_body(), 0, 65535 ),
+		);
+
+		$log = self::get_log();
+		array_unshift( $log, $entry );
+		$log = array_slice( $log, 0, self::LOG_MAX );
+
+		update_option( self::LOG_OPTION, $log, false );
+	}
+
+	/**
+	 * Returns the recorded callbacks (most recent first).
+	 *
+	 * @return array[]
+	 */
+	public static function get_log(): array {
+		$log = get_option( self::LOG_OPTION, array() );
+		return is_array( $log ) ? $log : array();
+	}
+
+	/**
+	 * Clears the recorded callbacks.
+	 *
+	 * @return void
+	 */
+	public static function clear_log(): void {
+		delete_option( self::LOG_OPTION );
 	}
 
 	/**

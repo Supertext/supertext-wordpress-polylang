@@ -7,6 +7,7 @@ namespace Supertext\Polylang\Admin;
 
 defined( 'ABSPATH' ) || exit;
 
+use Supertext\Polylang\Human_Translation\Callback;
 use Supertext\Polylang\Machine_Translation\Service;
 
 /**
@@ -31,6 +32,13 @@ class Page {
 	const PATCH_ACTION = 'supertext_polylang_apply_patch';
 
 	/**
+	 * admin-post action name for clearing the callback log.
+	 *
+	 * @var string
+	 */
+	const CLEAR_LOG_ACTION = 'supertext_polylang_clear_callback_log';
+
+	/**
 	 * Transient key for one-off admin notices.
 	 *
 	 * @var string
@@ -45,6 +53,24 @@ class Page {
 	public static function init(): void {
 		add_action( 'admin_menu', array( self::class, 'register_menu' ) );
 		add_action( 'admin_post_' . self::PATCH_ACTION, array( self::class, 'handle_patch' ) );
+		add_action( 'admin_post_' . self::CLEAR_LOG_ACTION, array( self::class, 'handle_clear_log' ) );
+	}
+
+	/**
+	 * Clears the recorded callback log.
+	 *
+	 * @return void
+	 */
+	public static function handle_clear_log(): void {
+		if ( ! current_user_can( 'manage_options' ) ) {
+			wp_die( esc_html__( 'You are not allowed to do this.', 'supertext-polylang' ) );
+		}
+		check_admin_referer( self::CLEAR_LOG_ACTION );
+
+		Callback::clear_log();
+
+		wp_safe_redirect( admin_url( 'admin.php?page=' . self::SLUG ) );
+		exit;
 	}
 
 	/**
@@ -219,9 +245,62 @@ class Page {
 			<?php
 			settings_errors( Settings::GROUP );
 			Settings::render_form();
+			self::render_callback_log();
 			?>
 		</div>
 		<?php
+	}
+
+	/**
+	 * Renders the recorded order-callback payloads (for debugging the return path).
+	 *
+	 * @return void
+	 */
+	private static function render_callback_log(): void {
+		$entries = Callback::get_log();
+		?>
+		<h2 style="margin-top:2em;"><?php esc_html_e( 'Order callbacks (debug)', 'supertext-polylang' ); ?></h2>
+		<p class="description" style="max-width:640px;">
+			<?php esc_html_e( 'The most recent payloads Supertext POSTed to the callback URL are recorded here, so we can see exactly what the system sends when an order completes.', 'supertext-polylang' ); ?>
+		</p>
+		<p><code><?php echo esc_html( Callback::url() ); ?></code></p>
+
+		<?php if ( empty( $entries ) ) : ?>
+			<p><em><?php esc_html_e( 'No callbacks recorded yet.', 'supertext-polylang' ); ?></em></p>
+		<?php else : ?>
+			<?php foreach ( $entries as $entry ) : ?>
+				<div style="margin:1em 0;padding:8px 12px;border:1px solid #dcdcde;background:#fff;max-width:900px;">
+					<p style="margin:0 0 6px;">
+						<strong><?php echo esc_html( (string) ( $entry['time'] ?? '' ) ); ?></strong>
+						— <?php echo esc_html( (string) ( $entry['method'] ?? '' ) ); ?>
+						<?php echo esc_html( (string) ( $entry['content_type'] ?? '' ) ); ?>
+					</p>
+					<pre style="white-space:pre-wrap;word-break:break-word;max-height:320px;overflow:auto;margin:0;"><?php echo esc_html( self::pretty_json( (string) ( $entry['body'] ?? '' ) ) ); ?></pre>
+				</div>
+			<?php endforeach; ?>
+
+			<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
+				<input type="hidden" name="action" value="<?php echo esc_attr( self::CLEAR_LOG_ACTION ); ?>" />
+				<?php wp_nonce_field( self::CLEAR_LOG_ACTION ); ?>
+				<?php submit_button( __( 'Clear callback log', 'supertext-polylang' ), 'secondary', 'submit', false ); ?>
+			</form>
+		<?php endif; ?>
+		<?php
+	}
+
+	/**
+	 * Pretty-prints a JSON string if possible; returns it unchanged otherwise.
+	 *
+	 * @param string $raw Raw body.
+	 * @return string
+	 */
+	private static function pretty_json( string $raw ): string {
+		$decoded = json_decode( $raw, true );
+		if ( null === $decoded && JSON_ERROR_NONE !== json_last_error() ) {
+			return $raw;
+		}
+		$pretty = wp_json_encode( $decoded, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE );
+		return false !== $pretty ? $pretty : $raw;
 	}
 
 	/**
