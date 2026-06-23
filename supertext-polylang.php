@@ -74,6 +74,9 @@ add_filter(
 // Add the "Supertext AI/Human Translation" bulk actions to the posts list table.
 \Supertext\Polylang\Admin\Bulk_Actions::init();
 
+// Register the REST callback Supertext calls when a human-translation order is done.
+\Supertext\Polylang\Human_Translation\Callback::init();
+
 // Translate YOOtheme Pro page-builder layouts field-by-field (instead of as a JSON blob).
 \Supertext\Polylang\Integrations\YooTheme\Integration::init();
 

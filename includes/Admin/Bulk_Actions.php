@@ -12,6 +12,7 @@ use WP_Post;
 use WP_Screen;
 use PLL_Export_Container;
 use PLL_Export_Data_From_Posts;
+use Supertext\Polylang\Human_Translation\Callback as Human_Callback;
 use Supertext\Polylang\Human_Translation\Client as Human_Client;
 use Supertext\Polylang\Human_Translation\Content as Human_Content;
 use WP_Syntex\Polylang_Pro\Modules\Machine_Translation\Data;
@@ -389,7 +390,7 @@ class Bulk_Actions {
 			'SourceLang'               => (string) strtok( (string) $source->w3c, '-' ), // 2-letter primary subtag.
 			'TargetLanguages'          => array( $lang->w3c ),
 			'ReferenceData'            => (string) $post_id,
-			'CallbackUrl'              => rest_url( 'supertext-polylang/v1/order-callback' ),
+			'CallbackUrl'              => Human_Callback::url(),
 			'Files'                    => array(
 				array(
 					'Comment' => 'WordPress content',
