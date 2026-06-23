@@ -12,6 +12,7 @@ use DOMXPath;
 use WP_Post;
 use PLL_Export_Container;
 use PLL_Export_Data_From_Posts;
+use Supertext\Polylang\Admin\Settings;
 use Supertext\Polylang\Machine_Translation\Client as MT_Client;
 use WP_Syntex\Polylang_Pro\Modules\Machine_Translation\Data;
 use WP_Syntex\Polylang_Pro\Modules\Machine_Translation\Processor;
@@ -58,6 +59,13 @@ class Writeback {
 
 		if ( ! $post instanceof WP_Post || ! $target ) {
 			self::debug_log( sprintf( 'writeback aborted: post %d or language %s not found', (int) $post_id, $lang ) );
+			return;
+		}
+
+		// Respect the "allow multiple write-backs" setting: if disabled and this
+		// post/language was already written back, ignore subsequent callbacks.
+		if ( ! Settings::allow_multiple_writebacks() && get_post_meta( (int) $post_id, '_supertext_order_completed_' . $lang, true ) ) {
+			self::debug_log( sprintf( 'writeback skipped: post %d (%s) already written and multiple write-backs disabled', (int) $post_id, $lang ) );
 			return;
 		}
 
@@ -127,7 +135,16 @@ class Writeback {
 			self::debug_log( 'writeback save errors: ' . $result->get_error_message() );
 		}
 
-		self::debug_log( sprintf( 'writeback done: post=%d lang=%s filled=%d', (int) $post_id, $lang, $filled ) );
+		// Apply the configured status to the translated post. Processor::save() always
+		// saves as draft, so publish here if the setting says so.
+		if ( 'publish' === Settings::writeback_status() ) {
+			$tr_id = (int) $model->post->get_translation( (int) $post_id, $lang );
+			if ( $tr_id ) {
+				wp_update_post( array( 'ID' => $tr_id, 'post_status' => 'publish' ) );
+			}
+		}
+
+		self::debug_log( sprintf( 'writeback done: post=%d lang=%s filled=%d status=%s', (int) $post_id, $lang, $filled, Settings::writeback_status() ) );
 
 		// Update the order registry status (from the callback body if present).
 		$status = is_array( $body ) && ! empty( $body['Status'] ) ? (string) $body['Status'] : 'Completed';

@@ -76,9 +76,11 @@ class Settings {
 	 */
 	public static function defaults(): array {
 		return array(
-			'environment'   => 'live',
-			'human_email'   => '',
-			'human_api_key' => '',
+			'environment'               => 'live',
+			'human_email'               => '',
+			'human_api_key'             => '',
+			'allow_multiple_writebacks' => false,
+			'writeback_status'          => 'draft',
 		);
 	}
 
@@ -97,6 +99,11 @@ class Settings {
 
 		$out['human_email']   = sanitize_email( (string) ( $input['human_email'] ?? '' ) );
 		$out['human_api_key'] = sanitize_text_field( (string) ( $input['human_api_key'] ?? '' ) );
+
+		$out['allow_multiple_writebacks'] = ! empty( $input['allow_multiple_writebacks'] );
+
+		$status                  = (string) ( $input['writeback_status'] ?? 'draft' );
+		$out['writeback_status'] = in_array( $status, array( 'draft', 'publish' ), true ) ? $status : 'draft';
 
 		return $out;
 	}
@@ -159,6 +166,26 @@ class Settings {
 	 */
 	public static function api_key(): string {
 		return (string) self::get()['human_api_key'];
+	}
+
+	/**
+	 * Whether a translation may be written back more than once (re-applied on each
+	 * callback). When false, the first write-back wins and later ones are skipped.
+	 *
+	 * @return bool
+	 */
+	public static function allow_multiple_writebacks(): bool {
+		return (bool) self::get()['allow_multiple_writebacks'];
+	}
+
+	/**
+	 * The post status applied to a translation when it is written back.
+	 *
+	 * @return string 'draft' or 'publish'.
+	 */
+	public static function writeback_status(): string {
+		$status = (string) self::get()['writeback_status'];
+		return in_array( $status, array( 'draft', 'publish' ), true ) ? $status : 'draft';
 	}
 
 	/**
@@ -227,6 +254,32 @@ class Settings {
 							value="<?php echo esc_attr( $current['human_api_key'] ); ?>"
 						/>
 						<p class="description"><?php esc_html_e( 'Your Supertext "Legacy API Key" (used with the account email, via HTTP Basic auth, for order requests).', 'supertext-polylang' ); ?></p>
+					</td>
+				</tr>
+				<tr>
+					<th scope="row"><?php esc_html_e( 'Write-back', 'supertext-polylang' ); ?></th>
+					<td>
+						<label for="supertext-allow-multiple">
+							<input
+								type="checkbox"
+								name="<?php echo esc_attr( self::OPTION . '[allow_multiple_writebacks]' ); ?>"
+								id="supertext-allow-multiple"
+								value="1"
+								<?php checked( ! empty( $current['allow_multiple_writebacks'] ) ); ?>
+							/>
+							<?php esc_html_e( 'Allow multiple write-backs', 'supertext-polylang' ); ?>
+						</label>
+						<p class="description"><?php esc_html_e( 'Re-apply the translation each time a completed-order callback arrives. When off, only the first write-back is applied (later callbacks are ignored), protecting manual edits.', 'supertext-polylang' ); ?></p>
+					</td>
+				</tr>
+				<tr>
+					<th scope="row"><label for="supertext-writeback-status"><?php esc_html_e( 'Translation status', 'supertext-polylang' ); ?></label></th>
+					<td>
+						<select name="<?php echo esc_attr( self::OPTION . '[writeback_status]' ); ?>" id="supertext-writeback-status">
+							<option value="draft" <?php selected( $current['writeback_status'], 'draft' ); ?>><?php esc_html_e( 'Draft', 'supertext-polylang' ); ?></option>
+							<option value="publish" <?php selected( $current['writeback_status'], 'publish' ); ?>><?php esc_html_e( 'Published', 'supertext-polylang' ); ?></option>
+						</select>
+						<p class="description"><?php esc_html_e( 'Status applied to the translated post when a translation is written back.', 'supertext-polylang' ); ?></p>
 					</td>
 				</tr>
 			</table>
