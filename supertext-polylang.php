@@ -68,6 +68,22 @@ add_filter(
 // Register the "Supertext" admin page (status, Polylang settings link, Patch button).
 \Supertext\Polylang\Admin\Page::init();
 
+/**
+ * Adds a "Settings" link to the plugin's row on the Plugins screen.
+ */
+add_filter(
+	'plugin_action_links_' . plugin_basename( SUPERTEXT_POLYLANG_FILE ),
+	function ( array $links ): array {
+		$settings = sprintf(
+			'<a href="%s">%s</a>',
+			esc_url( admin_url( 'admin.php?page=' . \Supertext\Polylang\Admin\Page::SETTINGS_SLUG ) ),
+			esc_html__( 'Settings', 'supertext-polylang' )
+		);
+		array_unshift( $links, $settings );
+		return $links;
+	}
+);
+
 // Register the plugin's own settings (human/order API credentials + environment).
 \Supertext\Polylang\Admin\Settings::init();
 
