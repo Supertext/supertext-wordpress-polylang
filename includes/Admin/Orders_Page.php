@@ -170,7 +170,17 @@ class Orders_Page {
 			<h1><?php esc_html_e( 'Supertext Orders', 'supertext-polylang' ); ?></h1>
 
 			<p class="description" style="max-width:640px;">
-				<?php esc_html_e( 'This list shows only translation orders placed from WordPress through this plugin. Orders created directly in Supertext are not listed here.', 'supertext-polylang' ); ?>
+				<?php
+				printf(
+					/* translators: %s is a link to the Supertext orders overview. */
+					esc_html__( 'This list shows only translation orders placed from WordPress through this plugin. For a list of all your orders, go to %s.', 'supertext-polylang' ),
+					sprintf(
+						'<a href="%s" target="_blank" rel="noopener">%s</a>',
+						esc_url( Settings::orders_url() ),
+						esc_html__( 'your Supertext orders', 'supertext-polylang' )
+					)
+				); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- link built from escaped parts.
+				?>
 			</p>
 
 			<p style="margin:1em 0;">

@@ -151,6 +151,18 @@ class Settings {
 	}
 
 	/**
+	 * Returns the URL of the customer's orders overview in the configured
+	 * environment, e.g. https://www.supertext.com/en/orders.
+	 *
+	 * @return string
+	 */
+	public static function orders_url(): string {
+		/** @var string $locale */
+		$locale = apply_filters( 'supertext_polylang_order_url_locale', 'en' );
+		return self::base_url() . $locale . '/orders';
+	}
+
+	/**
 	 * Returns the human/order API account email.
 	 *
 	 * @return string
