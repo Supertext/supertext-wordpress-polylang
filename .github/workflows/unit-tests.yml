@@ -33,13 +33,12 @@ jobs:
           echo '```' >> "$GITHUB_STEP_SUMMARY"
           vendor/bin/phpunit --testdox --colors=never --log-junit junit.xml | tee -a "$GITHUB_STEP_SUMMARY"
           echo '```' >> "$GITHUB_STEP_SUMMARY"
-          echo '----- junit.xml (debug) -----'
-          head -c 1500 junit.xml; echo
 
       - name: Publish test report
-        uses: dorny/test-reporter@v1
+        uses: mikepenz/action-junit-report@v5
         if: success() || failure()   # report even when tests fail (but not on cancel)
         with:
-          name: PHPUnit results
-          path: tests/unit/junit.xml
-          reporter: java-junit
+          report_paths: tests/unit/junit.xml
+          check_name: PHPUnit results
+          detailed_summary: true     # list every test suite/case, not just failures
+          include_passed: true
