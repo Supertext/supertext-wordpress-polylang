@@ -24,3 +24,14 @@ deploy.log
 
 # Debug artifacts
 supertext-debug.log
+
+# E2E tests (Playwright)
+tests/e2e/node_modules/
+tests/e2e/.env.local
+tests/e2e/.auth/
+tests/e2e/test-results/
+tests/e2e/playwright-report/
+
+# Unit tests (PHPUnit)
+tests/unit/vendor/
+tests/unit/.phpunit.result.cache

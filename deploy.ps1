@@ -271,7 +271,7 @@ $ScriptContent = @"
 option batch abort
 option confirm off
 open sftp://${Username}:${Password}@${Server}/ -hostkey=*
-synchronize remote -delete -criteria=either -filemask="|.git\;.gitignore;deploy.ps1;deploy.local.ps1;deploy.local.ps1.example;deploy.log;supertext-debug.log;README.md" "$LocalDirUnix" "$RemotePluginDir"
+synchronize remote -delete -criteria=either -filemask="|.git\;.github\;tests\;docs\;.gitignore;deploy.ps1;deploy.local.ps1;deploy.local.ps1.example;deploy.log;supertext-debug.log;README.md" "$LocalDirUnix" "$RemotePluginDir"
 exit
 "@
 

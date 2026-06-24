@@ -1,0 +1,27 @@
+name: Unit tests
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  phpunit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.1'
+          extensions: dom, mbstring, libxml
+          coverage: none
+          tools: composer
+
+      - name: Install dependencies
+        working-directory: tests/unit
+        run: composer install --no-interaction --prefer-dist --no-progress
+
+      - name: Run unit tests
+        working-directory: tests/unit
+        run: composer test

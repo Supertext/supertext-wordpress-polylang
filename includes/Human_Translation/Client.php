@@ -45,12 +45,17 @@ class Client {
 	private $api_key;
 
 	/**
-	 * Constructor — reads credentials from the plugin settings.
+	 * Constructor. Credentials default to the plugin settings; they can be injected
+	 * (e.g. for testing).
+	 *
+	 * @param string|null $base    Base URL (with trailing slash).
+	 * @param string|null $email   Account email.
+	 * @param string|null $api_key Legacy API key.
 	 */
-	public function __construct() {
-		$this->base    = Settings::base_url();
-		$this->email   = Settings::email();
-		$this->api_key = Settings::api_key();
+	public function __construct( ?string $base = null, ?string $email = null, ?string $api_key = null ) {
+		$this->base    = null !== $base ? $base : Settings::base_url();
+		$this->email   = null !== $email ? $email : Settings::email();
+		$this->api_key = null !== $api_key ? $api_key : Settings::api_key();
 	}
 
 	/**

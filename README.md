@@ -2,7 +2,12 @@
 
 Adds **Supertext** as a native machine-translation service in **Polylang Pro**, so it
 appears in *Languages → Settings → Machine Translation* right next to DeepL. Content is
-translated directly through Supertext — **no DeepL proxy required**.
+translated directly through Supertext — **no DeepL proxy required**. It also adds
+**human (professional)** translation orders directly from WordPress.
+
+> 📘 **Looking for installation & usage instructions (with screenshots)?**
+> See the **[User Guide](docs/README.md)**. This README covers the developer/architecture
+> details.
 
 ## How it works
 
