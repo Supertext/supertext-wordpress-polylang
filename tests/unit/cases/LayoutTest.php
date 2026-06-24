@@ -43,11 +43,12 @@ class LayoutTest extends TestCase {
 	}
 
 	public function test_collect_only_translatable_string_props(): void {
-		$entries   = Layout::collect( $this->sampleLayout() );
-		$singulars = array_map( static fn( $e ) => $e['singular'], $entries );
+		// collect() returns a path => source-string map.
+		$entries = Layout::collect( $this->sampleLayout() );
 
 		// Only the headline content; title_style and the code element are excluded.
-		$this->assertSame( array( 'Hello' ), $singulars );
+		$this->assertSame( array( 'Hello' ), array_values( $entries ) );
+		$this->assertSame( array( 'children/0/props/content' ), array_keys( $entries ) );
 	}
 
 	public function test_map_replaces_translatable_and_leaves_rest_intact(): void {
