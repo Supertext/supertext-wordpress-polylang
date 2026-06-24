@@ -25,4 +25,8 @@ jobs:
 
       - name: Run unit tests
         working-directory: tests/unit
-        run: composer test
+        run: |
+          echo '## Unit test results' >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          vendor/bin/phpunit --testdox --colors=never | tee -a "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
