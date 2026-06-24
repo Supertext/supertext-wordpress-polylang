@@ -8,6 +8,9 @@ on:
 jobs:
   phpunit:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      checks: write       # dorny/test-reporter publishes a check run with per-test results
     steps:
       - uses: actions/checkout@v4
 
@@ -28,5 +31,13 @@ jobs:
         run: |
           echo '## Unit test results' >> "$GITHUB_STEP_SUMMARY"
           echo '```' >> "$GITHUB_STEP_SUMMARY"
-          vendor/bin/phpunit --testdox --colors=never | tee -a "$GITHUB_STEP_SUMMARY"
+          vendor/bin/phpunit --testdox --colors=never --log-junit junit.xml | tee -a "$GITHUB_STEP_SUMMARY"
           echo '```' >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Publish test report
+        uses: dorny/test-reporter@v1
+        if: success() || failure()   # report even when tests fail (but not on cancel)
+        with:
+          name: PHPUnit results
+          path: tests/unit/junit.xml
+          reporter: java-junit
