@@ -33,6 +33,8 @@ jobs:
           echo '```' >> "$GITHUB_STEP_SUMMARY"
           vendor/bin/phpunit --testdox --colors=never --log-junit junit.xml | tee -a "$GITHUB_STEP_SUMMARY"
           echo '```' >> "$GITHUB_STEP_SUMMARY"
+          echo '----- junit.xml (debug) -----'
+          head -c 1500 junit.xml; echo
 
       - name: Publish test report
         uses: dorny/test-reporter@v1
