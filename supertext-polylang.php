@@ -99,6 +99,9 @@ add_filter(
 // Write completed human-translation orders back into the target posts.
 \Supertext\Polylang\Human_Translation\Writeback::init();
 
+// Block deleting a source post while it has an in-progress human-translation order.
+\Supertext\Polylang\Human_Translation\Source_Lock::init();
+
 // Translate YOOtheme Pro page-builder layouts field-by-field (instead of as a JSON blob).
 \Supertext\Polylang\Integrations\YooTheme\Integration::init();
 
