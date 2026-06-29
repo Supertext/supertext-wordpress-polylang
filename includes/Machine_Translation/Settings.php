@@ -225,7 +225,8 @@ class Settings implements Settings_Interface {
 										name="<?php echo esc_attr( $this->input_base_name . '[languages][' . $slug . ']' ); ?>"
 										id="<?php echo esc_attr( 'pll-supertext-lang-' . $slug ); ?>"
 										type="text"
-										class="small-text"
+										class="regular-text code"
+											style="width:8em"
 										value="<?php echo esc_attr( $value ); ?>"
 										placeholder="<?php echo esc_attr( $default ); ?>"
 									/>
