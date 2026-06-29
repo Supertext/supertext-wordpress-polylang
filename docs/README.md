@@ -25,6 +25,7 @@ translation** service in **Polylang Pro**.
   - [Bulk human translation](#bulk-human-translation)
   - [The Orders page](#the-orders-page)
   - [YOOtheme pages](#yootheme-pages)
+- [Compatibility](#compatibility)
 - [How it works](#how-it-works)
 - [Troubleshooting](#troubleshooting)
 - [Developer reference (filters)](#developer-reference-filters)
@@ -166,6 +167,45 @@ Published, per your settings).
 YOOtheme Pro stores a page's layout as JSON. The plugin translates it **field‑by‑field**
 (only the real text — headings, paragraphs, etc.), leaving the layout structure intact, so
 YOOtheme pages translate correctly without breaking. No extra setup is required.
+
+---
+
+## Compatibility
+
+Both AI and human translation send and receive content through **Polylang Pro's own
+export / import pipeline** — the exact same pipeline Polylang uses for its XLIFF
+export. The practical upshot: **if Polylang Pro can translate it, Supertext can translate
+it.** There is no separate, parallel content parser to keep in sync.
+
+### Works out of the box (via Polylang Pro)
+
+| Content | Notes |
+|---------|-------|
+| **Gutenberg (block editor)** | All core blocks; block content is exported as translatable text, structure preserved. |
+| **Classic editor** | Post/page body, title, and excerpt. |
+| **Custom fields / post meta** | Only the meta keys you mark as **“Translate”** in *Languages → Settings → Custom fields* (Polylang Pro). Keys left as *Copy* / *Ignore* are not sent. |
+| **ACF (Advanced Custom Fields)** | Text, textarea, WYSIWYG, and other text‑bearing fields, through Polylang Pro's built‑in ACF integration. Field‑group translation settings in ACF/Polylang are respected. |
+| **Taxonomies & terms** | Category/tag/custom‑taxonomy names and descriptions that Polylang exports. |
+| **SEO plugin meta** | Yoast SEO / Rank Math titles & descriptions translate when Polylang is set to translate their meta keys (same rule as any custom field). |
+
+### Added by this plugin
+
+| Content | Notes |
+|---------|-------|
+| **YOOtheme Pro** | Polylang does **not** handle YOOtheme's JSON layout out of the box. This plugin adds a **field‑by‑field** integration (see [YOOtheme pages](#yootheme-pages)) so its text translates without corrupting the layout. `code` elements are deliberately skipped. |
+
+### Not translated
+
+- **Other page builders** (Elementor, Divi, WPBakery, Beaver Builder, …) unless they ship
+  their own Polylang export integration — their content isn't exposed to the pipeline, so
+  it passes through untranslated. (A YOOtheme‑style integration could be added per builder.)
+- **Custom fields left as *Copy* or *Ignore*** in the Polylang settings.
+- **Non‑text data** — IDs, URLs, CSS, shortcodes' structural parts, and raw `code` blocks
+  are intentionally left intact.
+
+> In short: **manage *what* gets translated in Polylang's own settings** (custom fields,
+> taxonomies, ACF). Supertext simply performs the translation on whatever Polylang hands it,
+> plus YOOtheme.
 
 ---
 
