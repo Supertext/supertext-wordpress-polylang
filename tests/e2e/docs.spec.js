@@ -7,8 +7,8 @@ const path = require( 'path' );
 const OUT = path.join( __dirname, '..', '..', 'docs', 'images' );
 
 const SCREENS = [
-	[ 'status', 'wp-admin/admin.php?page=supertext-polylang' ],
-	[ 'settings', 'wp-admin/admin.php?page=supertext-polylang-settings' ],
+	// Status is merged into the (top-level) Settings page.
+	[ 'settings', 'wp-admin/admin.php?page=supertext-polylang' ],
 	[ 'orders', 'wp-admin/admin.php?page=supertext-polylang-orders' ],
 	[ 'machine-translation', 'wp-admin/admin.php?page=mlang_settings' ],
 ];

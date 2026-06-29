@@ -61,7 +61,8 @@ Polylang. The plugin does this for you:
 2. Under **Setup → 1. Patch Polylang**, click **Patch Polylang**.
 
 It backs up the original file (`Factory.php.bak`) and is safe to run again after a Polylang
-update. The **Status** page shows whether the patch is currently applied.
+update. The **status panel** at the top of the Settings page shows whether the patch is
+currently applied.
 
 ![Supertext Settings — Setup and patch](images/settings.png)
 
@@ -107,10 +108,9 @@ plugin's own settings page.
 
 ### Checking the status
 
-**Supertext → Status** shows, at a glance, whether Polylang Pro is active, whether the
-patch is applied, and whether the Supertext service is configured and active.
-
-![Supertext Status page](images/status.png)
+The **status panel** at the top of **Supertext → Settings** shows, at a glance, whether
+Polylang Pro is active, whether the patch is applied, and whether the Supertext service is
+configured and active. (It's the same page shown above.)
 
 ---
 

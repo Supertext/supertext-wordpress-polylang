@@ -11,24 +11,26 @@ use Supertext\Polylang\Human_Translation\Callback;
 use Supertext\Polylang\Machine_Translation\Service;
 
 /**
- * The "Supertext" admin pages, split into Status, Settings and Debug.
+ * The "Supertext" admin pages: Settings (with the status panel merged in),
+ * Orders and Debug.
  *
  * @since 0.2.0
  */
 class Page {
 	/**
-	 * Top-level / Status page slug.
+	 * Top-level / Settings page slug.
 	 *
 	 * @var string
 	 */
 	const SLUG = 'supertext-polylang';
 
 	/**
-	 * Settings page slug.
+	 * Settings page slug. Kept as an alias of {@see self::SLUG} for back-compat
+	 * now that Status is merged into the (top-level) Settings page.
 	 *
 	 * @var string
 	 */
-	const SETTINGS_SLUG = 'supertext-polylang-settings';
+	const SETTINGS_SLUG = self::SLUG;
 
 	/**
 	 * Debug page slug.
@@ -71,7 +73,10 @@ class Page {
 	}
 
 	/**
-	 * Registers the top-level menu + Status and Settings submenus.
+	 * Registers the top-level menu and its Settings submenu.
+	 *
+	 * Status is merged into the Settings page, so the top-level page *is* the
+	 * Settings page (the first submenu is just renamed to "Settings").
 	 *
 	 * @return void
 	 */
@@ -81,26 +86,17 @@ class Page {
 			__( 'Supertext', 'supertext-polylang' ),
 			'manage_options',
 			self::SLUG,
-			array( self::class, 'render_status' ),
+			array( self::class, 'render_settings' ),
 			self::menu_icon(),
 			81
 		);
 
 		add_submenu_page(
 			self::SLUG,
-			__( 'Status', 'supertext-polylang' ),
-			__( 'Status', 'supertext-polylang' ),
-			'manage_options',
-			self::SLUG,
-			array( self::class, 'render_status' )
-		);
-
-		add_submenu_page(
-			self::SLUG,
 			__( 'Settings', 'supertext-polylang' ),
 			__( 'Settings', 'supertext-polylang' ),
 			'manage_options',
-			self::SETTINGS_SLUG,
+			self::SLUG,
 			array( self::class, 'render_settings' )
 		);
 	}
@@ -205,58 +201,43 @@ class Page {
 	}
 
 	/**
-	 * Status page.
+	 * Prints the status panel (Polylang / patch / service health).
 	 *
 	 * @return void
 	 */
-	public static function render_status(): void {
-		if ( ! current_user_can( 'manage_options' ) ) {
-			return;
-		}
-
+	private static function render_status_panel(): void {
 		$polylang = Patch::polylang_available();
 		$patched  = $polylang && Patch::is_patched();
 		$active   = self::service_is_active();
 		?>
-		<div class="wrap">
-			<?php self::header( __( 'Supertext for Polylang', 'supertext-polylang' ) ); ?>
-
-			<h2><?php esc_html_e( 'Status', 'supertext-polylang' ); ?></h2>
-			<table class="widefat striped" style="max-width:640px;">
-				<tbody>
-					<?php
-					self::status_row(
-						__( 'Polylang Pro (Machine Translation)', 'supertext-polylang' ),
-						$polylang,
-						$polylang ? __( 'Active', 'supertext-polylang' ) : __( 'Not active', 'supertext-polylang' )
-					);
-					self::status_row(
-						__( 'Polylang patched (pll_mt_services filter)', 'supertext-polylang' ),
-						$patched,
-						$patched ? __( 'Patched', 'supertext-polylang' ) : __( 'Not patched', 'supertext-polylang' )
-					);
-					self::status_row(
-						__( 'Supertext service configured & active', 'supertext-polylang' ),
-						$active,
-						$active ? __( 'Active', 'supertext-polylang' ) : __( 'Inactive (enter an API key in Polylang settings)', 'supertext-polylang' )
-					);
-					?>
-				</tbody>
-			</table>
-
-			<?php if ( ! $patched || ! $active ) : ?>
-				<p style="margin-top:1em;">
-					<a class="button button-primary" href="<?php echo esc_url( admin_url( 'admin.php?page=' . self::SETTINGS_SLUG ) ); ?>">
-						<?php esc_html_e( 'Go to Settings', 'supertext-polylang' ); ?>
-					</a>
-				</p>
-			<?php endif; ?>
-		</div>
+		<h2><?php esc_html_e( 'Status', 'supertext-polylang' ); ?></h2>
+		<table class="widefat striped" style="max-width:640px;">
+			<tbody>
+				<?php
+				self::status_row(
+					__( 'Polylang Pro (Machine Translation)', 'supertext-polylang' ),
+					$polylang,
+					$polylang ? __( 'Active', 'supertext-polylang' ) : __( 'Not active', 'supertext-polylang' )
+				);
+				self::status_row(
+					__( 'Polylang patched (pll_mt_services filter)', 'supertext-polylang' ),
+					$patched,
+					$patched ? __( 'Patched', 'supertext-polylang' ) : __( 'Not patched', 'supertext-polylang' )
+				);
+				self::status_row(
+					__( 'Supertext service configured & active', 'supertext-polylang' ),
+					$active,
+					$active ? __( 'Active', 'supertext-polylang' ) : __( 'Inactive (enter an API key in Polylang settings)', 'supertext-polylang' )
+				);
+				?>
+			</tbody>
+		</table>
 		<?php
 	}
 
 	/**
-	 * Settings page: setup (patch + configure) and human translation services.
+	 * Settings page: status panel, setup (patch + configure) and human
+	 * translation services.
 	 *
 	 * @return void
 	 */
@@ -281,9 +262,12 @@ class Page {
 		}
 		?>
 		<div class="wrap">
-			<?php self::header( __( 'Supertext Settings', 'supertext-polylang' ) ); ?>
+			<?php
+			self::header( __( 'Supertext for Polylang', 'supertext-polylang' ) );
+			self::render_status_panel();
+			?>
 
-			<h2><?php esc_html_e( 'Setup', 'supertext-polylang' ); ?></h2>
+			<h2 style="margin-top:2em;"><?php esc_html_e( 'Setup', 'supertext-polylang' ); ?></h2>
 
 			<p>
 				<strong><?php esc_html_e( '1. Patch Polylang', 'supertext-polylang' ); ?></strong><br />

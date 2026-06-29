@@ -48,15 +48,11 @@ async function shot( page, testInfo, name, target ) {
 }
 
 test.describe( 'Supertext admin pages', () => {
-	test( 'Status page renders', async ( { page }, testInfo ) => {
+	test( 'Settings page shows status panel + human credentials', async ( { page }, testInfo ) => {
+		// Status is merged into the (top-level) Settings page.
 		await page.goto( 'wp-admin/admin.php?page=supertext-polylang' );
 		await expect( page.getByRole( 'heading', { name: 'Supertext for Polylang' } ) ).toBeVisible();
 		await expect( page.getByText( 'Polylang patched', { exact: false } ) ).toBeVisible();
-		await shot( page, testInfo, 'status' );
-	} );
-
-	test( 'Settings page shows environment + human credentials', async ( { page }, testInfo ) => {
-		await page.goto( 'wp-admin/admin.php?page=supertext-polylang-settings' );
 		await expect( page.getByRole( 'heading', { name: 'Translation Services (human)' } ) ).toBeVisible();
 		await expect( page.locator( '#supertext-environment' ) ).toBeVisible();
 		await expect( page.locator( '#supertext-email' ) ).toBeVisible();
