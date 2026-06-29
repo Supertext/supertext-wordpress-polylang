@@ -155,7 +155,8 @@ Published, per your settings).
   **Status**, **Ordered** date.
 - **In progress / All** filter (hides *Collected* orders by default).
 - **Refresh statuses** pulls the current status from Supertext.
-- **Cancel** removes the per‑post lock so you can order that post again (internal only).
+- **Reset** (debug only) removes the per‑post lock so you can order that post again. It
+  does **not** cancel the order at Supertext; a confirmation popup explains this.
 - A link to your full **Supertext orders** overview.
 
 ![Supertext Orders page](images/orders.png)

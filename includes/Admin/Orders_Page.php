@@ -97,7 +97,7 @@ class Orders_Page {
 				delete_post_meta( (int) $order['post_id'], '_supertext_order_' . $order['lang'] );
 			}
 			Orders::update( $order_id, array( 'status' => 'Cancelled' ) );
-			self::notice( 'success', __( 'Order cancelled. You can order this post again.', 'supertext-polylang' ) );
+			self::notice( 'success', __( 'Order reset locally. You can order this post again. (The Supertext order was not cancelled.)', 'supertext-polylang' ) );
 		}
 
 		wp_safe_redirect( admin_url( 'admin.php?page=' . self::SLUG ) );
@@ -279,11 +279,19 @@ class Orders_Page {
 								<td><?php echo esc_html( (string) ( $order['created_at'] ?? '' ) ); ?></td>
 								<td>
 									<?php if ( $is_open ) : ?>
-										<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" onsubmit="return confirm('<?php echo esc_js( __( 'Cancel this order? You will be able to order this post again.', 'supertext-polylang' ) ); ?>');">
+										<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" onsubmit="return confirm('<?php echo esc_js( __( 'Reset this order locally?\n\nThis is for debugging only. It removes the local lock so you can order this post again — it does NOT cancel the order at Supertext.', 'supertext-polylang' ) ); ?>');">
 											<input type="hidden" name="action" value="<?php echo esc_attr( self::CANCEL_ACTION ); ?>" />
 											<input type="hidden" name="order_id" value="<?php echo esc_attr( (string) $order['order_id'] ); ?>" />
 											<?php wp_nonce_field( self::CANCEL_ACTION ); ?>
-											<?php submit_button( __( 'Cancel', 'supertext-polylang' ), 'delete small', 'submit', false ); ?>
+											<?php
+											submit_button(
+												__( 'Reset', 'supertext-polylang' ),
+												'secondary small',
+												'submit',
+												false,
+												array( 'title' => esc_attr__( 'Debug only: removes the local lock so the post can be ordered again. Does not cancel the Supertext order.', 'supertext-polylang' ) )
+											);
+											?>
 										</form>
 									<?php else : ?>
 										—
