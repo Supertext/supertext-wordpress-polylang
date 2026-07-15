@@ -144,7 +144,12 @@ class Bulk_Actions {
 			<select name="supertext_service_id" id="supertext_service_id">
 				<option value=""><?php esc_html_e( 'Translation type', 'supertext-polylang' ); ?></option>
 				<?php foreach ( self::HUMAN_SERVICES as $id => $service ) : ?>
-					<option value="<?php echo esc_attr( $id ); ?>" data-order-type-id="<?php echo esc_attr( $service['order_type_id'] ); ?>" <?php selected( $sel_service, $id ); ?>><?php echo esc_html( $service['label'] ); ?></option>
+					<option
+						value="<?php echo esc_attr( $id ); ?>"
+						data-order-type-configuration-id="<?php echo esc_attr( $id ); ?>"
+						data-order-type-id="<?php echo esc_attr( $service['order_type_id'] ); ?>"
+						<?php selected( $sel_service, $id ); ?>
+					><?php echo esc_html( $service['label'] ); ?></option>
 				<?php endforeach; ?>
 			</select>
 		</span>

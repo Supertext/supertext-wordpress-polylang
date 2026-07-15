@@ -35,3 +35,6 @@ tests/e2e/playwright-report/
 # Unit tests (PHPUnit)
 tests/unit/vendor/
 tests/unit/.phpunit.result.cache
+
+# local scratch
+apidoc.html
