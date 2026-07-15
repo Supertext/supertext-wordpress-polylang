@@ -253,7 +253,7 @@ class Orders_Page {
 						<?php endif; ?>
 						<?php foreach ( $visible as $order ) : ?>
 							<?php
-							$type_label     = Bulk_Actions::HUMAN_SERVICES[ (int) $order['type_id'] ] ?? (string) $order['type_id'];
+							$type_label     = Bulk_Actions::service_label( (int) $order['type_id'] );
 							$delivery_label = Bulk_Actions::EXPRESS_OPTIONS[ (string) $order['delivery_id'] ] ?? (string) $order['delivery_id'];
 							$is_open        = empty( $order['completed_at'] ) && 'Cancelled' !== ( $order['status'] ?? '' );
 							?>

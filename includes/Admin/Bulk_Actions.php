@@ -39,11 +39,15 @@ class Bulk_Actions {
 	/** User meta storing the last-selected order options (to pre-fill next time). */
 	const PREFS_META = 'supertext_polylang_last_order';
 
-	/** Human translation product types (Supertext OrderTypeConfigurationId => label). */
+	/**
+	 * Human translation product types, keyed by Supertext OrderTypeConfigurationId.
+	 * Each entry carries the display label and the matching OrderTypeId (used by the
+	 * quote endpoint, and echoed by /translation/quote's Options).
+	 */
 	const HUMAN_SERVICES = array(
-		166 => 'Übersetzung BASIC',
-		167 => 'Übersetzung PREMIUM',
-		168 => 'Übersetzung CREATIVE',
+		166 => array( 'label' => 'Übersetzung BASIC',    'order_type_id' => 54 ),
+		167 => array( 'label' => 'Übersetzung PREMIUM',  'order_type_id' => 55 ),
+		168 => array( 'label' => 'Übersetzung CREATIVE', 'order_type_id' => 56 ),
 	);
 
 	/** Human translation delivery options (Supertext DeliveryId => label). */
@@ -139,8 +143,8 @@ class Bulk_Actions {
 			<label for="supertext_service_id" class="screen-reader-text"><?php esc_html_e( 'Translation type', 'supertext-polylang' ); ?></label>
 			<select name="supertext_service_id" id="supertext_service_id">
 				<option value=""><?php esc_html_e( 'Translation type', 'supertext-polylang' ); ?></option>
-				<?php foreach ( self::HUMAN_SERVICES as $id => $label ) : ?>
-					<option value="<?php echo esc_attr( $id ); ?>" <?php selected( $sel_service, $id ); ?>><?php echo esc_html( $label ); ?></option>
+				<?php foreach ( self::HUMAN_SERVICES as $id => $service ) : ?>
+					<option value="<?php echo esc_attr( $id ); ?>" data-order-type-id="<?php echo esc_attr( $service['order_type_id'] ); ?>" <?php selected( $sel_service, $id ); ?>><?php echo esc_html( $service['label'] ); ?></option>
 				<?php endforeach; ?>
 			</select>
 		</span>
@@ -154,6 +158,26 @@ class Bulk_Actions {
 			</select>
 		</span>
 		<?php
+	}
+
+	/**
+	 * Returns the display label for an OrderTypeConfigurationId (falls back to the id).
+	 *
+	 * @param int $config_id OrderTypeConfigurationId.
+	 * @return string
+	 */
+	public static function service_label( int $config_id ): string {
+		return (string) ( self::HUMAN_SERVICES[ $config_id ]['label'] ?? $config_id );
+	}
+
+	/**
+	 * Returns the Supertext OrderTypeId for an OrderTypeConfigurationId, or 0.
+	 *
+	 * @param int $config_id OrderTypeConfigurationId.
+	 * @return int
+	 */
+	public static function order_type_id( int $config_id ): int {
+		return (int) ( self::HUMAN_SERVICES[ $config_id ]['order_type_id'] ?? 0 );
 	}
 
 	/**
