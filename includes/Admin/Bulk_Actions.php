@@ -39,6 +39,9 @@ class Bulk_Actions {
 	/** User meta storing the last-selected order options (to pre-fill next time). */
 	const PREFS_META = 'supertext_polylang_last_order';
 
+	/** AJAX action name for fetching a live price quote. */
+	const QUOTE_ACTION = 'supertext_polylang_quote';
+
 	/**
 	 * Human translation product types, keyed by Supertext OrderTypeConfigurationId.
 	 * Each entry carries the display label and the matching OrderTypeId (used by the
@@ -68,6 +71,7 @@ class Bulk_Actions {
 		add_action( 'current_screen', array( self::class, 'hook_screen' ) );
 		add_action( 'admin_enqueue_scripts', array( self::class, 'enqueue_assets' ) );
 		add_action( 'admin_notices', array( self::class, 'render_notice' ) );
+		add_action( 'wp_ajax_' . self::QUOTE_ACTION, array( self::class, 'handle_quote' ) );
 	}
 
 	/**
@@ -87,6 +91,22 @@ class Bulk_Actions {
 			array( 'jquery' ),
 			SUPERTEXT_POLYLANG_VERSION,
 			true
+		);
+
+		wp_localize_script(
+			'supertext-polylang-bulk',
+			'SupertextBulk',
+			array(
+				'ajaxUrl'     => admin_url( 'admin-ajax.php' ),
+				'quoteAction' => self::QUOTE_ACTION,
+				'quoteNonce'  => wp_create_nonce( self::QUOTE_ACTION ),
+				'i18n'        => array(
+					'quoting'   => __( 'Getting price…', 'supertext-polylang' ),
+					'words'     => __( 'words', 'supertext-polylang' ),
+					'from'      => __( 'from', 'supertext-polylang' ),
+					'quoteFail' => __( 'Could not get a price.', 'supertext-polylang' ),
+				),
+			)
 		);
 	}
 
@@ -401,17 +421,19 @@ class Bulk_Actions {
 	}
 
 	/**
-	 * Places a human-translation order with Supertext: builds the content HTML,
-	 * uploads it, and creates the order. Response handling (the callback) is wired
-	 * up separately.
+	 * Builds the translatable HTML for a post and uploads it to Supertext.
 	 *
-	 * @param int    $post_id     Source post ID.
-	 * @param string $target_lang Target language slug.
-	 * @param int    $service_id  Supertext OrderTypeConfigurationId.
-	 * @param string $express     Supertext DeliveryId.
-	 * @return int[]|WP_Error Order id(s) on success.
+	 * Shared by the order and quote paths so a quote reflects exactly what an order
+	 * would send. Validates the post + languages, collects the translatable content
+	 * (via the export pipeline), and uploads it, returning the Supertext DocumentId
+	 * plus the language codes/title needed to build an order or a quote.
+	 *
+	 * @param Human_Client $client      Human API client.
+	 * @param int          $post_id     Source post ID.
+	 * @param string       $target_lang Target language slug.
+	 * @return array{document_id:int, title:string, source_lang:string, source_w3c:string, target_w3c:string}|WP_Error
 	 */
-	private static function submit_human_order( int $post_id, string $target_lang, int $service_id, string $express ) {
+	private static function upload_post_content( Human_Client $client, int $post_id, string $target_lang ) {
 		if ( ! function_exists( 'PLL' ) || ! isset( PLL()->model ) ) {
 			return new WP_Error( 'supertext_no_pll', __( 'Polylang is not available.', 'supertext-polylang' ) );
 		}
@@ -425,7 +447,7 @@ class Bulk_Actions {
 			return new WP_Error( 'supertext_invalid', __( 'Invalid post, or missing source/target language.', 'supertext-polylang' ) );
 		}
 
-		// Never order a translation into the post's own language.
+		// Never translate a post into its own language.
 		if ( $source->slug === $target_lang ) {
 			return new WP_Error(
 				'supertext_same_language',
@@ -433,19 +455,6 @@ class Bulk_Actions {
 					/* translators: 1: post title, 2: language slug. */
 					__( '"%1$s": source and target language are the same (%2$s).', 'supertext-polylang' ),
 					$post->post_title,
-					$target_lang
-				)
-			);
-		}
-
-		// Avoid placing a duplicate (paid) order for the same target language.
-		if ( get_post_meta( $post_id, '_supertext_order_' . $target_lang, true ) ) {
-			return new WP_Error(
-				'supertext_already_ordered',
-				sprintf(
-					/* translators: 1: post title, 2: language slug. */
-					__( 'An order already exists for "%1$s" (%2$s).', 'supertext-polylang' ),
-					get_the_title( $post_id ),
 					$target_lang
 				)
 			);
@@ -468,22 +477,58 @@ class Bulk_Actions {
 			);
 		}
 
-		$html = Human_Content::render( $entries );
-
+		$html     = Human_Content::render( $entries );
 		$title    = '' !== $post->post_title ? $post->post_title : 'post-' . $post_id;
 		$filename = sanitize_file_name( $title );
 		$filename = ( '' !== $filename ? $filename : 'content-' . $post_id ) . '.html';
-
-		$client = new Human_Client();
 
 		$document_id = $client->upload_file( $html, $filename );
 		if ( is_wp_error( $document_id ) ) {
 			return $document_id;
 		}
 
+		return array(
+			'document_id' => (int) $document_id,
+			'title'       => (string) $title,
+			'source_lang' => (string) strtok( (string) $source->w3c, '-' ), // 2-letter primary subtag.
+			'source_w3c'  => (string) $source->w3c,
+			'target_w3c'  => (string) $lang->w3c,
+		);
+	}
+
+	/**
+	 * Places a human-translation order with Supertext: builds the content HTML,
+	 * uploads it, and creates the order. The completion callback writes it back.
+	 *
+	 * @param int    $post_id     Source post ID.
+	 * @param string $target_lang Target language slug.
+	 * @param int    $service_id  Supertext OrderTypeConfigurationId.
+	 * @param string $express     Supertext DeliveryId.
+	 * @return int[]|WP_Error Order id(s) on success.
+	 */
+	private static function submit_human_order( int $post_id, string $target_lang, int $service_id, string $express ) {
+		// Avoid placing a duplicate (paid) order for the same target language.
+		if ( get_post_meta( $post_id, '_supertext_order_' . $target_lang, true ) ) {
+			return new WP_Error(
+				'supertext_already_ordered',
+				sprintf(
+					/* translators: 1: post title, 2: language slug. */
+					__( 'An order already exists for "%1$s" (%2$s).', 'supertext-polylang' ),
+					get_the_title( $post_id ),
+					$target_lang
+				)
+			);
+		}
+
+		$client   = new Human_Client();
+		$prepared = self::upload_post_content( $client, $post_id, $target_lang );
+		if ( is_wp_error( $prepared ) ) {
+			return $prepared;
+		}
+
 		$order = array(
 			'DeliveryId'               => (int) $express,
-			'OrderName'                => $title,
+			'OrderName'                => $prepared['title'],
 			'OrderTypeConfigurationId' => $service_id,
 			'ContentType'              => 'text/html',
 			'Referrer'                 => 'Supertext for Polylang',
@@ -491,14 +536,14 @@ class Bulk_Actions {
 			'SystemVersion'            => get_bloginfo( 'version' ),
 			'ComponentName'            => 'supertext-polylang',
 			'ComponentVersion'         => SUPERTEXT_POLYLANG_VERSION,
-			'SourceLang'               => (string) strtok( (string) $source->w3c, '-' ), // 2-letter primary subtag.
-			'TargetLanguages'          => array( $lang->w3c ),
+			'SourceLang'               => $prepared['source_lang'],
+			'TargetLanguages'          => array( $prepared['target_w3c'] ),
 			'ReferenceData'            => Human_Callback::reference_data( $post_id, $target_lang ),
 			'CallbackUrl'              => Human_Callback::url(),
 			'Files'                    => array(
 				array(
 					'Comment' => 'WordPress content',
-					'Id'      => $document_id,
+					'Id'      => $prepared['document_id'],
 				),
 			),
 		);
@@ -526,10 +571,10 @@ class Bulk_Actions {
 					'order_id'    => $oid,
 					'post_id'     => $post_id,
 					'lang'        => $target_lang,
-					'target'      => $lang->w3c,
+					'target'      => $prepared['target_w3c'],
 					'type_id'     => $service_id,
 					'delivery_id' => (int) $express,
-					'order_name'  => $title,
+					'order_name'  => $prepared['title'],
 					'status'      => 'New',
 				)
 			);
@@ -542,16 +587,138 @@ class Bulk_Actions {
 			wp_json_encode(
 				array(
 					'order_ids'   => $order_ids,
-					'document_id' => $document_id,
+					'document_id' => $prepared['document_id'],
 					'service_id'  => $service_id,
 					'delivery_id' => (int) $express,
-					'target'      => $lang->w3c,
+					'target'      => $prepared['target_w3c'],
 					'ordered_at'  => gmdate( 'c' ),
 				)
 			)
 		);
 
 		return $order_ids;
+	}
+
+	/**
+	 * AJAX: returns a live price quote for the selected posts + chosen service.
+	 *
+	 * Uploads each selected post's translatable content (exactly as an order would),
+	 * groups the uploads by source language (the quote endpoint takes one SourceLang
+	 * per call), requests a quote per group, and aggregates word count + per-delivery
+	 * prices across groups.
+	 *
+	 * @return void
+	 */
+	public static function handle_quote(): void {
+		check_ajax_referer( self::QUOTE_ACTION, 'nonce' );
+
+		if ( ! current_user_can( 'edit_posts' ) ) {
+			wp_send_json_error( array( 'message' => __( 'You are not allowed to do this.', 'supertext-polylang' ) ), 403 );
+		}
+		if ( ! Settings::is_configured() ) {
+			wp_send_json_error( array( 'message' => __( 'Supertext human-translation credentials are not configured.', 'supertext-polylang' ) ) );
+		}
+
+		// phpcs:disable WordPress.Security.NonceVerification.Missing -- nonce checked above.
+		$target_lang = sanitize_key( wp_unslash( $_POST['target_lang'] ?? '' ) );
+		$service_id  = (int) ( $_POST['service_id'] ?? 0 );
+		$post_ids    = array_values( array_unique( array_filter( array_map( 'intval', (array) ( $_POST['post_ids'] ?? array() ) ) ) ) );
+		// phpcs:enable WordPress.Security.NonceVerification.Missing
+
+		if ( '' === $target_lang || ! isset( self::HUMAN_SERVICES[ $service_id ] ) || empty( $post_ids ) ) {
+			wp_send_json_error( array( 'message' => __( 'Select a translation type, a target language, and at least one post.', 'supertext-polylang' ) ) );
+		}
+
+		$client = new Human_Client();
+
+		// Upload each post, grouped by source language.
+		$groups = array();
+		$errors = array();
+		foreach ( $post_ids as $post_id ) {
+			$prepared = self::upload_post_content( $client, $post_id, $target_lang );
+			if ( is_wp_error( $prepared ) ) {
+				$errors[] = $prepared->get_error_message();
+				continue;
+			}
+			$groups[ $prepared['source_w3c'] ][] = $prepared;
+		}
+
+		if ( empty( $groups ) ) {
+			wp_send_json_error( array( 'message' => ! empty( $errors ) ? implode( ' ', array_unique( $errors ) ) : __( 'Nothing to quote.', 'supertext-polylang' ) ) );
+		}
+
+		$order_type_id = self::order_type_id( $service_id );
+		$lang          = PLL()->model->get_language( $target_lang );
+		$target_w3c    = $lang ? $lang->w3c : $target_lang;
+
+		/** Optional currency to request; empty lets the account default apply. */
+		$currency_req = (string) apply_filters( 'supertext_polylang_quote_currency', '' );
+
+		$currency   = '';
+		$symbol     = '';
+		$word_count = 0;
+		$deliveries = array(); // DeliveryId => { delivery_id, name, price, date }.
+
+		foreach ( $groups as $source_w3c => $items ) {
+			$files = array();
+			foreach ( $items as $item ) {
+				$files[] = array( 'Id' => $item['document_id'], 'Comment' => $item['title'] );
+			}
+
+			$body = array(
+				'OrderTypeConfigurationId' => $service_id,
+				'OrderTypeId'              => $order_type_id,
+				'SourceLang'               => $source_w3c,
+				'TargetLanguages'          => array( $target_w3c ),
+				'Files'                    => $files,
+			);
+			if ( '' !== $currency_req ) {
+				$body['Currency'] = $currency_req;
+			}
+
+			$quote = $client->get_quote( $body );
+			if ( is_wp_error( $quote ) ) {
+				wp_send_json_error( array( 'message' => $quote->get_error_message() ) );
+			}
+
+			$currency    = (string) ( $quote['Currency'] ?? $currency );
+			$symbol      = (string) ( $quote['CurrencySymbol'] ?? $symbol );
+			$word_count += (int) ( $quote['WordCount'] ?? 0 );
+
+			$option = ( isset( $quote['Options'][0] ) && is_array( $quote['Options'][0] ) ) ? $quote['Options'][0] : array();
+			foreach ( (array) ( $option['DeliveryOptions'] ?? array() ) as $do ) {
+				$did = (int) ( $do['DeliveryId'] ?? 0 );
+				if ( $did <= 0 ) {
+					continue;
+				}
+				if ( ! isset( $deliveries[ $did ] ) ) {
+					$deliveries[ $did ] = array(
+						'delivery_id' => $did,
+						'name'        => (string) ( $do['Name'] ?? '' ),
+						'price'       => 0.0,
+						'date'        => (string) ( $do['DeliveryDate'] ?? '' ),
+					);
+				}
+				$deliveries[ $did ]['price'] += (float) ( $do['Price'] ?? 0 );
+				// Across groups, the order isn't done until the latest delivery date.
+				$date = (string) ( $do['DeliveryDate'] ?? '' );
+				if ( $date > $deliveries[ $did ]['date'] ) {
+					$deliveries[ $did ]['date'] = $date;
+				}
+			}
+		}
+
+		ksort( $deliveries );
+
+		wp_send_json_success(
+			array(
+				'currency'       => $currency,
+				'currencySymbol' => '' !== $symbol ? $symbol : $currency,
+				'wordCount'      => $word_count,
+				'deliveries'     => array_values( $deliveries ),
+				'warnings'       => array_values( array_unique( $errors ) ),
+			)
+		);
 	}
 
 	/**

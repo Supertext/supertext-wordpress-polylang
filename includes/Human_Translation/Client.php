@@ -151,6 +151,32 @@ class Client {
 	}
 
 	/**
+	 * Requests a price quote for already-uploaded content.
+	 *
+	 * @param array $body The quote body (OrderTypeConfigurationId, OrderTypeId,
+	 *                    SourceLang, TargetLanguages, Files, …).
+	 * @return array|WP_Error The decoded quote on success.
+	 */
+	public function get_quote( array $body ) {
+		$response = $this->request(
+			'POST',
+			'api/v1/translation/quote',
+			array(
+				'headers' => array( 'Content-Type' => 'application/json; charset=UTF-8' ),
+				'body'    => wp_json_encode( $body ),
+			)
+		);
+
+		if ( is_wp_error( $response ) ) {
+			return $response;
+		}
+
+		$data = json_decode( (string) wp_remote_retrieve_body( $response ), true );
+
+		return is_array( $data ) ? $data : array();
+	}
+
+	/**
 	 * Fetches an order (with its current status and files).
 	 *
 	 * @param int $order_id The order id.
