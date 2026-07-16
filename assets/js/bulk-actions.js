@@ -129,25 +129,9 @@
 	function renderQuote( data ) {
 		var cur = data.currencySymbol || data.currency || '';
 		populateDelivery( data.deliveries, cur );
-
-		var min = null;
-		( data.deliveries || [] ).forEach( function ( d ) {
-			if ( min === null || d.price < min ) {
-				min = d.price;
-			}
-		} );
-
-		var parts = [];
-		if ( data.wordCount ) {
-			parts.push( data.wordCount + ' ' + cfg.i18n.words );
-		}
-		if ( min !== null ) {
-			parts.push( cfg.i18n.from + ' ' + formatPrice( min ) + ' ' + cur );
-		}
-		if ( data.warnings && data.warnings.length ) {
-			parts.push( data.warnings.join( ' ' ) );
-		}
-		status( parts.join( ' · ' ) );
+		// Prices show on each delivery option, so no summary line is needed — only
+		// surface warnings (e.g. a post skipped because it was the same language).
+		status( ( data.warnings && data.warnings.length ) ? data.warnings.join( ' ' ) : '' );
 	}
 
 	function fetchQuote() {
