@@ -139,14 +139,23 @@ the target, are skipped.)
 
 1. Select items in the **Posts**/**Pages** list.
 2. Choose **Supertext Human Translation**.
-3. Pick the **target language**, the **translation type** (BASIC / PREMIUM / CREATIVE) and
-   the **delivery** (Express / 24h / 48h / 3 days / 1 week).
-4. Click **Apply**.
+3. Pick the **target language** and the **translation type** (BASIC / PREMIUM / CREATIVE).
+4. The plugin fetches a **live price quote** from Supertext and fills the **delivery**
+   dropdown with the available options **and their prices** (e.g. *“Express — 90.00 CHF”*).
+   Pick a delivery option.
+5. Click **Apply**.
 
-The content is sent to Supertext as an order. The confirmation notice shows the **Order
-ID**, linked to the order in your Supertext account. When the order is finished, Supertext
-calls back and the translation is written into the target post automatically (as a Draft or
-Published, per your settings).
+> **About the price quote:** the delivery dropdown stays disabled until a quote arrives.
+> When you pick a translation type + target language (with at least one post selected), the
+> plugin uploads the content to Supertext and requests a quote, then shows each delivery
+> option with its price and delivery date (as a tooltip). Only the delivery options actually
+> offered for that language pair are shown — these can differ from one language pair to the
+> next. Selecting more posts or changing the type/language re‑fetches the quote.
+
+The content is then sent to Supertext as an order. The confirmation notice shows the
+**Order ID**, linked to the order in your Supertext account. When the order is finished,
+Supertext calls back and the translation is written into the target post automatically (as
+a Draft or Published, per your settings).
 
 ### The Orders page
 
