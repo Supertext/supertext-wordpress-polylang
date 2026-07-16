@@ -105,6 +105,8 @@ class Bulk_Actions {
 					'words'     => __( 'words', 'supertext-polylang' ),
 					'from'      => __( 'from', 'supertext-polylang' ),
 					'quoteFail' => __( 'Could not get a price.', 'supertext-polylang' ),
+					'delivery'  => __( 'Delivery', 'supertext-polylang' ),
+					'noOptions' => __( 'No delivery options', 'supertext-polylang' ),
 				),
 			)
 		);
@@ -175,11 +177,9 @@ class Bulk_Actions {
 		</span>
 		<span id="supertext-express-picker" style="display:none;">
 			<label for="supertext_express" class="screen-reader-text"><?php esc_html_e( 'Delivery', 'supertext-polylang' ); ?></label>
-			<select name="supertext_express" id="supertext_express">
+			<?php // Options + prices are filled in from the live quote; disabled until then. ?>
+			<select name="supertext_express" id="supertext_express" data-preferred="<?php echo esc_attr( $sel_express ); ?>" disabled>
 				<option value=""><?php esc_html_e( 'Delivery', 'supertext-polylang' ); ?></option>
-				<?php foreach ( self::EXPRESS_OPTIONS as $value => $label ) : ?>
-					<option value="<?php echo esc_attr( $value ); ?>" <?php selected( $sel_express, $value ); ?>><?php echo esc_html( $label ); ?></option>
-				<?php endforeach; ?>
 			</select>
 		</span>
 		<?php
@@ -654,10 +654,11 @@ class Bulk_Actions {
 		/** Optional currency to request; empty lets the account default apply. */
 		$currency_req = (string) apply_filters( 'supertext_polylang_quote_currency', '' );
 
-		$currency   = '';
-		$symbol     = '';
-		$word_count = 0;
-		$deliveries = array(); // DeliveryId => { delivery_id, name, price, date }.
+		$currency    = '';
+		$symbol      = '';
+		$word_count  = 0;
+		$group_count = count( $groups );
+		$acc         = array(); // DeliveryId => { delivery_id, name, price, date, is_default, seen }.
 
 		foreach ( $groups as $source_w3c => $items ) {
 			$files = array();
@@ -691,23 +692,35 @@ class Bulk_Actions {
 				if ( $did <= 0 ) {
 					continue;
 				}
-				if ( ! isset( $deliveries[ $did ] ) ) {
-					$deliveries[ $did ] = array(
+				if ( ! isset( $acc[ $did ] ) ) {
+					$acc[ $did ] = array(
 						'delivery_id' => $did,
 						'name'        => (string) ( $do['Name'] ?? '' ),
 						'price'       => 0.0,
 						'date'        => (string) ( $do['DeliveryDate'] ?? '' ),
+						'is_default'  => (bool) ( $do['IsDefaultDeliveryOption'] ?? false ),
+						'seen'        => 0,
 					);
 				}
-				$deliveries[ $did ]['price'] += (float) ( $do['Price'] ?? 0 );
+				$acc[ $did ]['price'] += (float) ( $do['Price'] ?? 0 );
+				$acc[ $did ]['seen']  += 1;
 				// Across groups, the order isn't done until the latest delivery date.
 				$date = (string) ( $do['DeliveryDate'] ?? '' );
-				if ( $date > $deliveries[ $did ]['date'] ) {
-					$deliveries[ $did ]['date'] = $date;
+				if ( $date > $acc[ $did ]['date'] ) {
+					$acc[ $did ]['date'] = $date;
 				}
 			}
 		}
 
+		// Keep only delivery options offered for EVERY source-language group, so the
+		// chosen delivery is valid for the whole selection.
+		$deliveries = array();
+		foreach ( $acc as $did => $delivery ) {
+			if ( $delivery['seen'] === $group_count ) {
+				unset( $delivery['seen'] );
+				$deliveries[ $did ] = $delivery;
+			}
+		}
 		ksort( $deliveries );
 
 		wp_send_json_success(

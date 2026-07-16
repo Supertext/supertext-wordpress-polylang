@@ -84,35 +84,51 @@
 		$( '#supertext-quote-status' ).text( text || '' );
 	}
 
-	// Restore delivery <option> labels to their originals (strip any price).
-	function resetDeliveryLabels() {
-		$( '#supertext_express option' ).each( function () {
-			var $o = $( this );
-			if ( $o.data( 'label' ) ) {
-				$o.text( $o.data( 'label' ) );
+	// Collapses the delivery dropdown to a single disabled placeholder. Delivery
+	// options are only available once a quote returns (and differ per language pair).
+	function deliveryPlaceholder( text ) {
+		$( '#supertext_express' )
+			.prop( 'disabled', true )
+			.empty()
+			.append( $( '<option>', { value: '', text: text || cfg.i18n.delivery } ) )
+			.val( '' );
+	}
+
+	// Rebuilds the delivery dropdown from the quote's delivery options (only the
+	// ones offered for this service + language pair), with prices, and enables it.
+	function populateDelivery( deliveries, cur ) {
+		var $sel = $( '#supertext_express' );
+		if ( ! deliveries || ! deliveries.length ) {
+			deliveryPlaceholder( cfg.i18n.noOptions );
+			return;
+		}
+
+		var preferred = $sel.data( 'preferred' );
+		$sel.empty().append( $( '<option>', { value: '', text: cfg.i18n.delivery } ) );
+
+		var toSelect = '';
+		deliveries.forEach( function ( d ) {
+			var $o = $( '<option>', {
+				value: d.delivery_id,
+				text: d.name + ' — ' + formatPrice( d.price ) + ' ' + cur
+			} );
+			if ( d.date ) {
+				$o.attr( 'title', d.date );
+			}
+			$sel.append( $o );
+			if ( String( preferred ) === String( d.delivery_id ) ) {
+				toSelect = String( d.delivery_id ); // Remembered choice wins…
+			} else if ( ! toSelect && d.is_default ) {
+				toSelect = String( d.delivery_id ); // …otherwise the quote's default.
 			}
 		} );
+
+		$sel.prop( 'disabled', false ).val( toSelect );
 	}
 
 	function renderQuote( data ) {
 		var cur = data.currencySymbol || data.currency || '';
-		var byId = {};
-		( data.deliveries || [] ).forEach( function ( d ) {
-			byId[ String( d.delivery_id ) ] = d;
-		} );
-
-		$( '#supertext_express option' ).each( function () {
-			var $o = $( this );
-			var v  = $o.attr( 'value' );
-			if ( ! $o.data( 'label' ) ) {
-				$o.data( 'label', $o.text() );
-			}
-			if ( ! v ) {
-				return;
-			}
-			var d = byId[ String( v ) ];
-			$o.text( d ? $o.data( 'label' ) + ' — ' + formatPrice( d.price ) + ' ' + cur : $o.data( 'label' ) );
-		} );
+		populateDelivery( data.deliveries, cur );
 
 		var min = null;
 		( data.deliveries || [] ).forEach( function ( d ) {
@@ -128,6 +144,9 @@
 		if ( min !== null ) {
 			parts.push( cfg.i18n.from + ' ' + formatPrice( min ) + ' ' + cur );
 		}
+		if ( data.warnings && data.warnings.length ) {
+			parts.push( data.warnings.join( ' ' ) );
+		}
 		status( parts.join( ' · ' ) );
 	}
 
@@ -140,7 +159,7 @@
 		var ids     = selectedPostIds();
 
 		if ( ! service || ! lang || ! ids.length ) {
-			resetDeliveryLabels();
+			deliveryPlaceholder();
 			status( '' );
 			return;
 		}
@@ -148,6 +167,7 @@
 		if ( quoteXhr ) {
 			quoteXhr.abort();
 		}
+		deliveryPlaceholder( cfg.i18n.quoting );
 		status( cfg.i18n.quoting );
 
 		quoteXhr = $.post( cfg.ajaxUrl, {
@@ -160,14 +180,14 @@
 			if ( res && res.success ) {
 				renderQuote( res.data );
 			} else {
-				resetDeliveryLabels();
+				deliveryPlaceholder();
 				status( ( res && res.data && res.data.message ) || cfg.i18n.quoteFail );
 			}
 		} ).fail( function ( xhr, textStatus ) {
 			if ( textStatus === 'abort' ) {
 				return;
 			}
-			resetDeliveryLabels();
+			deliveryPlaceholder();
 			status( cfg.i18n.quoteFail );
 		} );
 	}
