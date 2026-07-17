@@ -294,7 +294,7 @@ class Page {
 
 			<h2 style="margin-top:2em;"><?php esc_html_e( 'Translation Services (human)', 'supertext-polylang' ); ?></h2>
 			<p class="description" style="max-width:640px;">
-				<?php esc_html_e( 'Professional (human) translation orders use a separate credential from the AI translation API key. Enter your Supertext account email and Legacy API Key below.', 'supertext-polylang' ); ?>
+				<?php esc_html_e( 'Professional (human) translation orders use a separate credential from the AI translation API key. Enter your Supertext account email and Order API Key below.', 'supertext-polylang' ); ?>
 			</p>
 			<?php
 			settings_errors( Settings::GROUP );

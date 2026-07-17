@@ -9,7 +9,7 @@ defined( 'ABSPATH' ) || exit;
 
 /**
  * Plugin-owned settings for the Supertext human / professional translation order
- * API — environment + Basic-auth credentials (account email + Legacy API Key).
+ * API — environment + Basic-auth credentials (account email + Order API Key).
  *
  * Stored in the plugin's own option (not in Polylang's machine-translation
  * settings, which only hold the AI service config). Rendered on the Supertext
@@ -172,7 +172,7 @@ class Settings {
 	}
 
 	/**
-	 * Returns the human/order API Legacy API Key.
+	 * Returns the Order API Key.
 	 *
 	 * @return string
 	 */
@@ -255,11 +255,11 @@ class Settings {
 					</td>
 				</tr>
 				<tr>
-					<th scope="row"><label for="supertext-legacy-key"><?php esc_html_e( 'Legacy API Key', 'supertext-polylang' ); ?></label></th>
+					<th scope="row"><label for="supertext-api-key"><?php esc_html_e( 'Order API Key', 'supertext-polylang' ); ?></label></th>
 					<td>
 						<input
 							name="<?php echo esc_attr( self::OPTION . '[human_api_key]' ); ?>"
-							id="supertext-legacy-key"
+							id="supertext-api-key"
 							type="password"
 							autocomplete="off"
 							class="regular-text"
@@ -269,7 +269,7 @@ class Settings {
 							<?php
 							printf(
 								/* translators: %s is a link to the Supertext account settings page. */
-								esc_html__( 'Your Supertext "Legacy API Key" (used with the account email, via HTTP Basic auth, for order requests). Find it in your %s.', 'supertext-polylang' ),
+								esc_html__( 'Your Supertext "Order API Key" (used with the account email, via HTTP Basic auth, for order requests). Find it in your %s.', 'supertext-polylang' ),
 								sprintf(
 									'<a href="%s" target="_blank" rel="noopener">%s</a>',
 									esc_url( self::base_url() . 'services/customer/accountsettings' ),

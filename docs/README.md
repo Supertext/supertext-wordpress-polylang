@@ -38,7 +38,7 @@ translation** service in **Polylang Pro**.
 - **Polylang Pro** with the **Machine Translation** module
 - A **Supertext** account
   - an **AI translation API key** (for AI), and/or
-  - an **account email + Legacy API Key** (for human translation orders)
+  - an **account email + Order API Key** (for human translation orders)
 
 ---
 
@@ -98,7 +98,7 @@ plugin's own settings page.
 
 1. Go to **Supertext → Settings → Translation Services (human)**.
 2. Choose the **Environment** (Live / Staging / Testing).
-3. Enter your **Account email** and **Legacy API Key** — find the Legacy API Key in your
+3. Enter your **Account email** and **Order API Key** — find the Order API Key in your
    **Supertext account settings** (the field links to it).
 4. Choose the **Write‑back** behaviour:
    - **Allow multiple write‑backs** — re‑apply the translation on every completed‑order
@@ -242,7 +242,7 @@ handled the same way.
 - **“source and target language are the same”** — you can't translate a post into its own
   language; pick a different target.
 - **Human order placed but nothing comes back** — check **Supertext → Debug** for the most
-  recent callback payload, and confirm the Environment + Email + Legacy API Key are correct.
+  recent callback payload, and confirm the Environment + Email + Order API Key are correct.
 
 ---
 

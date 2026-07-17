@@ -13,7 +13,7 @@ use WP_Error;
 /**
  * Client for Supertext's human / professional translation Order API.
  *
- * Authenticates with HTTP Basic (account email + Legacy API Key) against the
+ * Authenticates with HTTP Basic (account email + Order API Key) against the
  * configured environment. Implements the two calls needed to place an order:
  *   1. upload the HTML document  (POST api/v1/files/files)
  *   2. create the order          (POST api/v1.1/translation/order)
@@ -38,7 +38,7 @@ class Client {
 	private $email;
 
 	/**
-	 * Legacy API key (Basic auth password).
+	 * Order API Key (Basic auth password).
 	 *
 	 * @var string
 	 */
@@ -50,7 +50,7 @@ class Client {
 	 *
 	 * @param string|null $base    Base URL (with trailing slash).
 	 * @param string|null $email   Account email.
-	 * @param string|null $api_key Legacy API key.
+	 * @param string|null $api_key Order API Key.
 	 */
 	public function __construct( ?string $base = null, ?string $email = null, ?string $api_key = null ) {
 		$this->base    = null !== $base ? $base : Settings::base_url();

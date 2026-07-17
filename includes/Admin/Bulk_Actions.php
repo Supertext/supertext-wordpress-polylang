@@ -752,7 +752,7 @@ class Bulk_Actions {
 			'no_service'        => array( 'error', __( 'Please select a translation type before applying Supertext Human Translation.', 'supertext-polylang' ) ),
 			'no_delivery'       => array( 'error', __( 'Please select a delivery option before applying Supertext Human Translation.', 'supertext-polylang' ) ),
 			'mt_not_configured'    => array( 'error', __( 'No active Supertext machine-translation service. Configure it in Polylang → Languages → Settings → Machine Translation.', 'supertext-polylang' ) ),
-			'human_not_configured' => array( 'error', __( 'Supertext human-translation credentials are not configured. Add your account email and Legacy API Key on the Supertext settings page.', 'supertext-polylang' ) ),
+			'human_not_configured' => array( 'error', __( 'Supertext human-translation credentials are not configured. Add your account email and Order API Key on the Supertext settings page.', 'supertext-polylang' ) ),
 		);
 
 		if ( isset( $messages[ $error ] ) ) {
