@@ -299,6 +299,8 @@ class Page {
 			<?php
 			settings_errors( Settings::GROUP );
 			Settings::render_form();
+
+			Integrations::render_section();
 			?>
 		</div>
 		<?php

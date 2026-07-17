@@ -194,6 +194,77 @@ class Client implements Client_Interface {
 	}
 
 	/**
+	 * Translates a set of strings via the AI file endpoint, preserving the caller's
+	 * keys.
+	 *
+	 * A reusable entry point for integrations (e.g. Gravity Forms) that live outside
+	 * Polylang's post/term translation pipeline. Returns the translations keyed the
+	 * same as `$sources`.
+	 *
+	 * @param array<int|string, string> $sources         Strings to translate.
+	 * @param PLL_Language               $target_language Target language.
+	 * @param PLL_Language|null          $source_language Source language (null = auto-detect).
+	 * @return array<int|string, string>|WP_Error Translations keyed like `$sources`.
+	 */
+	public function translate_strings( array $sources, PLL_Language $target_language, $source_language = null ) {
+		$sources = array_map( 'strval', $sources );
+		if ( empty( $sources ) ) {
+			return array();
+		}
+
+		$target_code = $this->resolve_code( $target_language );
+		if ( '' === $target_code ) {
+			return new WP_Error(
+				'supertext_target_language_unavailable',
+				sprintf(
+					/* translators: %1$s is a language name, %2$s is a language locale. */
+					__( '%1$s (%2$s) has no Supertext language code. Set one in the Supertext settings language mapping.', 'supertext-polylang' ),
+					$target_language->name,
+					$target_language->locale
+				)
+			);
+		}
+
+		$source_code = $source_language instanceof PLL_Language ? $this->resolve_code( $source_language ) : '';
+		if ( '' !== $source_code ) {
+			$source_code = (string) strtok( $source_code, '-' );
+		}
+
+		// Send an index-ordered document, but map the result back onto caller keys.
+		$keys   = array_keys( $sources );
+		$values = array_values( $sources );
+
+		$file_id = $this->submit_file( $this->build_html( $values ), $target_code, $source_code, $this->get_politeness( $target_language ) );
+		if ( is_wp_error( $file_id ) ) {
+			return $file_id;
+		}
+
+		$ready = $this->wait_until_done( $file_id );
+		if ( is_wp_error( $ready ) ) {
+			$this->delete_file( $file_id );
+			return $ready;
+		}
+
+		$html = $this->download( $file_id );
+		$this->delete_file( $file_id );
+		if ( is_wp_error( $html ) ) {
+			return $html;
+		}
+
+		$translated = $this->parse_html( $html );
+		if ( count( $translated ) !== count( $values ) ) {
+			return new WP_Error( 'supertext_incomplete_response', __( 'The Supertext translation is incomplete.', 'supertext-polylang' ) );
+		}
+
+		$out = array();
+		foreach ( $keys as $i => $key ) {
+			$out[ $key ] = (string) ( $translated[ $i ] ?? '' );
+		}
+
+		return $out;
+	}
+
+	/**
 	 * Submits the HTML document to the AI file-translation endpoint.
 	 *
 	 * @param string $html        The HTML document to translate.
