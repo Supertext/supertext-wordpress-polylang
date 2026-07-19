@@ -48,6 +48,14 @@ class Draft_Preview {
 	const POST_TYPES = array( 'post', 'page' );
 
 	/**
+	 * The post id currently being previewed (set once a token validates), so the
+	 * `posts_results` filter knows which returned post to force to `publish`.
+	 *
+	 * @var int
+	 */
+	private static $preview_post_id = 0;
+
+	/**
 	 * Registers hooks.
 	 *
 	 * @return void
@@ -73,9 +81,13 @@ class Draft_Preview {
 	/**
 	 * Lets the main query return an unpublished post when a valid token is present.
 	 *
-	 * Scoped to the exact post the token belongs to: we widen the allowed statuses
-	 * only after confirming the queried post's stored token matches, the link is
-	 * enabled, and it hasn't expired. Otherwise the request 404s as usual.
+	 * Scoped to the exact post the token belongs to: only after confirming the
+	 * queried post's stored token matches, the link is enabled, and it hasn't
+	 * expired do we (1) widen the queried statuses and pin the exact post type so
+	 * the draft is actually found, (2) force that post to `publish` in memory via
+	 * `posts_results` so WordPress renders it instead of 404ing, and (3) suppress
+	 * the canonical redirect that would otherwise bounce a draft's ugly URL.
+	 * Otherwise the request 404s as usual.
 	 *
 	 * @param WP_Query $query The query.
 	 * @return void
@@ -99,7 +111,27 @@ class Draft_Preview {
 			return;
 		}
 
+		$post = get_post( $post_id );
+		if ( ! $post instanceof WP_Post ) {
+			return;
+		}
+
+		self::$preview_post_id = $post_id;
+
+		// Make the query actually find the unpublished post: widen the statuses and
+		// pin the exact type (a page requested as `?p=` would otherwise miss the
+		// default post_type = "post" filter).
 		$query->set( 'post_status', array( 'publish', 'draft', 'pending', 'future', 'private' ) );
+		$query->set( 'post_type', $post->post_type );
+
+		// Belt-and-suspenders: force the returned post to `publish` in memory so
+		// downstream visibility/404 checks pass even where a widened status query
+		// alone doesn't render (the technique the Public Post Preview plugin uses).
+		add_filter( 'posts_results', array( self::class, 'force_publish' ), 10, 2 );
+
+		// A draft has no canonical permalink; don't let WordPress redirect away from
+		// the preview URL (which would drop the token).
+		add_filter( 'redirect_canonical', '__return_false' );
 
 		// Don't cache or index a secret draft preview.
 		if ( ! defined( 'DONOTCACHEPAGE' ) ) {
@@ -107,6 +139,31 @@ class Draft_Preview {
 		}
 		nocache_headers();
 		add_filter( 'wp_robots', 'wp_robots_no_robots' );
+	}
+
+	/**
+	 * Forces the previewed post's in-memory status to `publish` so WordPress renders
+	 * it. Only touches the exact post the (already-validated) token belongs to, then
+	 * removes itself so no other query is affected.
+	 *
+	 * @param WP_Post[] $posts The posts the main query returned.
+	 * @param WP_Query  $query The query.
+	 * @return WP_Post[]
+	 */
+	public static function force_publish( $posts, $query ) {
+		remove_filter( 'posts_results', array( self::class, 'force_publish' ), 10 );
+
+		if ( self::$preview_post_id <= 0 || empty( $posts ) ) {
+			return $posts;
+		}
+
+		foreach ( $posts as $post ) {
+			if ( isset( $post->ID ) && (int) $post->ID === self::$preview_post_id ) {
+				$post->post_status = 'publish';
+			}
+		}
+
+		return $posts;
 	}
 
 	/**

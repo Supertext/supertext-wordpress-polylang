@@ -31,6 +31,7 @@ translation** service in **Polylang Pro**.
   - [Bulk human translation](#bulk-human-translation)
   - [The Orders page](#the-orders-page)
   - [YOOtheme pages](#yootheme-pages)
+  - [Gravity Forms](#gravity-forms)
 - [Compatibility](#compatibility)
 - [How it works](#how-it-works)
 - [Troubleshooting](#troubleshooting)
@@ -192,6 +193,31 @@ YOOtheme Pro stores a page's layout as JSON. The plugin translates it **field‑
 (only the real text — headings, paragraphs, etc.), leaving the layout structure intact, so
 YOOtheme pages translate correctly without breaking. No extra setup is required.
 
+### Gravity Forms
+
+Gravity Forms are **not** WordPress posts — they live in their own tables and are dropped
+onto a page by ID (via the `[gravityform]` shortcode or block), so Polylang can't translate
+them through its normal pipeline. This plugin adds a dedicated integration instead.
+
+**1. Turn it on.** Go to **Supertext → Settings** and click **Detect plugins**. When Gravity
+Forms is found, a **Gravity Forms** entry appears under the **Supertext** menu. (The menu is
+hidden until the integration is detected and enabled.)
+
+**2. Translate a form.** Open **Supertext → Gravity Forms**. Each form is listed with a
+column per non‑default language. Click **Translate (AI)** for a form + language to translate
+its text with Supertext AI — labels, descriptions, placeholders, choices, the submit button,
+and so on. A translated cell shows a ✓ and a **Re‑translate (AI)** button to refresh it.
+
+**3. It shows automatically.** On the front end, when a visitor views the form in a
+non‑default language, the plugin swaps in the stored translation at render time (via
+`gform_pre_render`/`gform_pre_validation`). Nothing changes in the source form; the original
+language is served untouched. If a form has no translation for the current language, the
+default text is shown as‑is.
+
+> Translations are stored per form and language by the plugin (not inside Gravity Forms), so
+> re‑saving the form in Gravity Forms won't erase them. New or changed fields simply need a
+> re‑translate.
+
 ---
 
 ## Compatibility
@@ -217,6 +243,7 @@ it.** There is no separate, parallel content parser to keep in sync.
 | Content | Notes |
 |---------|-------|
 | **YOOtheme Pro** | Polylang does **not** handle YOOtheme's JSON layout out of the box. This plugin adds a **field‑by‑field** integration (see [YOOtheme pages](#yootheme-pages)) so its text translates without corrupting the layout. `code` elements are deliberately skipped. |
+| **Gravity Forms** | Forms aren't posts, so Polylang can't translate them. This plugin adds a **per‑form AI translation** tool and injects the translation at render time (see [Gravity Forms](#gravity-forms)). Enable it from **Detect plugins** on the Settings page. |
 
 ### Not translated
 
