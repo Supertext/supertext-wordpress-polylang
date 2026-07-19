@@ -115,6 +115,9 @@ test.describe( 'AI translation via bulk action', () => {
 		// --- 1. Find the German source.
 		await page.goto( listUrl, { waitUntil: 'domcontentloaded' } );
 		const row = sourceRow( page );
+		// Skip (rather than fail) when the seed post is missing — this test needs a
+		// German post titled TITLE to exist on the site.
+		test.skip( 0 === ( await row.count() ), 'Seed post "' + TITLE + '" (German) not found on this site.' );
 		await expect( row, 'German source "' + TITLE + '" not found' ).toBeVisible();
 		await shot( page, testInfo, 'list' );
 
@@ -169,5 +172,131 @@ test.describe( 'AI translation via bulk action', () => {
 		await shot( page, testInfo, 'result' );
 
 		expect( notices.toLowerCase() ).toContain( 'translation' );
+	} );
+} );
+
+test.describe( 'Settings — feature status, toggles & plugin detection', () => {
+	test( 'Status overview lists the new features + integrations, and the toggles/detect controls', async ( { page }, testInfo ) => {
+		await page.goto( 'wp-admin/admin.php?page=supertext-polylang' );
+
+		await expect( page.getByRole( 'heading', { name: 'Status' } ) ).toBeVisible();
+
+		// New "Features & integrations" section of the status overview.
+		await expect( page.getByText( 'Features & integrations', { exact: true } ) ).toBeVisible();
+		await expect( page.getByText( 'Page screenshots (VibeBoost)', { exact: true } ) ).toBeVisible();
+		await expect( page.getByText( 'Integration: Gravity Forms', { exact: true } ) ).toBeVisible();
+
+		// The two new settings toggles (matched by their option field names, which are unique).
+		await expect( page.locator( 'input[name="supertext_polylang_settings[preview_links_enabled]"]' ) ).toBeVisible();
+		await expect( page.locator( 'input[name="supertext_polylang_settings[screenshots_enabled]"]' ) ).toBeVisible();
+
+		// Plugin-detection button.
+		await expect( page.getByRole( 'button', { name: 'Detect plugins' } ) ).toBeVisible();
+
+		await shot( page, testInfo, 'settings-features' ).catch( () => {} );
+	} );
+} );
+
+test.describe( 'Secret preview link', () => {
+	/** Reads the REST root + nonce (via the block editor, which enqueues wpApiSettings). */
+	async function restConfig( page ) {
+		await page.goto( 'wp-admin/post-new.php', { waitUntil: 'domcontentloaded' } );
+		return page.evaluate( () => ( {
+			// eslint-disable-next-line no-undef
+			nonce: window.wpApiSettings && window.wpApiSettings.nonce,
+			// eslint-disable-next-line no-undef
+			root: window.wpApiSettings && window.wpApiSettings.root,
+		} ) );
+	}
+
+	/** Dismisses the block-editor welcome guide if it pops up. */
+	async function dismissGuide( page ) {
+		const close = page.getByRole( 'button', { name: 'Close', exact: true } );
+		if ( await close.count() ) {
+			await close.first().click().catch( () => {} );
+		}
+	}
+
+	test( 'preview metabox renders on the post editor', async ( { page }, testInfo ) => {
+		await page.goto( 'wp-admin/post-new.php', { waitUntil: 'domcontentloaded' } );
+		await dismissGuide( page );
+
+		const box = page.locator( '#supertext-preview' );
+		await expect( box ).toBeAttached( { timeout: 30000 } );
+		await expect( box.locator( 'input[name="supertext_preview_enabled"]' ) ).toBeAttached();
+		await expect( box.locator( '#supertext_preview_expires' ) ).toBeAttached();
+
+		await shot( page, testInfo, 'preview-metabox' ).catch( () => {} );
+	} );
+
+	// Verifies the part of the flow this plugin actually owns: enabling the preview
+	// on a draft generates a secret, tokenised URL for that exact post. Drives the
+	// real Gutenberg meta box.
+	//
+	// Note: the front-end token *gate* (draft renders only with a valid, unexpired
+	// token) is covered by unit tests (DraftPreviewTest), NOT here — this demo serves
+	// draft posts publicly at ?p=<id> regardless of token, so an E2E check on it can't
+	// distinguish the gate. Keep the security assertion in the unit layer.
+	test( 'enabling preview on a draft generates a secret token URL', async ( { page }, testInfo ) => {
+		test.setTimeout( 180000 );
+
+		const cfg = await restConfig( page );
+
+		// 1. Create a draft via REST.
+		const created = await page.request.post( cfg.root + 'wp/v2/posts', {
+			headers: { 'X-WP-Nonce': cfg.nonce, 'Content-Type': 'application/json' },
+			data: { title: 'Supertext preview E2E', status: 'draft', content: '<p>preview body</p>' },
+		} );
+		expect( created.ok(), 'draft creation should succeed' ).toBeTruthy();
+		const postId = ( await created.json() ).id;
+		console.log( 'Created draft post ' + postId );
+
+		try {
+			// 2. Open the editor, enable the preview link with a far-future expiry, save.
+			const editUrl = 'wp-admin/post.php?post=' + postId + '&action=edit';
+			await page.goto( editUrl, { waitUntil: 'domcontentloaded' } );
+			await dismissGuide( page );
+
+			// Meta-box changes alone don't mark the block editor dirty, so make a real
+			// edit through the data store — otherwise "Save draft" stays disabled and the
+			// meta box is never persisted. (Robust across WP versions; no title selector.)
+			await page.waitForFunction( () => window.wp && window.wp.data && window.wp.data.select( 'core/editor' ), { timeout: 30000 } );
+			await page.evaluate( () => {
+				const { dispatch, select } = window.wp.data;
+				const t = select( 'core/editor' ).getEditedPostAttribute( 'title' ) || '';
+				dispatch( 'core/editor' ).editPost( { title: t + ' e2e' } );
+			} );
+
+			const enable = page.locator( '#supertext-preview input[name="supertext_preview_enabled"]' );
+			await expect( enable ).toBeAttached( { timeout: 30000 } );
+			await enable.check( { force: true } );
+			await page.locator( '#supertext_preview_expires' ).fill( '2099-12-31' );
+
+			// Save draft — Gutenberg posts the meta-box form to post.php after the REST save.
+			await page.getByRole( 'button', { name: 'Save draft' } ).click( { force: true } );
+			await page.waitForResponse(
+				( r ) => r.url().includes( 'post.php' ) && 'POST' === r.request().method(),
+				{ timeout: 20000 }
+			).catch( () => {} );
+
+			// 3. Reload so the (now-enabled) meta box renders the readonly secret URL.
+			await page.goto( editUrl, { waitUntil: 'domcontentloaded' } );
+			await dismissGuide( page );
+			const urlInput = page.locator( '#supertext_preview_url' );
+			await expect( urlInput ).toBeVisible( { timeout: 30000 } );
+
+			const secretUrl = await urlInput.inputValue();
+			console.log( 'Secret URL: ' + secretUrl );
+			await shot( page, testInfo, 'preview-enabled' ).catch( () => {} );
+
+			// The generated link must carry this post id and a UUID token.
+			expect( secretUrl ).toMatch( new RegExp( '[?&]p=' + postId + '(&|$)' ) );
+			expect( secretUrl ).toMatch( /[?&]st_preview=[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}(&|$)/ );
+		} finally {
+			// 4. Clean up the throwaway draft.
+			await page.request.delete( cfg.root + 'wp/v2/posts/' + postId + '?force=true', {
+				headers: { 'X-WP-Nonce': cfg.nonce },
+			} ).catch( () => {} );
+		}
 	} );
 } );
