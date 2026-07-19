@@ -42,6 +42,30 @@
 		$( selector ).css( 'outline', '2px solid #d63638' ).focus();
 	}
 
+	// Shows a busy state while the (full-page) bulk submit is in flight: relabels and
+	// disables the Apply buttons and drops a reassuring overlay over the screen. The
+	// overlay — not `disabled` on the pickers — is what blocks further interaction, so
+	// the picker <select> values are still included in the submission.
+	function showSubmitting( action ) {
+		var human = action === ACTION_HUMAN;
+
+		$( '#doaction, #doaction2' )
+			.prop( 'disabled', true )
+			.val( human ? cfg.i18n.submittingBtnHuman : cfg.i18n.submittingBtnAi );
+
+		if ( $( '#supertext-submitting-overlay' ).length ) {
+			return;
+		}
+
+		var $box = $( '<div class="supertext-submitting-box"></div>' )
+			.append( '<div class="supertext-submitting-spinner" aria-hidden="true"></div>' )
+			.append( $( '<p></p>' ).text( human ? cfg.i18n.submittingMsgHuman : cfg.i18n.submittingMsgAi ) );
+
+		$( '<div id="supertext-submitting-overlay" role="status" aria-live="polite"></div>' )
+			.append( $box )
+			.appendTo( 'body' );
+	}
+
 	function onSubmit( e ) {
 		var action = activeAction();
 		if ( ! action ) {
@@ -63,7 +87,12 @@
 			e.preventDefault();
 			$( '#supertext-express-picker' ).show();
 			flag( '#supertext_express' );
+			return;
 		}
+
+		// Validation passed — the form is about to navigate. Reassure the user while
+		// content is uploaded, screenshots captured, and orders placed server-side.
+		showSubmitting( action );
 	}
 
 	// --- Live quote -------------------------------------------------------------
@@ -186,6 +215,15 @@
 		if ( ! cfg.ajaxUrl ) {
 			cfg = window.SupertextBulk || {};
 		}
+
+		// Styles for the "submitting" overlay + spinner (injected once).
+		$( '<style id="supertext-submitting-css">' +
+			'#supertext-submitting-overlay{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:100000;display:flex;align-items:center;justify-content:center;}' +
+			'.supertext-submitting-box{background:#fff;border-radius:6px;padding:24px 28px;max-width:440px;text-align:center;font-size:14px;line-height:1.5;color:#1d2327;box-shadow:0 6px 30px rgba(0,0,0,.25);}' +
+			'.supertext-submitting-box p{margin:0;}' +
+			'.supertext-submitting-spinner{width:28px;height:28px;margin:0 auto 14px;border:3px solid #dcdcde;border-top-color:#2271b1;border-radius:50%;animation:supertext-spin .8s linear infinite;}' +
+			'@keyframes supertext-spin{to{transform:rotate(360deg);}}' +
+			'</style>' ).appendTo( 'head' );
 
 		// Place the pickers between the bulk-action select and the Apply button,
 		// in order: language, translation type, delivery, then the price readout.

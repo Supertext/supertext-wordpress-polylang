@@ -101,12 +101,16 @@ class Bulk_Actions {
 				'quoteAction' => self::QUOTE_ACTION,
 				'quoteNonce'  => wp_create_nonce( self::QUOTE_ACTION ),
 				'i18n'        => array(
-					'quoting'   => __( 'Getting price…', 'supertext-polylang' ),
-					'words'     => __( 'words', 'supertext-polylang' ),
-					'from'      => __( 'from', 'supertext-polylang' ),
-					'quoteFail' => __( 'Could not get a price.', 'supertext-polylang' ),
-					'delivery'  => __( 'Delivery', 'supertext-polylang' ),
-					'noOptions' => __( 'No delivery options', 'supertext-polylang' ),
+					'quoting'            => __( 'Getting price…', 'supertext-polylang' ),
+					'words'              => __( 'words', 'supertext-polylang' ),
+					'from'               => __( 'from', 'supertext-polylang' ),
+					'quoteFail'          => __( 'Could not get a price.', 'supertext-polylang' ),
+					'delivery'           => __( 'Delivery', 'supertext-polylang' ),
+					'noOptions'          => __( 'No delivery options', 'supertext-polylang' ),
+					'submittingBtnHuman' => __( 'Submitting order…', 'supertext-polylang' ),
+					'submittingBtnAi'    => __( 'Submitting…', 'supertext-polylang' ),
+					'submittingMsgHuman' => __( "Placing your Supertext order(s) — uploading content and capturing screenshots. This can take a moment; please don't close this tab.", 'supertext-polylang' ),
+					'submittingMsgAi'    => __( "Submitting your Supertext AI translation(s) — this can take a moment; please don't close this tab.", 'supertext-polylang' ),
 				),
 			)
 		);
