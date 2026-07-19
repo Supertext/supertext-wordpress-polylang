@@ -229,10 +229,73 @@ class Page {
 					$active,
 					$active ? __( 'Active', 'supertext-polylang' ) : __( 'Inactive (enter an API key in Polylang settings)', 'supertext-polylang' )
 				);
+
+				// Optional features & third-party integrations (a disabled feature is a
+				// choice, not an error — shown neutral rather than red).
+				printf(
+					'<tr><td colspan="2" style="background:#f6f7f7;font-weight:600;">%s</td></tr>',
+					esc_html__( 'Features & integrations', 'supertext-polylang' )
+				);
+
+				$preview_on = Settings::preview_links_enabled();
+				self::state_row(
+					__( 'Secret preview links', 'supertext-polylang' ),
+					$preview_on ? 'ok' : 'off',
+					$preview_on ? __( 'On', 'supertext-polylang' ) : __( 'Off', 'supertext-polylang' )
+				);
+
+				$shots_on = Settings::screenshots_enabled();
+				if ( ! $shots_on ) {
+					self::state_row( __( 'Page screenshots (VibeBoost)', 'supertext-polylang' ), 'off', __( 'Off', 'supertext-polylang' ) );
+				} elseif ( $preview_on ) {
+					self::state_row( __( 'Page screenshots (VibeBoost)', 'supertext-polylang' ), 'ok', __( 'On', 'supertext-polylang' ) );
+				} else {
+					self::state_row( __( 'Page screenshots (VibeBoost)', 'supertext-polylang' ), 'warn', __( 'On — but Secret preview links are off, so drafts cannot be captured', 'supertext-polylang' ) );
+				}
+
+				foreach ( Integrations::supported() as $slug => $info ) {
+					if ( Integrations::enabled( $slug ) ) {
+						$state = 'ok';
+						$text  = __( 'Detected & enabled', 'supertext-polylang' );
+					} elseif ( ! empty( $info['detected'] ) ) {
+						$state = 'warn';
+						$text  = __( 'Active — click “Detect plugins” to enable', 'supertext-polylang' );
+					} else {
+						$state = 'off';
+						$text  = __( 'Not detected', 'supertext-polylang' );
+					}
+					/* translators: %s is the plugin name (e.g. Gravity Forms). */
+					self::state_row( sprintf( __( 'Integration: %s', 'supertext-polylang' ), $info['label'] ), $state, $text );
+				}
 				?>
 			</tbody>
 		</table>
 		<?php
+	}
+
+	/**
+	 * Prints a tri-state status row (for optional features / integrations, where
+	 * "off" is a neutral choice rather than an error).
+	 *
+	 * @param string $label Row label.
+	 * @param string $state One of 'ok' (green ✓), 'warn' (amber ⚠), 'off' (grey •).
+	 * @param string $text  Status text.
+	 * @return void
+	 */
+	private static function state_row( string $label, string $state, string $text ): void {
+		$map = array(
+			'ok'   => array( '#00a32a', '&#10003;' ),
+			'warn' => array( '#dba617', '&#9888;' ),
+			'off'  => array( '#787c82', '&#9679;' ),
+		);
+		list( $color, $symbol ) = $map[ $state ] ?? $map['off'];
+		printf(
+			'<tr><td>%s</td><td><span style="color:%s;font-weight:600;">%s %s</span></td></tr>',
+			esc_html( $label ),
+			esc_attr( $color ),
+			$symbol, // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- static HTML entity.
+			esc_html( $text )
+		);
 	}
 
 	/**
