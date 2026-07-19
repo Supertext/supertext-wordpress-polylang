@@ -81,6 +81,7 @@ class Settings {
 			'human_api_key'             => '',
 			'allow_multiple_writebacks' => false,
 			'writeback_status'          => 'draft',
+			'preview_links_enabled'     => true,
 			'screenshots_enabled'       => true,
 		);
 	}
@@ -106,7 +107,8 @@ class Settings {
 		$status                  = (string) ( $input['writeback_status'] ?? 'draft' );
 		$out['writeback_status'] = in_array( $status, array( 'draft', 'publish' ), true ) ? $status : 'draft';
 
-		$out['screenshots_enabled'] = ! empty( $input['screenshots_enabled'] );
+		$out['preview_links_enabled'] = ! empty( $input['preview_links_enabled'] );
+		$out['screenshots_enabled']   = ! empty( $input['screenshots_enabled'] );
 
 		return $out;
 	}
@@ -201,6 +203,17 @@ class Settings {
 	public static function writeback_status(): string {
 		$status = (string) self::get()['writeback_status'];
 		return in_array( $status, array( 'draft', 'publish' ), true ) ? $status : 'draft';
+	}
+
+	/**
+	 * Whether the secret-link public preview of unpublished posts/pages is enabled.
+	 * Master switch for the per-post preview metabox, the front-end token access, and
+	 * the screenshot feature's ability to reach draft pages.
+	 *
+	 * @return bool
+	 */
+	public static function preview_links_enabled(): bool {
+		return (bool) self::get()['preview_links_enabled'];
 	}
 
 	/**
@@ -317,6 +330,24 @@ class Settings {
 							<option value="publish" <?php selected( $current['writeback_status'], 'publish' ); ?>><?php esc_html_e( 'Published', 'supertext-polylang' ); ?></option>
 						</select>
 						<p class="description"><?php esc_html_e( 'Status applied to the translated post when a translation is written back.', 'supertext-polylang' ); ?></p>
+					</td>
+				</tr>
+				<tr>
+					<th scope="row"><?php esc_html_e( 'Secret preview links', 'supertext-polylang' ); ?></th>
+					<td>
+						<label for="supertext-preview-links">
+							<input
+								type="checkbox"
+								name="<?php echo esc_attr( self::OPTION . '[preview_links_enabled]' ); ?>"
+								id="supertext-preview-links"
+								value="1"
+								<?php checked( ! empty( $current['preview_links_enabled'] ) ); ?>
+							/>
+							<?php esc_html_e( 'Enable secret public preview links for unpublished posts/pages', 'supertext-polylang' ); ?>
+						</label>
+						<p class="description">
+							<?php esc_html_e( 'Master switch for the "Public preview link" box on the post/page editor: a private, expiring URL that shows an unpublished draft without logging in. When off, the box is hidden and any existing links stop working. Page screenshots (below) rely on this to capture draft pages.', 'supertext-polylang' ); ?>
+						</p>
 					</td>
 				</tr>
 				<tr>

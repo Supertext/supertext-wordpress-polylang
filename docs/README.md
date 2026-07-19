@@ -11,7 +11,8 @@ translation** service in **Polylang Pro**.
   through its secret preview link and attached to the order, giving the translator the page
   in its real layout (via VibeBoost Screenshots — optional, on by default).
 - **Secret preview links** — share an unpublished draft (or hand it to an external tool)
-  through a private, expiring URL, without publishing it.
+  through a private, expiring URL, without publishing it. Toggle the whole feature on/off in
+  Supertext → Settings; enable and manage each page's link from the editor sidebar.
 
 ---
 

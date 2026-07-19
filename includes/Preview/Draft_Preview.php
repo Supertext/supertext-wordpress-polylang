@@ -7,6 +7,7 @@ namespace Supertext\Polylang\Preview;
 
 defined( 'ABSPATH' ) || exit;
 
+use Supertext\Polylang\Admin\Settings;
 use WP_Post;
 use WP_Query;
 
@@ -80,6 +81,9 @@ class Draft_Preview {
 	 * @return void
 	 */
 	public static function allow_preview( $query ): void {
+		if ( ! Settings::preview_links_enabled() ) {
+			return;
+		}
 		if ( is_admin() || ! $query instanceof WP_Query || ! $query->is_main_query() ) {
 			return;
 		}
@@ -164,6 +168,10 @@ class Draft_Preview {
 	 * @return string
 	 */
 	public static function ensure_preview_url( int $post_id ): string {
+		if ( ! Settings::preview_links_enabled() ) {
+			return '';
+		}
+
 		$post = get_post( $post_id );
 		if ( ! $post instanceof WP_Post ) {
 			return '';
@@ -191,6 +199,9 @@ class Draft_Preview {
 	 * @return void
 	 */
 	public static function add_meta_box(): void {
+		if ( ! Settings::preview_links_enabled() ) {
+			return;
+		}
 		foreach ( self::POST_TYPES as $type ) {
 			add_meta_box(
 				'supertext-preview',
