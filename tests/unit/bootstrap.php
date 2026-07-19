@@ -21,6 +21,19 @@ if ( ! defined( 'SUPERTEXT_POLYLANG_FILE' ) ) {
 	define( 'SUPERTEXT_POLYLANG_FILE', __DIR__ . '/plugin.php' );
 }
 
+// Minimal WP_Post stub (tests only read ->ID and ->post_type).
+if ( ! class_exists( 'WP_Post' ) ) {
+	class WP_Post {
+		public $ID        = 0;
+		public $post_type = 'post';
+
+		public function __construct( $id = 0, $type = 'post' ) {
+			$this->ID        = $id;
+			$this->post_type = $type;
+		}
+	}
+}
+
 // Minimal WP_Error stub (the plugin only uses these methods).
 if ( ! class_exists( 'WP_Error' ) ) {
 	class WP_Error {
@@ -58,5 +71,8 @@ require_once $root . '/includes/Integrations/YooTheme/Layout.php';
 require_once $root . '/includes/Human_Translation/Callback.php';
 require_once $root . '/includes/Human_Translation/Client.php';
 require_once $root . '/includes/Human_Translation/Writeback.php';
+require_once $root . '/includes/Admin/Settings.php';
+require_once $root . '/includes/Preview/Draft_Preview.php';
+require_once $root . '/includes/Integrations/VibeBoost/Client.php';
 
 require_once __DIR__ . '/TestCase.php';

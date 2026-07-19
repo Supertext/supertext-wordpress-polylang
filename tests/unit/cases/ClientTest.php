@@ -48,6 +48,30 @@ class ClientTest extends TestCase {
 		$this->assertStringContainsString( 'multipart/form-data; boundary=', $cap->headers['Content-Type'] );
 	}
 
+	public function test_upload_file_defaults_to_original_html_document(): void {
+		$cap    = $this->captureRequest( 200, '[{"Id":5}]' );
+		$client = new Client( self::BASE, self::EMAIL, self::KEY );
+
+		$client->upload_file( '<html>x</html>', 'content.html' );
+
+		$this->assertStringContainsString( 'name="DocumentTypeId"' . "\r\n\r\n" . '1', $cap->body );
+		$this->assertStringContainsString( 'Content-Type: text/html', $cap->body );
+		$this->assertStringContainsString( 'filename="content.html"', $cap->body );
+	}
+
+	public function test_upload_file_reference_uses_document_type_3_and_content_type(): void {
+		$cap    = $this->captureRequest( 200, '[{"Id":999}]' );
+		$client = new Client( self::BASE, self::EMAIL, self::KEY );
+
+		$id = $client->upload_file( 'PNGBYTES', 'screenshot.png', 'image/png', 3 );
+
+		$this->assertSame( 999, $id );
+		$this->assertStringContainsString( 'name="DocumentTypeId"' . "\r\n\r\n" . '3', $cap->body );
+		$this->assertStringContainsString( 'Content-Type: image/png', $cap->body );
+		$this->assertStringContainsString( 'filename="screenshot.png"', $cap->body );
+		$this->assertStringContainsString( 'PNGBYTES', $cap->body );
+	}
+
 	public function test_create_order_posts_json_and_returns_decoded(): void {
 		$cap    = $this->captureRequest( 200, '[{"Id":715113,"TargetLang":"de-CH"}]' );
 		$client = new Client( self::BASE, self::EMAIL, self::KEY );
