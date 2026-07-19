@@ -364,7 +364,17 @@ class Settings {
 							<?php esc_html_e( 'Attach a page screenshot to each human-translation order (VibeBoost Screenshots)', 'supertext-polylang' ); ?>
 						</label>
 						<p class="description">
-							<?php esc_html_e( 'When enabled, each page sent for human translation is captured through its secret preview link and uploaded to the order as a visual reference for the translator. Powered by VibeBoost Screenshots (still in development); heavier use may require a subscription. Best-effort — an order still goes through if the screenshot cannot be produced.', 'supertext-polylang' ); ?>
+							<?php
+							printf(
+								/* translators: %s is a link to the VibeBoost Screenshots website. */
+								esc_html__( 'When enabled, each page sent for human translation is captured through its secret preview link and uploaded to the order as a visual reference for the translator. Powered by %s (still in development); heavier use may require a subscription. Best-effort — an order still goes through if the screenshot cannot be produced.', 'supertext-polylang' ),
+								sprintf(
+									'<a href="%s" target="_blank" rel="noopener">%s</a>',
+									esc_url( 'https://vibeboost.me' ),
+									esc_html__( 'VibeBoost Screenshots', 'supertext-polylang' )
+								)
+							); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- link built from escaped parts.
+							?>
 						</p>
 					</td>
 				</tr>

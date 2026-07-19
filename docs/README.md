@@ -9,7 +9,7 @@ translation** service in **Polylang Pro**.
   translation is written back automatically when it's done.
 - **Page screenshots for translators** — each page sent for human translation is captured
   through its secret preview link and attached to the order, giving the translator the page
-  in its real layout (via VibeBoost Screenshots — optional, on by default).
+  in its real layout (via [VibeBoost Screenshots](https://vibeboost.me) — optional, on by default).
 - **Secret preview links** — share an unpublished draft (or hand it to an external tool)
   through a private, expiring URL, without publishing it. Toggle the whole feature on/off in
   Supertext → Settings; enable and manage each page's link from the editor sidebar.
@@ -168,7 +168,7 @@ The content is then sent to Supertext as an order. The confirmation notice shows
 Supertext calls back and the translation is written into the target post automatically (as
 a Draft or Published, per your settings).
 
-> **Page screenshots (VibeBoost Screenshots):** when the *Page screenshots* option is
+> **Page screenshots ([VibeBoost Screenshots](https://vibeboost.me)):** when the *Page screenshots* option is
 > enabled (Supertext → Settings, on by default), the plugin also captures a screenshot of
 > each page — reached through its secret preview link, so even an unpublished draft is
 > included — and attaches it to the order as a **visual reference** for the translator
@@ -226,7 +226,7 @@ default text is shown as‑is.
 
 When you order a **human translation**, the plugin can attach a **screenshot of the page** to
 the order, so the translator sees the content in its real layout — not just the extracted
-text. Screenshots are produced by **VibeBoost Screenshots** (a hosted service, still in
+text. Screenshots are produced by **[VibeBoost Screenshots](https://vibeboost.me)** (a hosted service, still in
 development).
 
 **How it works**
@@ -280,7 +280,7 @@ it.** There is no separate, parallel content parser to keep in sync.
 |---------|-------|
 | **YOOtheme Pro** | Polylang does **not** handle YOOtheme's JSON layout out of the box. This plugin adds a **field‑by‑field** integration (see [YOOtheme pages](#yootheme-pages)) so its text translates without corrupting the layout. `code` elements are deliberately skipped. |
 | **Gravity Forms** | Forms aren't posts, so Polylang can't translate them. This plugin adds a **per‑form AI translation** tool and injects the translation at render time (see [Gravity Forms](#gravity-forms)). Enable it from **Detect plugins** on the Settings page. |
-| **Page screenshots** | Optionally attaches a **VibeBoost** screenshot of each page to its human‑translation order as a visual reference (see [Page screenshots](#page-screenshots-vibeboost-screenshots)). On by default. |
+| **Page screenshots** | Optionally attaches a **[VibeBoost](https://vibeboost.me)** screenshot of each page to its human‑translation order as a visual reference (see [Page screenshots](#page-screenshots-vibeboost-screenshots)). On by default. |
 
 ### Not translated
 
@@ -322,7 +322,7 @@ handled the same way.
   language; pick a different target.
 - **Human order placed but nothing comes back** — check **Supertext → Debug** for the most
   recent callback payload, and confirm the Environment + Email + Order API Key are correct.
-- **Order screenshot is a 404 / blank page** — VibeBoost couldn't render the page. Make sure
+- **Order screenshot is a 404 / blank page** — [VibeBoost](https://vibeboost.me) couldn't render the page. Make sure
   **Secret preview links** is enabled, the site is reachable from the public internet, and (if
   needed) your VibeBoost plan is active. The order itself still goes through without the image.
 

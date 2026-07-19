@@ -21,7 +21,7 @@ use WP_Error;
  * The public capture endpoint needs no authentication, but heavier use may require
  * a VibeBoost subscription. The service is still in development.
  *
- * @see https://social-preview-theta.vercel.app/
+ * @see https://vibeboost.me
  * @since 0.5.0
  */
 class Client {

@@ -59,7 +59,7 @@ is a small number of file calls, comfortably under the file endpoint's 1-req-per
 | `supertext_polylang_language_code` | `PLL_Language::$w3c` (BCP-47) | Default/suggested code when a language is left unmapped |
 | `supertext_polylang_poll_interval` | `2` (seconds) | Status poll interval |
 | `supertext_polylang_poll_timeout` | `180` (seconds) | Max time to wait for `done` |
-| `supertext_polylang_screenshot_endpoint` | `https://social-preview-theta.vercel.app/api/screenshot` | VibeBoost Screenshots capture endpoint used to attach a page screenshot (DocumentTypeId 3) to human orders |
+| `supertext_polylang_screenshot_endpoint` | `https://social-preview-theta.vercel.app/api/screenshot` | [VibeBoost Screenshots](https://vibeboost.me) capture endpoint used to attach a page screenshot (DocumentTypeId 3) to human orders |
 
 Politeness is derived from the locale: `*_formal` → `more`, `*_informal` → `less`.
 
