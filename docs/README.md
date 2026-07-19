@@ -32,6 +32,7 @@ translation** service in **Polylang Pro**.
   - [The Orders page](#the-orders-page)
   - [YOOtheme pages](#yootheme-pages)
   - [Gravity Forms](#gravity-forms)
+  - [Page screenshots (VibeBoost)](#page-screenshots-vibeboost-screenshots)
 - [Compatibility](#compatibility)
 - [How it works](#how-it-works)
 - [Troubleshooting](#troubleshooting)
@@ -112,7 +113,10 @@ plugin's own settings page.
      callback (off by default, so the first result wins and your manual edits are kept).
    - **Translation status** — whether the written‑back translation is a **Draft** or
      **Published**.
-5. Save.
+5. Optionally review the **Secret preview links** and **Page screenshots** switches (both on
+   by default). *Page screenshots* attaches a snapshot of each ordered page to the order for
+   the translator — see [Page screenshots (VibeBoost)](#page-screenshots-vibeboost-screenshots).
+6. Save.
 
 ### Checking the status
 
@@ -218,6 +222,38 @@ default text is shown as‑is.
 > re‑saving the form in Gravity Forms won't erase them. New or changed fields simply need a
 > re‑translate.
 
+### Page screenshots (VibeBoost Screenshots)
+
+When you order a **human translation**, the plugin can attach a **screenshot of the page** to
+the order, so the translator sees the content in its real layout — not just the extracted
+text. Screenshots are produced by **VibeBoost Screenshots** (a hosted service, still in
+development).
+
+**How it works**
+
+1. For each page in the order, the plugin generates the page's **secret preview link** (see
+   [Secret preview links](#secret-preview-links)) — so even an **unpublished draft** can be
+   captured.
+2. It sends that link to VibeBoost, which renders the page and returns an image.
+3. The image is uploaded to the Supertext order as a **reference file** (`DocumentTypeId 3`)
+   alongside the translatable content, and appears on the order next to the `.html` file.
+
+**Turning it on/off** — **Supertext → Settings → Page screenshots** (on by default). It
+depends on **Secret preview links** being enabled (same settings page); if that master switch
+is off, draft pages can't be captured.
+
+**Best‑effort** — attaching a screenshot never blocks an order. If VibeBoost is unreachable,
+your plan requires a subscription, or the site isn't publicly reachable from the internet, the
+order simply goes through **without** a screenshot.
+
+> **Requirements & caveats**
+> - The site must be **reachable from the public internet** for VibeBoost to load the page —
+>   screenshots won't work against a purely local/firewalled dev site.
+> - Heavier use of VibeBoost Screenshots may require a **subscription**.
+> - Ordering a translation **auto‑enables** the source page's secret preview link (with the
+>   default expiry) so the page can be captured; you can turn it back off per page from the
+>   editor.
+
 ---
 
 ## Compatibility
@@ -244,6 +280,7 @@ it.** There is no separate, parallel content parser to keep in sync.
 |---------|-------|
 | **YOOtheme Pro** | Polylang does **not** handle YOOtheme's JSON layout out of the box. This plugin adds a **field‑by‑field** integration (see [YOOtheme pages](#yootheme-pages)) so its text translates without corrupting the layout. `code` elements are deliberately skipped. |
 | **Gravity Forms** | Forms aren't posts, so Polylang can't translate them. This plugin adds a **per‑form AI translation** tool and injects the translation at render time (see [Gravity Forms](#gravity-forms)). Enable it from **Detect plugins** on the Settings page. |
+| **Page screenshots** | Optionally attaches a **VibeBoost** screenshot of each page to its human‑translation order as a visual reference (see [Page screenshots](#page-screenshots-vibeboost-screenshots)). On by default. |
 
 ### Not translated
 
@@ -285,6 +322,9 @@ handled the same way.
   language; pick a different target.
 - **Human order placed but nothing comes back** — check **Supertext → Debug** for the most
   recent callback payload, and confirm the Environment + Email + Order API Key are correct.
+- **Order screenshot is a 404 / blank page** — VibeBoost couldn't render the page. Make sure
+  **Secret preview links** is enabled, the site is reachable from the public internet, and (if
+  needed) your VibeBoost plan is active. The order itself still goes through without the image.
 
 ---
 
