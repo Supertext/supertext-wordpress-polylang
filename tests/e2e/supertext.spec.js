@@ -229,23 +229,20 @@ test.describe( 'Secret preview link', () => {
 		await shot( page, testInfo, 'preview-metabox' ).catch( () => {} );
 	} );
 
-	// Verifies the part of the flow this plugin actually owns: enabling the preview
-	// on a draft generates a secret, tokenised URL for that exact post. Drives the
-	// real Gutenberg meta box.
-	//
-	// Note: the front-end token *gate* (draft renders only with a valid, unexpired
-	// token) is covered by unit tests (DraftPreviewTest), NOT here — this demo serves
-	// draft posts publicly at ?p=<id> regardless of token, so an E2E check on it can't
-	// distinguish the gate. Keep the security assertion in the unit layer.
-	test( 'enabling preview on a draft generates a secret token URL', async ( { page }, testInfo ) => {
+	// Full end-to-end guard for the draft-preview feature: enabling the preview on a
+	// draft generates a secret tokenised URL, that URL renders the draft for a
+	// genuinely logged-out visitor, and the same draft 404s without a valid token.
+	// Drives the real Gutenberg meta box.
+	test( 'a draft is viewable via its secret link and hidden without a valid token', async ( { page, browser }, testInfo ) => {
 		test.setTimeout( 180000 );
 
-		const cfg = await restConfig( page );
+		const cfg    = await restConfig( page );
+		const marker = 'ST-e2e-' + Date.now();
 
 		// 1. Create a draft via REST.
 		const created = await page.request.post( cfg.root + 'wp/v2/posts', {
 			headers: { 'X-WP-Nonce': cfg.nonce, 'Content-Type': 'application/json' },
-			data: { title: 'Supertext preview E2E', status: 'draft', content: '<p>preview body</p>' },
+			data: { title: 'Supertext preview E2E', status: 'draft', content: '<p>' + marker + '</p>' },
 		} );
 		expect( created.ok(), 'draft creation should succeed' ).toBeTruthy();
 		const postId = ( await created.json() ).id;
@@ -292,6 +289,27 @@ test.describe( 'Secret preview link', () => {
 			// The generated link must carry this post id and a UUID token.
 			expect( secretUrl ).toMatch( new RegExp( '[?&]p=' + postId + '(&|$)' ) );
 			expect( secretUrl ).toMatch( /[?&]st_preview=[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}(&|$)/ );
+
+			// 4. Check the gate from a genuinely logged-out context. An explicit EMPTY
+			// storage state is required: a bare browser.newContext() inherits the
+			// project's saved admin session, which would mask the gate entirely.
+			const anon = await browser.newContext( { ignoreHTTPSErrors: true, storageState: { cookies: [], origins: [] } } );
+			try {
+				const visitor = await anon.newPage();
+
+				// With the valid token, the draft renders.
+				await visitor.goto( secretUrl, { waitUntil: 'domcontentloaded' } );
+				await expect( visitor.getByText( marker ) ).toBeVisible( { timeout: 15000 } );
+				await shot( visitor, testInfo, 'preview-rendered' ).catch( () => {} );
+
+				// Without the token, the same draft is hidden (404).
+				const noToken = secretUrl.replace( /&st_preview=[^&]*/, '' );
+				const resp    = await visitor.goto( noToken, { waitUntil: 'domcontentloaded' } );
+				console.log( 'No-token visit ' + noToken + ' -> HTTP ' + ( resp && resp.status() ) );
+				await expect( visitor.getByText( marker ) ).toHaveCount( 0 );
+			} finally {
+				await anon.close();
+			}
 		} finally {
 			// 4. Clean up the throwaway draft.
 			await page.request.delete( cfg.root + 'wp/v2/posts/' + postId + '?force=true', {

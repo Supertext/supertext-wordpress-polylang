@@ -88,17 +88,23 @@ that the **Detect plugins** button renders. Screenshot `settings-features`.
 1. *preview metabox renders* — open `post-new.php`, assert the **Supertext — Public
    preview link** meta box (`#supertext-preview`) with its enable checkbox + expiry
    field is present.
-2. *enabling preview generates a secret token URL* — create a draft via REST, open the
-   editor, dirty it via the block-editor data store (meta-box changes alone don't mark
-   it dirty), tick **Enable public preview link** with a far-future expiry, **Save
-   draft**, reload, and assert the meta box's readonly URL carries `?p=<id>` and a UUID
-   `st_preview` token. Screenshots `preview-metabox`, `preview-enabled`, then deletes
-   the draft.
+2. *a draft is viewable via its secret link and hidden without a valid token* — the full
+   end-to-end guard:
+   1. Create a draft via REST (unique marker in its content).
+   2. Open the editor, dirty it via the block-editor data store (meta-box changes alone
+      don't mark it dirty), tick **Enable public preview link** with a far-future expiry,
+      **Save draft**, reload, and read the meta box's readonly URL — asserting it carries
+      `?p=<id>` and a UUID `st_preview` token.
+   3. In a **genuinely logged-out** browser context, assert the secret URL **renders** the
+      draft, and that the same post **without** the token returns **404** with the content
+      hidden. Screenshots `preview-enabled`, `preview-rendered`, then deletes the draft.
 
-   > The front-end token **gate** (a draft renders only with a valid, unexpired token)
-   > is deliberately **not** asserted here: this demo serves draft posts publicly at
-   > `?p=<id>` regardless of token, so an E2E check on it can't distinguish the gate.
-   > That security property is covered in the unit layer (`DraftPreviewTest::is_valid`).
+   > **Gotcha (important):** the logged-out context must be created with an *explicit
+   > empty* storage state — `browser.newContext({ storageState: { cookies: [], origins:
+   > [] } })`. A bare `browser.newContext()` **inherits the project's saved admin
+   > session** (from `.auth/state.json`), so it is *not* anonymous and every draft would
+   > appear visible — masking the gate. The token gate is also unit-tested in
+   > `DraftPreviewTest::is_valid`.
 
 **`docs.spec.js` — documentation screenshots (separate spec):** loops over 4 admin
 URLs (`status`, `settings`, `orders`, `mlang_settings`), freezes animations, and
