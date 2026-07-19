@@ -58,7 +58,13 @@ class Client {
 
 		/** @var string $endpoint */
 		$endpoint = (string) apply_filters( 'supertext_polylang_screenshot_endpoint', self::ENDPOINT );
-		$request  = add_query_arg( array_map( 'strval', $params ), $endpoint );
+
+		// Build the query with http_build_query (which URL-encodes values) — NOT
+		// add_query_arg, which leaves values raw. The captured `url` itself contains
+		// a query string (?p=…&st_preview=token); without encoding, its `&` would
+		// split the token off into a separate parameter and it would be lost.
+		$separator = ( false === strpos( $endpoint, '?' ) ) ? '?' : '&';
+		$request   = $endpoint . $separator . http_build_query( $params );
 
 		$response = wp_remote_get(
 			$request,
