@@ -497,6 +497,39 @@ class Bulk_Actions {
 	}
 
 	/**
+	 * Best-effort: captures a screenshot of the source page and uploads it to
+	 * Supertext as an order reference file (DocumentTypeId 3).
+	 *
+	 * The page is captured through its secret preview link (so unpublished drafts
+	 * are reachable too), via VibeBoost Screenshots. Returns 0 when the feature is
+	 * disabled or the capture/upload fails — the order then simply carries no
+	 * screenshot rather than failing.
+	 *
+	 * @param Human_Client $client  Human API client.
+	 * @param int          $post_id Source post ID.
+	 * @return int The uploaded screenshot's DocumentId, or 0.
+	 */
+	private static function maybe_upload_screenshot( Human_Client $client, int $post_id ): int {
+		if ( ! Settings::screenshots_enabled() ) {
+			return 0;
+		}
+
+		$url = \Supertext\Polylang\Preview\Draft_Preview::ensure_preview_url( $post_id );
+		if ( '' === $url ) {
+			return 0;
+		}
+
+		$image = ( new \Supertext\Polylang\Integrations\VibeBoost\Client() )->capture( $url );
+		if ( is_wp_error( $image ) || '' === (string) $image ) {
+			return 0;
+		}
+
+		$document_id = $client->upload_file( (string) $image, 'screenshot-' . $post_id . '.png', 'image/png', 3 );
+
+		return is_wp_error( $document_id ) ? 0 : (int) $document_id;
+	}
+
+	/**
 	 * Places a human-translation order with Supertext: builds the content HTML,
 	 * uploads it, and creates the order. The completion callback writes it back.
 	 *
@@ -526,6 +559,22 @@ class Bulk_Actions {
 			return $prepared;
 		}
 
+		$files = array(
+			array(
+				'Comment' => 'WordPress content',
+				'Id'      => $prepared['document_id'],
+			),
+		);
+
+		// Attach a page screenshot as a visual reference for the translator, if enabled.
+		$screenshot_id = self::maybe_upload_screenshot( $client, $post_id );
+		if ( $screenshot_id > 0 ) {
+			$files[] = array(
+				'Comment' => 'Page screenshot (visual reference)',
+				'Id'      => $screenshot_id,
+			);
+		}
+
 		$order = array(
 			'DeliveryId'               => (int) $express,
 			'OrderName'                => $prepared['title'],
@@ -540,12 +589,7 @@ class Bulk_Actions {
 			'TargetLanguages'          => array( $prepared['target_w3c'] ),
 			'ReferenceData'            => Human_Callback::reference_data( $post_id, $target_lang ),
 			'CallbackUrl'              => Human_Callback::url(),
-			'Files'                    => array(
-				array(
-					'Comment' => 'WordPress content',
-					'Id'      => $prepared['document_id'],
-				),
-			),
+			'Files'                    => $files,
 		);
 
 		$result = $client->create_order( $order );

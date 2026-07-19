@@ -81,6 +81,7 @@ class Settings {
 			'human_api_key'             => '',
 			'allow_multiple_writebacks' => false,
 			'writeback_status'          => 'draft',
+			'screenshots_enabled'       => true,
 		);
 	}
 
@@ -104,6 +105,8 @@ class Settings {
 
 		$status                  = (string) ( $input['writeback_status'] ?? 'draft' );
 		$out['writeback_status'] = in_array( $status, array( 'draft', 'publish' ), true ) ? $status : 'draft';
+
+		$out['screenshots_enabled'] = ! empty( $input['screenshots_enabled'] );
 
 		return $out;
 	}
@@ -198,6 +201,16 @@ class Settings {
 	public static function writeback_status(): string {
 		$status = (string) self::get()['writeback_status'];
 		return in_array( $status, array( 'draft', 'publish' ), true ) ? $status : 'draft';
+	}
+
+	/**
+	 * Whether VibeBoost Screenshots is enabled — attach a page screenshot to each
+	 * human-translation order for the translator's visual reference.
+	 *
+	 * @return bool
+	 */
+	public static function screenshots_enabled(): bool {
+		return (bool) self::get()['screenshots_enabled'];
 	}
 
 	/**
@@ -304,6 +317,24 @@ class Settings {
 							<option value="publish" <?php selected( $current['writeback_status'], 'publish' ); ?>><?php esc_html_e( 'Published', 'supertext-polylang' ); ?></option>
 						</select>
 						<p class="description"><?php esc_html_e( 'Status applied to the translated post when a translation is written back.', 'supertext-polylang' ); ?></p>
+					</td>
+				</tr>
+				<tr>
+					<th scope="row"><?php esc_html_e( 'Page screenshots', 'supertext-polylang' ); ?></th>
+					<td>
+						<label for="supertext-screenshots">
+							<input
+								type="checkbox"
+								name="<?php echo esc_attr( self::OPTION . '[screenshots_enabled]' ); ?>"
+								id="supertext-screenshots"
+								value="1"
+								<?php checked( ! empty( $current['screenshots_enabled'] ) ); ?>
+							/>
+							<?php esc_html_e( 'Attach a page screenshot to each human-translation order (VibeBoost Screenshots)', 'supertext-polylang' ); ?>
+						</label>
+						<p class="description">
+							<?php esc_html_e( 'When enabled, each page sent for human translation is captured through its secret preview link and uploaded to the order as a visual reference for the translator. Powered by VibeBoost Screenshots (still in development); heavier use may require a subscription. Best-effort — an order still goes through if the screenshot cannot be produced.', 'supertext-polylang' ); ?>
+						</p>
 					</td>
 				</tr>
 			</table>

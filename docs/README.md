@@ -7,6 +7,11 @@ translation** service in **Polylang Pro**.
   Polylang's own translate buttons and a bulk action.
 - **Human translation** — order professional translations from WordPress; the finished
   translation is written back automatically when it's done.
+- **Page screenshots for translators** — each page sent for human translation is captured
+  through its secret preview link and attached to the order, giving the translator the page
+  in its real layout (via VibeBoost Screenshots — optional, on by default).
+- **Secret preview links** — share an unpublished draft (or hand it to an external tool)
+  through a private, expiring URL, without publishing it.
 
 ---
 
@@ -156,6 +161,15 @@ The content is then sent to Supertext as an order. The confirmation notice shows
 **Order ID**, linked to the order in your Supertext account. When the order is finished,
 Supertext calls back and the translation is written into the target post automatically (as
 a Draft or Published, per your settings).
+
+> **Page screenshots (VibeBoost Screenshots):** when the *Page screenshots* option is
+> enabled (Supertext → Settings, on by default), the plugin also captures a screenshot of
+> each page — reached through its secret preview link, so even an unpublished draft is
+> included — and attaches it to the order as a **visual reference** for the translator
+> (uploaded as a reference file, `DocumentTypeId 3`). This is best‑effort: if the screenshot
+> can't be produced (service unreachable, subscription required, or the site isn't publicly
+> reachable), the order still goes through without it. The service is still in development;
+> heavier use may require a subscription.
 
 ### The Orders page
 

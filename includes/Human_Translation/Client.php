@@ -59,24 +59,30 @@ class Client {
 	}
 
 	/**
-	 * Uploads the document to translate.
+	 * Uploads a document to a Supertext file store.
 	 *
-	 * @param string $html     The HTML content.
-	 * @param string $filename The file name (should end in .html).
+	 * Defaults describe the original (source) HTML document to translate. Pass a
+	 * different content type and `DocumentTypeId` to attach other material — e.g. a
+	 * page screenshot as a reference file (`image/png`, DocumentTypeId `3`).
+	 *
+	 * @param string $content          The file content (binary or text).
+	 * @param string $filename         The file name (with the right extension).
+	 * @param string $content_type     The MIME type (default `text/html`).
+	 * @param int    $document_type_id Supertext DocumentTypeId (1 = original, 3 = reference).
 	 * @return int|WP_Error The Supertext DocumentId on success.
 	 */
-	public function upload_file( string $html, string $filename ) {
+	public function upload_file( string $content, string $filename, string $content_type = 'text/html', int $document_type_id = 1 ) {
 		list( $boundary, $body ) = $this->build_multipart(
 			array(
 				'ElementId'      => '0',
 				'ElementTypeId'  => '2',
-				'DocumentTypeId' => '1',
+				'DocumentTypeId' => (string) $document_type_id,
 			),
 			array(
 				'name'     => 'file',
 				'filename' => $filename,
-				'type'     => 'text/html',
-				'content'  => $html,
+				'type'     => $content_type,
+				'content'  => $content,
 			)
 		);
 

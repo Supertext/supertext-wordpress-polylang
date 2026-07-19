@@ -153,6 +153,39 @@ class Draft_Preview {
 	}
 
 	/**
+	 * Ensures a post has an active secret preview link and returns its URL.
+	 *
+	 * Generates the token on first use, turns the preview on, and (re)sets a future
+	 * expiry when missing or already past — so an external consumer (e.g. the
+	 * screenshot service) can reach the page even while it is a draft. Returns an
+	 * empty string if the post doesn't exist.
+	 *
+	 * @param int $post_id Post id.
+	 * @return string
+	 */
+	public static function ensure_preview_url( int $post_id ): string {
+		$post = get_post( $post_id );
+		if ( ! $post instanceof WP_Post ) {
+			return '';
+		}
+
+		$token = (string) get_post_meta( $post_id, self::META_TOKEN, true );
+		if ( '' === $token ) {
+			$token = wp_generate_uuid4();
+			update_post_meta( $post_id, self::META_TOKEN, $token );
+		}
+
+		update_post_meta( $post_id, self::META_ENABLED, 1 );
+
+		$expires = (int) get_post_meta( $post_id, self::META_EXPIRES, true );
+		if ( $expires <= time() ) {
+			update_post_meta( $post_id, self::META_EXPIRES, time() + 2 * WEEK_IN_SECONDS );
+		}
+
+		return self::preview_url( $post, $token );
+	}
+
+	/**
 	 * Adds the preview metabox to the supported post types.
 	 *
 	 * @return void
