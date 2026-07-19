@@ -31,7 +31,7 @@ class Client {
 	 *
 	 * @var string
 	 */
-	const ENDPOINT = 'https://social-preview-theta.vercel.app/api/screenshot';
+	const ENDPOINT = 'https://vibeboost.me/api/screenshot';
 
 	/**
 	 * Captures a screenshot of a URL and returns the raw image bytes.
