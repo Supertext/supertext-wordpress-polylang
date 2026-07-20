@@ -67,7 +67,7 @@ class VibeBoostClientTest extends TestCase {
 		$this->assertStringStartsWith( Client::ENDPOINT, $cap->url );
 	}
 
-	public function test_capture_sends_default_format_width_hidecookies(): void {
+	public function test_capture_sends_default_capture_options(): void {
 		$cap = $this->stubResponse( 200, 'image/png', 'X' );
 
 		( new Client() )->capture( 'https://x.example/' );
@@ -75,7 +75,8 @@ class VibeBoostClientTest extends TestCase {
 		$params = $this->queryOf( $cap->url );
 		$this->assertSame( 'png', $params['format'] );
 		$this->assertSame( '1280', $params['width'] );
-		$this->assertSame( 'true', $params['hideCookies'] );
+		$this->assertSame( 'true', $params['fullPage'] );    // Whole page, not just the viewport.
+		$this->assertSame( 'true', $params['hideCookies'] ); // Cookie/consent banner dismissed.
 	}
 
 	public function test_capture_options_override_defaults(): void {

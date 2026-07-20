@@ -234,7 +234,9 @@ development).
 1. For each page in the order, the plugin generates the page's **secret preview link** (see
    [Secret preview links](#secret-preview-links)) — so even an **unpublished draft** can be
    captured.
-2. It sends that link to VibeBoost, which renders the page and returns an image.
+2. It sends that link to VibeBoost, which renders the **full page** (the whole scrollable
+   page, not just the visible area), **auto-dismisses cookie/consent banners**, and returns
+   an image.
 3. The image is uploaded to the Supertext order as a **reference file** (`DocumentTypeId 3`)
    alongside the translatable content, and appears on the order next to the `.html` file.
 

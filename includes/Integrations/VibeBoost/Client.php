@@ -38,7 +38,7 @@ class Client {
 	 *
 	 * @param string               $url  The page URL to capture.
 	 * @param array<string, mixed> $opts Optional capture options (format, width,
-	 *                                   hideCookies). Merged over the defaults.
+	 *                                   fullPage, hideCookies). Merged over the defaults.
 	 * @return string|WP_Error The image binary on success.
 	 */
 	public function capture( string $url, array $opts = array() ) {
@@ -50,7 +50,8 @@ class Client {
 			array(
 				'format'      => 'png',
 				'width'       => 1280,
-				'hideCookies' => 'true',
+				'fullPage'    => 'true', // Capture the whole scrollable page, not just the viewport.
+				'hideCookies' => 'true', // Auto-dismiss cookie/consent banners before capturing.
 			),
 			$opts,
 			array( 'url' => $url )
