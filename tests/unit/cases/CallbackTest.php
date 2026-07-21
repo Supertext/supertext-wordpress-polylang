@@ -22,7 +22,22 @@ class CallbackTest extends TestCase {
 		$this->assertStringStartsWith( '165:fr:', $ref );
 
 		$parsed = self::callPrivate( Callback::class, 'parse_reference_data', array( $ref ) );
-		$this->assertSame( array( 'post_id' => 165, 'lang' => 'fr' ), $parsed );
+		$this->assertSame( array( 'type' => 'post', 'id' => 165, 'lang' => 'fr' ), $parsed );
+	}
+
+	public function test_typed_reference_data_round_trips(): void {
+		$ref = Callback::reference_data_for( 'gf', 7, 'fr' );
+
+		$this->assertStringStartsWith( 'gf:7:fr:', $ref );
+
+		$parsed = self::callPrivate( Callback::class, 'parse_reference_data', array( $ref ) );
+		$this->assertSame( array( 'type' => 'gf', 'id' => 7, 'lang' => 'fr' ), $parsed );
+	}
+
+	public function test_typed_reference_data_rejects_tampering(): void {
+		$ref    = Callback::reference_data_for( 'gf', 7, 'fr' );
+		$forged = 'gf:999:fr:' . substr( $ref, strrpos( $ref, ':' ) + 1 );
+		$this->assertNull( self::callPrivate( Callback::class, 'parse_reference_data', array( $forged ) ) );
 	}
 
 	public function test_tampered_reference_data_is_rejected(): void {

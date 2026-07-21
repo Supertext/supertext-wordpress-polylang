@@ -98,7 +98,7 @@ class Callback {
 	}
 
 	/**
-	 * Builds the signed `ReferenceData` value for an order: `{post_id}:{lang}:{hmac}`.
+	 * Builds the signed `ReferenceData` value for a post order: `{post_id}:{lang}:{hmac}`.
 	 *
 	 * @param int    $post_id Source post ID.
 	 * @param string $lang    Target language slug.
@@ -106,6 +106,21 @@ class Callback {
 	 */
 	public static function reference_data( int $post_id, string $lang ): string {
 		return $post_id . ':' . $lang . ':' . self::sign( $post_id, $lang );
+	}
+
+	/**
+	 * Builds the signed `ReferenceData` for a non-post entity: `{type}:{id}:{lang}:{hmac}`.
+	 *
+	 * Used for orders that aren't WordPress posts (e.g. Gravity Forms forms), so the
+	 * completion callback can route the result to the right writer.
+	 *
+	 * @param string $type Entity type (e.g. `gf`).
+	 * @param int    $id   Entity id (e.g. form id).
+	 * @param string $lang Target language slug.
+	 * @return string
+	 */
+	public static function reference_data_for( string $type, int $id, string $lang ): string {
+		return $type . ':' . $id . ':' . $lang . ':' . self::sign_typed( $type, $id, $lang );
 	}
 
 	/**
@@ -131,28 +146,31 @@ class Callback {
 		$order_ids = self::extract_order_ids( $body );
 
 		self::debug_log(
-			sprintf( 'callback ok: post=%d lang=%s orders=%s', $context['post_id'], $context['lang'], wp_json_encode( $order_ids ) )
+			sprintf( 'callback ok: type=%s id=%d lang=%s orders=%s', $context['type'], $context['id'], $context['lang'], wp_json_encode( $order_ids ) )
 		);
 
 		/**
 		 * Fires when Supertext reports a completed human-translation order.
 		 *
-		 * Next step will hook this to fetch the translated files for each order id
-		 * and write them back into the target post/language.
+		 * Writers hook this, fetch the translated files for each order id, and write
+		 * them back into the target entity. The `$type` tells each writer whether the
+		 * order is theirs ('post' for WordPress posts, 'gf' for Gravity Forms forms).
 		 *
 		 * @since 0.6.0
 		 *
 		 * @param int[]  $order_ids The completed order id(s).
-		 * @param int    $post_id   The source post id (from ReferenceData).
+		 * @param int    $id        The source entity id (post id, or form id for 'gf').
 		 * @param string $lang      The target language slug (from ReferenceData).
 		 * @param mixed  $body      The raw decoded request body.
+		 * @param string $type      The entity type ('post' or 'gf').
 		 */
-		do_action( 'supertext_polylang_order_completed', $order_ids, $context['post_id'], $context['lang'], $body );
+		do_action( 'supertext_polylang_order_completed', $order_ids, $context['id'], $context['lang'], $body, $context['type'] );
 
 		return new WP_REST_Response(
 			array(
 				'ok'       => true,
-				'post'     => $context['post_id'],
+				'type'     => $context['type'],
+				'id'       => $context['id'],
 				'lang'     => $context['lang'],
 				'received' => $order_ids,
 			),
@@ -227,32 +245,64 @@ class Callback {
 	}
 
 	/**
-	 * Validates a `ReferenceData` string and returns its post id + language.
+	 * Computes the HMAC for a typed (non-post) entity.
+	 *
+	 * @param string $type Entity type.
+	 * @param int    $id   Entity id.
+	 * @param string $lang Language slug.
+	 * @return string
+	 */
+	private static function sign_typed( string $type, int $id, string $lang ): string {
+		return hash_hmac( 'sha256', $type . ':' . $id . ':' . $lang, self::secret() );
+	}
+
+	/**
+	 * Validates a `ReferenceData` string and returns its type, id + language.
+	 *
+	 * Accepts the typed 4-part form `{type}:{id}:{lang}:{hmac}` (e.g. `gf:…`) and the
+	 * legacy 3-part post form `{post_id}:{lang}:{hmac}` (implicit type `post`).
 	 *
 	 * @param string $reference The reference string.
-	 * @return array{post_id: int, lang: string}|null Null if invalid.
+	 * @return array{type: string, id: int, lang: string}|null Null if invalid.
 	 */
 	private static function parse_reference_data( string $reference ) {
-		$parts = explode( ':', $reference, 3 );
-		if ( count( $parts ) !== 3 ) {
-			return null;
+		$parts = explode( ':', $reference );
+
+		// Typed form: {type}:{id}:{lang}:{hmac}.
+		if ( count( $parts ) === 4 ) {
+			list( $type, $id, $lang, $token ) = $parts;
+			$id = (int) $id;
+			if ( '' === $type || $id <= 0 || '' === $lang ) {
+				return null;
+			}
+			if ( ! hash_equals( self::sign_typed( $type, $id, $lang ), (string) $token ) ) {
+				return null;
+			}
+			return array(
+				'type' => $type,
+				'id'   => $id,
+				'lang' => $lang,
+			);
 		}
 
-		list( $post_id, $lang, $token ) = $parts;
-		$post_id = (int) $post_id;
-
-		if ( $post_id <= 0 || '' === $lang ) {
-			return null;
+		// Legacy post form: {post_id}:{lang}:{hmac}.
+		if ( count( $parts ) === 3 ) {
+			list( $post_id, $lang, $token ) = $parts;
+			$post_id = (int) $post_id;
+			if ( $post_id <= 0 || '' === $lang ) {
+				return null;
+			}
+			if ( ! hash_equals( self::sign( $post_id, $lang ), (string) $token ) ) {
+				return null;
+			}
+			return array(
+				'type' => 'post',
+				'id'   => $post_id,
+				'lang' => $lang,
+			);
 		}
 
-		if ( ! hash_equals( self::sign( $post_id, $lang ), (string) $token ) ) {
-			return null;
-		}
-
-		return array(
-			'post_id' => $post_id,
-			'lang'    => $lang,
-		);
+		return null;
 	}
 
 	/**

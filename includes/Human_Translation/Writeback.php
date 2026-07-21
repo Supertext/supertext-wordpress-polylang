@@ -35,7 +35,7 @@ class Writeback {
 	 * @return void
 	 */
 	public static function init(): void {
-		add_action( 'supertext_polylang_order_completed', array( self::class, 'process' ), 10, 4 );
+		add_action( 'supertext_polylang_order_completed', array( self::class, 'process' ), 10, 5 );
 	}
 
 	/**
@@ -45,9 +45,13 @@ class Writeback {
 	 * @param int    $post_id   Source post id (from ReferenceData).
 	 * @param string $lang      Target language slug (from ReferenceData).
 	 * @param mixed  $body      Raw decoded callback body (the order object).
+	 * @param string $type      Entity type; this writer only handles 'post'.
 	 * @return void
 	 */
-	public static function process( $order_ids, $post_id, $lang, $body ): void {
+	public static function process( $order_ids, $post_id, $lang, $body, $type = 'post' ): void {
+		if ( 'post' !== $type ) {
+			return;
+		}
 		if ( ! function_exists( 'PLL' ) || ! isset( PLL()->model ) ) {
 			return;
 		}

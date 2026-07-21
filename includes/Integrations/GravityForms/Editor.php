@@ -139,11 +139,22 @@ class Editor {
 			</h1>
 
 			<?php
-			// phpcs:ignore WordPress.Security.NonceVerification.Recommended
+			// phpcs:disable WordPress.Security.NonceVerification.Recommended
 			if ( isset( $_GET['saved'] ) ) :
 				?>
 				<div class="notice notice-success is-dismissible"><p><?php esc_html_e( 'Translations saved.', 'supertext-polylang' ); ?></p></div>
 			<?php endif; ?>
+			<?php if ( isset( $_GET['ordered'] ) ) : ?>
+				<div class="notice notice-success is-dismissible"><p><?php esc_html_e( 'Human translation order submitted. It will be written back automatically when complete.', 'supertext-polylang' ); ?></p></div>
+			<?php endif; ?>
+			<?php
+			if ( isset( $_GET['order_error'] ) ) :
+				$order_error = get_transient( 'supertext_polylang_gf_order_error_' . get_current_user_id() );
+				delete_transient( 'supertext_polylang_gf_order_error_' . get_current_user_id() );
+				?>
+				<div class="notice notice-error is-dismissible"><p><?php echo esc_html( is_string( $order_error ) && '' !== $order_error ? $order_error : __( 'Could not submit the order.', 'supertext-polylang' ) ); ?></p></div>
+			<?php endif; ?>
+			<?php // phpcs:enable WordPress.Security.NonceVerification.Recommended ?>
 			<p><a href="<?php echo esc_url( $back ); ?>">&larr; <?php esc_html_e( 'Back to forms', 'supertext-polylang' ); ?></a></p>
 
 			<?php if ( empty( $languages ) ) : ?>
@@ -201,6 +212,9 @@ class Editor {
 
 					<?php submit_button( __( 'Save changes', 'supertext-polylang' ) ); ?>
 				</form>
+
+				<hr />
+				<?php Human::render_panel( $form_id, $languages ); ?>
 			<?php endif; ?>
 		</div>
 		<?php
