@@ -8,36 +8,31 @@ namespace Supertext\Polylang\Integrations\GravityForms;
 defined( 'ABSPATH' ) || exit;
 
 use GFAPI;
-use WP_Syntex\Polylang_Pro\Modules\Machine_Translation\Factory;
-use Supertext\Polylang\Admin\Integrations;
+use Supertext\Polylang\Admin\Bulk_Actions;
+use Supertext\Polylang\Admin\Settings;
+use Supertext\Polylang\Admin\String_Table;
+use Supertext\Polylang\Human_Translation\Human_Strings;
+use Supertext\Polylang\Polylang\String_Store;
 
 /**
- * Per-form string editor: source strings in rows, one editable column per target
- * language, with an inline "AI" button per cell that translates that single string
- * via Supertext. Everything reads and writes Polylang's own store ({@see Strings}),
- * so edits here, edits in Polylang's String translations grid, and Supertext output
- * are all the same record.
+ * Per-form string editor: the form's source strings in rows with a checkbox each and
+ * one editable column per target language. A bottom action bar translates the checked
+ * rows with Supertext AI or orders them for human translation (into the chosen target
+ * language), or saves the whole grid. Everything reads/writes Polylang's store
+ * ({@see Strings} / {@see String_Table}), so it stays in sync with Languages → String
+ * translations and the front end.
  *
- * Rendered by {@see Admin_Page} when its page is opened with a `form_id`; this class
- * owns the save (admin-post) and single-string translate (admin-ajax) endpoints plus
- * the small script that drives the inline buttons.
+ * Rendered by {@see Admin_Page} when its page is opened with a `form_id`.
  *
  * @since 0.7.0
  */
 class Editor {
 	/**
-	 * admin-post action: bulk-save the edited translations.
+	 * admin-post action for the editor form (save / AI / human).
 	 *
 	 * @var string
 	 */
-	const SAVE_ACTION = 'supertext_polylang_gf_save_strings';
-
-	/**
-	 * admin-ajax action: translate a single string with Supertext AI.
-	 *
-	 * @var string
-	 */
-	const AJAX_ACTION = 'supertext_polylang_gf_translate_string';
+	const ACTION = 'supertext_polylang_gf_strings';
 
 	/**
 	 * Registers hooks.
@@ -45,8 +40,7 @@ class Editor {
 	 * @return void
 	 */
 	public static function init(): void {
-		add_action( 'admin_post_' . self::SAVE_ACTION, array( self::class, 'handle_save' ) );
-		add_action( 'wp_ajax_' . self::AJAX_ACTION, array( self::class, 'handle_ajax' ) );
+		add_action( 'admin_post_' . self::ACTION, array( self::class, 'handle_submit' ) );
 		add_action( 'admin_enqueue_scripts', array( self::class, 'maybe_enqueue' ) );
 	}
 
@@ -56,7 +50,6 @@ class Editor {
 	 * @return bool
 	 */
 	private static function is_editor_screen(): bool {
-		// Read-only screen detection; no state change, so no nonce needed.
 		// phpcs:disable WordPress.Security.NonceVerification.Recommended
 		$page = isset( $_GET['page'] ) ? sanitize_text_field( wp_unslash( $_GET['page'] ) ) : '';
 		return Admin_Page::SLUG === $page && isset( $_GET['form_id'] );
@@ -64,7 +57,7 @@ class Editor {
 	}
 
 	/**
-	 * Enqueues the inline-translate script on the editor screen only.
+	 * Enqueues the select-all script on the editor screen.
 	 *
 	 * @return void
 	 */
@@ -72,27 +65,12 @@ class Editor {
 		if ( ! self::is_editor_screen() ) {
 			return;
 		}
-
 		wp_enqueue_script(
-			'supertext-gf-string-editor',
-			plugins_url( 'assets/js/gf-string-editor.js', SUPERTEXT_POLYLANG_FILE ),
+			'supertext-string-table',
+			plugins_url( 'assets/js/string-table.js', SUPERTEXT_POLYLANG_FILE ),
 			array(),
 			SUPERTEXT_POLYLANG_VERSION,
 			true
-		);
-		wp_localize_script(
-			'supertext-gf-string-editor',
-			'SupertextGFEditor',
-			array(
-				'ajaxUrl' => admin_url( 'admin-ajax.php' ),
-				'action'  => self::AJAX_ACTION,
-				'nonce'   => wp_create_nonce( self::AJAX_ACTION ),
-				'i18n'    => array(
-					'busy'  => __( '…', 'supertext-polylang' ),
-					'ai'    => __( 'AI', 'supertext-polylang' ),
-					'error' => __( 'Failed', 'supertext-polylang' ),
-				),
-			)
 		);
 	}
 
@@ -121,13 +99,12 @@ class Editor {
 		}
 
 		$languages = Strings::target_languages();
-		$strings   = Strings::collect_unique( $form );
-		$sources   = wp_list_pluck( $strings, 'source' );
+		$rows      = Strings::collect_unique( $form ); // [ ['name'=>, 'source'=>], … ].
+		$sources   = wp_list_pluck( $rows, 'source' );
 
-		// Build each language column in one pass.
-		$columns = array();
+		$translations = array();
 		foreach ( $languages as $lang ) {
-			$columns[ $lang['slug'] ] = Strings::translations_for( $lang['slug'], $sources );
+			$translations[ $lang['slug'] ] = String_Store::translations_for( $lang['slug'], $sources );
 		}
 		?>
 		<div class="wrap">
@@ -137,186 +114,136 @@ class Editor {
 				printf( esc_html__( 'Translate strings: %s', 'supertext-polylang' ), esc_html( (string) $form['title'] ) );
 				?>
 			</h1>
-
-			<?php
-			// phpcs:disable WordPress.Security.NonceVerification.Recommended
-			if ( isset( $_GET['saved'] ) ) :
-				?>
-				<div class="notice notice-success is-dismissible"><p><?php esc_html_e( 'Translations saved.', 'supertext-polylang' ); ?></p></div>
-			<?php endif; ?>
-			<?php if ( isset( $_GET['ordered'] ) ) : ?>
-				<div class="notice notice-success is-dismissible"><p><?php esc_html_e( 'Human translation order submitted. It will be written back automatically when complete.', 'supertext-polylang' ); ?></p></div>
-			<?php endif; ?>
-			<?php
-			if ( isset( $_GET['order_error'] ) ) :
-				$order_error = get_transient( 'supertext_polylang_gf_order_error_' . get_current_user_id() );
-				delete_transient( 'supertext_polylang_gf_order_error_' . get_current_user_id() );
-				?>
-				<div class="notice notice-error is-dismissible"><p><?php echo esc_html( is_string( $order_error ) && '' !== $order_error ? $order_error : __( 'Could not submit the order.', 'supertext-polylang' ) ); ?></p></div>
-			<?php endif; ?>
-			<?php // phpcs:enable WordPress.Security.NonceVerification.Recommended ?>
 			<p><a href="<?php echo esc_url( $back ); ?>">&larr; <?php esc_html_e( 'Back to forms', 'supertext-polylang' ); ?></a></p>
 
-			<?php if ( empty( $languages ) ) : ?>
-				<p><em><?php esc_html_e( 'Add at least one non-default language in Polylang to translate this form.', 'supertext-polylang' ); ?></em></p>
-			<?php elseif ( empty( $strings ) ) : ?>
-				<p><?php esc_html_e( 'This form has no translatable text.', 'supertext-polylang' ); ?></p>
-			<?php else : ?>
-				<p class="description" style="max-width:820px;">
-					<?php esc_html_e( 'Edit any translation and Save. Use the AI button in a cell to translate that single string with Supertext; the result fills the box for review before you save. These are the same translations shown under Languages → String translations.', 'supertext-polylang' ); ?>
-				</p>
-				<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
-					<input type="hidden" name="action" value="<?php echo esc_attr( self::SAVE_ACTION ); ?>" />
-					<input type="hidden" name="form_id" value="<?php echo esc_attr( (string) $form_id ); ?>" />
-					<?php wp_nonce_field( self::SAVE_ACTION . '_' . $form_id ); ?>
+			<?php self::render_notices(); ?>
 
-					<table class="widefat striped fixed">
-						<thead>
-							<tr>
-								<th style="width:14%;"><?php esc_html_e( 'Field', 'supertext-polylang' ); ?></th>
-								<th style="width:26%;"><?php esc_html_e( 'Source', 'supertext-polylang' ); ?></th>
-								<?php foreach ( $languages as $lang ) : ?>
-									<th><?php echo esc_html( $lang['name'] ); ?></th>
-								<?php endforeach; ?>
-							</tr>
-						</thead>
-						<tbody>
-							<?php foreach ( $strings as $i => $item ) : ?>
-								<tr>
-									<td><span style="color:#787c82;"><?php echo esc_html( $item['name'] ); ?></span></td>
-									<td>
-										<?php echo esc_html( $item['source'] ); ?>
-										<input type="hidden" name="src[<?php echo (int) $i; ?>]" value="<?php echo esc_attr( $item['source'] ); ?>" />
-									</td>
-									<?php foreach ( $languages as $lang ) : ?>
-										<?php $slug = $lang['slug']; ?>
-										<td>
-											<textarea
-												name="tr[<?php echo esc_attr( $slug ); ?>][<?php echo (int) $i; ?>]"
-												rows="2"
-												style="width:100%;box-sizing:border-box;"
-											><?php echo esc_textarea( $columns[ $slug ][ $item['source'] ] ?? '' ); ?></textarea>
-											<button
-												type="button"
-												class="button button-small st-gf-ai"
-												data-i="<?php echo (int) $i; ?>"
-												data-lang="<?php echo esc_attr( $slug ); ?>"
-												data-source="<?php echo esc_attr( $item['source'] ); ?>"
-											><?php esc_html_e( 'AI', 'supertext-polylang' ); ?></button>
-										</td>
-									<?php endforeach; ?>
-								</tr>
-							<?php endforeach; ?>
-						</tbody>
-					</table>
+			<p class="description" style="max-width:820px;">
+				<?php esc_html_e( 'Tick the rows you want, choose a target language, then translate them with Supertext AI or order human translation. Or edit a translation directly and Save. These are the same translations shown under Languages → String translations.', 'supertext-polylang' ); ?>
+			</p>
 
-					<?php submit_button( __( 'Save changes', 'supertext-polylang' ) ); ?>
-				</form>
-
-				<hr />
-				<?php Human::render_panel( $form_id, $languages ); ?>
-			<?php endif; ?>
+			<?php
+			String_Table::render(
+				array(
+					'action'          => self::ACTION,
+					'nonce_action'    => self::ACTION,
+					'hidden'          => array( 'form_id' => (string) $form_id ),
+					'rows'            => $rows,
+					'languages'       => $languages,
+					'translations'    => $translations,
+					'show_group'      => false,
+					'human'           => Settings::is_configured(),
+					'human_services'  => Bulk_Actions::HUMAN_SERVICES,
+					'express_options' => Bulk_Actions::EXPRESS_OPTIONS,
+				)
+			);
+			?>
 		</div>
 		<?php
 	}
 
 	/**
-	 * Handles the bulk save: writes edited translations into Polylang per language.
+	 * Shows one-off result notices.
 	 *
 	 * @return void
 	 */
-	public static function handle_save(): void {
+	private static function render_notices(): void {
+		// phpcs:disable WordPress.Security.NonceVerification.Recommended
+		if ( isset( $_GET['saved'] ) ) {
+			echo '<div class="notice notice-success is-dismissible"><p>' . esc_html__( 'Translations saved.', 'supertext-polylang' ) . '</p></div>';
+		}
+		if ( isset( $_GET['ai'] ) ) {
+			$n = (int) $_GET['ai'];
+			printf(
+				'<div class="notice notice-success is-dismissible"><p>%s</p></div>',
+				esc_html( sprintf( /* translators: %d count */ _n( '%d string translated with AI.', '%d strings translated with AI.', $n, 'supertext-polylang' ), $n ) )
+			);
+		}
+		if ( isset( $_GET['ordered'] ) ) {
+			echo '<div class="notice notice-success is-dismissible"><p>' . esc_html__( 'Human translation order submitted. It will be written back automatically when complete.', 'supertext-polylang' ) . '</p></div>';
+		}
+		if ( isset( $_GET['order_error'] ) ) {
+			$msg = get_transient( 'supertext_polylang_gf_order_error_' . get_current_user_id() );
+			delete_transient( 'supertext_polylang_gf_order_error_' . get_current_user_id() );
+			printf(
+				'<div class="notice notice-error is-dismissible"><p>%s</p></div>',
+				esc_html( is_string( $msg ) && '' !== $msg ? $msg : __( 'Something went wrong.', 'supertext-polylang' ) )
+			);
+		}
+		// phpcs:enable WordPress.Security.NonceVerification.Recommended
+	}
+
+	/**
+	 * Handles the editor submit (save / AI / human) for one form.
+	 *
+	 * @return void
+	 */
+	public static function handle_submit(): void {
 		if ( ! current_user_can( 'manage_options' ) ) {
 			wp_die( esc_html__( 'You are not allowed to do this.', 'supertext-polylang' ) );
 		}
+		check_admin_referer( self::ACTION );
 
 		$form_id = isset( $_POST['form_id'] ) ? (int) $_POST['form_id'] : 0;
-		check_admin_referer( self::SAVE_ACTION . '_' . $form_id );
+		$submit  = String_Table::read_submit();
 
-		$src = ( isset( $_POST['src'] ) && is_array( $_POST['src'] ) ) ? wp_unslash( $_POST['src'] ) : array(); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
-		$tr  = ( isset( $_POST['tr'] ) && is_array( $_POST['tr'] ) ) ? wp_unslash( $_POST['tr'] ) : array(); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
+		// Always persist the visible grid first.
+		String_Table::save_grid( $submit['grid'], $submit['src'] );
 
-		foreach ( $tr as $lang => $rows ) {
-			$lang = sanitize_key( $lang );
-			if ( '' === $lang || ! is_array( $rows ) ) {
-				continue;
-			}
+		$args    = array(
+			'page'    => Admin_Page::SLUG,
+			'form_id' => $form_id,
+		);
+		$sources = String_Table::selected_sources( $submit['selected'], $submit['src'] );
 
-			$pairs = array();
-			foreach ( $rows as $i => $value ) {
-				$source = isset( $src[ $i ] ) ? (string) $src[ $i ] : '';
-				if ( '' === $source ) {
-					continue;
+		if ( 'ai' === $submit['do'] ) {
+			if ( empty( $sources ) ) {
+				self::order_error( __( 'Select at least one row to translate.', 'supertext-polylang' ) );
+				$args['order_error'] = '1';
+			} else {
+				$map = String_Store::translate_many( $sources, $submit['lang'] );
+				if ( is_wp_error( $map ) ) {
+					self::order_error( $map->get_error_message() );
+					$args['order_error'] = '1';
+				} else {
+					$filled = array_filter( $map, static fn( $v ) => '' !== (string) $v );
+					String_Store::save_translations( $submit['lang'], $filled );
+					$args['ai'] = (string) count( $filled );
 				}
-				// Admin-entered; allow safe HTML (field content), strip anything unsafe.
-				$pairs[ $source ] = wp_kses_post( (string) $value );
 			}
-
-			Strings::save_translations( $lang, $pairs );
+		} elseif ( 'human' === $submit['do'] ) {
+			$form   = class_exists( 'GFAPI' ) ? GFAPI::get_form( $form_id ) : array();
+			$title  = is_array( $form ) ? (string) ( $form['title'] ?? '' ) : '';
+			$result = Human_Strings::place_order(
+				$sources,
+				$submit['lang'],
+				$submit['service_id'],
+				$submit['express'],
+				'Gravity Forms: ' . ( '' !== $title ? $title : '#' . $form_id ),
+				'str',
+				$form_id
+			);
+			if ( is_wp_error( $result ) ) {
+				self::order_error( $result->get_error_message() );
+				$args['order_error'] = '1';
+			} else {
+				$args['ordered'] = '1';
+			}
+		} else {
+			$args['saved'] = '1';
 		}
 
-		wp_safe_redirect(
-			add_query_arg(
-				array(
-					'page'    => Admin_Page::SLUG,
-					'form_id' => $form_id,
-					'saved'   => '1',
-				),
-				admin_url( 'admin.php' )
-			)
-		);
+		wp_safe_redirect( add_query_arg( $args, admin_url( 'admin.php' ) ) );
 		exit;
 	}
 
 	/**
-	 * Handles the single-string AI translation (admin-ajax).
+	 * Stores a one-off error message for the current user.
 	 *
-	 * Returns the translation for the caller to place in the edit box; it does not
-	 * persist anything — the user saves the form to commit.
-	 *
+	 * @param string $message Message.
 	 * @return void
 	 */
-	public static function handle_ajax(): void {
-		check_ajax_referer( self::AJAX_ACTION, 'nonce' );
-		if ( ! current_user_can( 'manage_options' ) ) {
-			wp_send_json_error( array( 'message' => __( 'Not allowed.', 'supertext-polylang' ) ), 403 );
-		}
-		if ( ! Integrations::enabled( 'gravityforms' ) ) {
-			wp_send_json_error( array( 'message' => __( 'Gravity Forms integration is disabled.', 'supertext-polylang' ) ) );
-		}
-
-		$lang   = isset( $_POST['lang'] ) ? sanitize_key( wp_unslash( $_POST['lang'] ) ) : '';
-		$source = isset( $_POST['source'] ) ? (string) wp_unslash( $_POST['source'] ) : ''; // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
-		if ( '' === $lang || '' === $source ) {
-			wp_send_json_error( array( 'message' => __( 'Missing language or source.', 'supertext-polylang' ) ) );
-		}
-
-		if ( ! function_exists( 'PLL' ) || ! isset( PLL()->model ) || ! class_exists( Factory::class ) ) {
-			wp_send_json_error( array( 'message' => __( 'Polylang is not available.', 'supertext-polylang' ) ) );
-		}
-
-		$model  = PLL()->model;
-		$target = $model->get_language( $lang );
-		$source_lang = function_exists( 'pll_default_language' ) ? $model->get_language( (string) pll_default_language( 'slug' ) ) : null;
-		if ( ! $target ) {
-			wp_send_json_error( array( 'message' => __( 'Unknown target language.', 'supertext-polylang' ) ) );
-		}
-
-		$service = ( new Factory( $model ) )->get_active_service();
-		if ( null === $service ) {
-			wp_send_json_error( array( 'message' => __( 'No active Supertext AI service.', 'supertext-polylang' ) ) );
-		}
-
-		$client = $service->get_client();
-		if ( ! method_exists( $client, 'translate_strings' ) ) {
-			wp_send_json_error( array( 'message' => __( 'The active service cannot translate strings.', 'supertext-polylang' ) ) );
-		}
-
-		$result = $client->translate_strings( array( 's' => $source ), $target, $source_lang );
-		if ( is_wp_error( $result ) ) {
-			wp_send_json_error( array( 'message' => $result->get_error_message() ) );
-		}
-
-		wp_send_json_success( array( 'translation' => isset( $result['s'] ) ? (string) $result['s'] : '' ) );
+	private static function order_error( string $message ): void {
+		set_transient( 'supertext_polylang_gf_order_error_' . get_current_user_id(), $message, 60 );
 	}
 }

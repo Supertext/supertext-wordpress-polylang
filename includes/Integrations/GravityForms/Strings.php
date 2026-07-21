@@ -9,6 +9,7 @@ defined( 'ABSPATH' ) || exit;
 
 use GFAPI;
 use Supertext\Polylang\Admin\Integrations;
+use Supertext\Polylang\Polylang\String_Store;
 
 /**
  * Bridges Gravity Forms strings into Polylang's native String Translations.
@@ -118,29 +119,7 @@ class Strings {
 	 * @return bool True if anything was written.
 	 */
 	public static function save_translations( string $lang_slug, array $pairs ): bool {
-		$language = self::language( $lang_slug );
-		if ( null === $language || ! class_exists( 'PLL_MO' ) ) {
-			return false;
-		}
-
-		$mo = new \PLL_MO();
-		$mo->import_from_db( $language );
-
-		$changed = false;
-		foreach ( $pairs as $source => $translation ) {
-			$source      = (string) $source;
-			$translation = (string) $translation;
-			if ( '' === $source || '' === $translation ) {
-				continue;
-			}
-			$mo->add_entry( $mo->make_entry( $source, $translation ) );
-			$changed = true;
-		}
-
-		if ( $changed ) {
-			$mo->export_to_db( $language );
-		}
-		return $changed;
+		return String_Store::save_translations( $lang_slug, $pairs );
 	}
 
 	/**
@@ -174,21 +153,7 @@ class Strings {
 	 * @return array<int, array{slug: string, name: string}>
 	 */
 	public static function target_languages(): array {
-		if ( ! function_exists( 'PLL' ) || ! isset( PLL()->model ) ) {
-			return array();
-		}
-		$default = function_exists( 'pll_default_language' ) ? (string) pll_default_language( 'slug' ) : '';
-		$out     = array();
-		foreach ( PLL()->model->get_languages_list() as $lang ) {
-			if ( $lang->slug === $default ) {
-				continue;
-			}
-			$out[] = array(
-				'slug' => $lang->slug,
-				'name' => $lang->name,
-			);
-		}
-		return $out;
+		return String_Store::target_languages();
 	}
 
 	/**
@@ -202,23 +167,7 @@ class Strings {
 	 * @return array<string, string> source => translation ('' when untranslated).
 	 */
 	public static function translations_for( string $lang_slug, array $sources ): array {
-		$out      = array();
-		$language = self::language( $lang_slug );
-		if ( null === $language || ! class_exists( 'PLL_MO' ) ) {
-			foreach ( $sources as $source ) {
-				$out[ (string) $source ] = '';
-			}
-			return $out;
-		}
-
-		$mo = new \PLL_MO();
-		$mo->import_from_db( $language );
-		foreach ( $sources as $source ) {
-			$source        = (string) $source;
-			$translation   = $mo->translate( $source );
-			$out[ $source ] = ( is_string( $translation ) && $translation !== $source ) ? $translation : '';
-		}
-		return $out;
+		return String_Store::translations_for( $lang_slug, $sources );
 	}
 
 	/**
@@ -229,14 +178,7 @@ class Strings {
 	 * @return string The translation, or '' if none (never falls back to source).
 	 */
 	public static function get_translation( string $source, string $lang_slug ): string {
-		$language = self::language( $lang_slug );
-		if ( '' === $source || null === $language || ! class_exists( 'PLL_MO' ) ) {
-			return '';
-		}
-		$mo          = new \PLL_MO();
-		$mo->import_from_db( $language );
-		$translation = $mo->translate( $source );
-		return ( is_string( $translation ) && $translation !== $source ) ? $translation : '';
+		return String_Store::get_translation( $source, $lang_slug );
 	}
 
 	/**
@@ -249,22 +191,17 @@ class Strings {
 	public static function translation_status( array $form, string $lang_slug ): array {
 		$strings = array_values( array_unique( array_values( Fields::collect( $form ) ) ) );
 		$total   = count( $strings );
-
-		$language = self::language( $lang_slug );
-		if ( 0 === $total || null === $language || ! class_exists( 'PLL_MO' ) ) {
+		if ( 0 === $total ) {
 			return array(
-				'total'      => $total,
+				'total'      => 0,
 				'translated' => 0,
 			);
 		}
 
-		$mo = new \PLL_MO();
-		$mo->import_from_db( $language );
-
+		$map        = String_Store::translations_for( $lang_slug, $strings );
 		$translated = 0;
 		foreach ( $strings as $source ) {
-			$t = $mo->translate( $source );
-			if ( is_string( $t ) && '' !== $t && $t !== $source ) {
+			if ( '' !== ( $map[ $source ] ?? '' ) ) {
 				++$translated;
 			}
 		}
@@ -328,19 +265,5 @@ class Strings {
 	 */
 	private static function is_multiline( string $value ): bool {
 		return mb_strlen( $value ) > 40 || false !== strpos( $value, "\n" );
-	}
-
-	/**
-	 * Resolves a language slug to a Polylang language object.
-	 *
-	 * @param string $slug Language slug.
-	 * @return \PLL_Language|null
-	 */
-	private static function language( string $slug ) {
-		if ( '' === $slug || ! function_exists( 'PLL' ) || ! isset( PLL()->model ) ) {
-			return null;
-		}
-		$language = PLL()->model->get_language( $slug );
-		return $language ?: null;
 	}
 }
