@@ -212,7 +212,7 @@ class Page {
 	 * @return void
 	 */
 	public static function hero( string $title, string $subtitle = '' ): void {
-		$logo = defined( 'SUPERTEXT_POLYLANG_FILE' ) ? plugins_url( 'assets/icon-v2-64.png', SUPERTEXT_POLYLANG_FILE ) : '';
+		$logo = defined( 'SUPERTEXT_POLYLANG_FILE' ) ? plugins_url( 'assets/Supertext_S_Glow_White_RGB.svg', SUPERTEXT_POLYLANG_FILE ) : '';
 		?>
 		<div class="st-hero">
 			<?php if ( $logo ) : ?>
