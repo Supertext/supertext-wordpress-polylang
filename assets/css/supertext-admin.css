@@ -237,19 +237,29 @@
 .supertext-admin .button,
 .supertext-admin .button-secondary {
 	border-radius: 999px !important;
-	border-color: #cfd6d2;
+	background: #fff;
+	border-color: #cbd5cf;
+	color: #16321f;
 	padding: 4px 16px;
 	height: auto;
 	line-height: 2;
 }
+.supertext-admin .button:hover,
+.supertext-admin .button:focus,
+.supertext-admin .button-secondary:hover,
+.supertext-admin .button-secondary:focus {
+	background: #f2fdf7;
+	border-color: #43d38d;
+	color: #06371f;
+}
 .supertext-admin p.submit .button-primary,
 .supertext-admin .button-primary {
 	border-radius: 999px !important;
-	background: linear-gradient( 135deg, #7dffb0 0%, #4fe39a 100% );
-	border-color: #43d38d;
+	background: linear-gradient( 135deg, #a2ffd0 0%, #23c06f 100% );
+	border-color: #1eae63;
 	color: #06371f;
 	text-shadow: none;
-	box-shadow: 0 1px 2px rgba( 11, 59, 43, 0.15 );
+	box-shadow: 0 1px 2px rgba( 11, 59, 43, 0.18 );
 	padding: 4px 18px;
 	height: auto;
 	line-height: 2;
@@ -257,8 +267,8 @@
 }
 .supertext-admin .button-primary:hover,
 .supertext-admin .button-primary:focus {
-	background: linear-gradient( 135deg, #6ff2a4 0%, #43d38d 100% );
-	border-color: #37c47f;
+	background: linear-gradient( 135deg, #8ff7c0 0%, #17a95d 100% );
+	border-color: #159952;
 	color: #06371f;
 }
 .supertext-admin .button .dashicons {
