@@ -70,6 +70,26 @@ class Page {
 		add_action( 'admin_menu', array( self::class, 'register_debug_menu' ), 12 );
 		add_action( 'admin_post_' . self::PATCH_ACTION, array( self::class, 'handle_patch' ) );
 		add_action( 'admin_post_' . self::CLEAR_LOG_ACTION, array( self::class, 'handle_clear_log' ) );
+		add_action( 'admin_enqueue_scripts', array( self::class, 'enqueue_style' ) );
+	}
+
+	/**
+	 * Enqueues the Supertext admin stylesheet on every Supertext screen.
+	 *
+	 * @return void
+	 */
+	public static function enqueue_style(): void {
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended
+		$page = isset( $_GET['page'] ) ? sanitize_text_field( wp_unslash( $_GET['page'] ) ) : '';
+		if ( 0 !== strpos( $page, self::SLUG ) ) {
+			return;
+		}
+		wp_enqueue_style(
+			'supertext-polylang-admin',
+			plugins_url( 'assets/css/supertext-admin.css', SUPERTEXT_POLYLANG_FILE ),
+			array( 'dashicons' ),
+			SUPERTEXT_POLYLANG_VERSION
+		);
 	}
 
 	/**
@@ -191,13 +211,27 @@ class Page {
 	 * @param string $title Page title.
 	 * @return void
 	 */
-	private static function header( string $title ): void {
+	private static function header( string $title, string $subtitle = '' ): void {
 		$logo = defined( 'SUPERTEXT_POLYLANG_FILE' ) ? plugins_url( 'assets/icon-v2-64.png', SUPERTEXT_POLYLANG_FILE ) : '';
-		echo '<h1 style="display:flex;align-items:center;gap:10px;">';
-		if ( $logo ) {
-			printf( '<img src="%s" width="32" height="32" alt="" style="border-radius:6px;" />', esc_url( $logo ) );
-		}
-		echo esc_html( $title ) . '</h1>';
+		?>
+		<div class="st-hero">
+			<?php if ( $logo ) : ?>
+				<span class="st-hero__logo"><img src="<?php echo esc_url( $logo ); ?>" width="34" height="34" alt="" /></span>
+			<?php endif; ?>
+			<div class="st-hero__text">
+				<h1 class="st-hero__title"><?php echo esc_html( $title ); ?></h1>
+				<?php if ( '' !== $subtitle ) : ?>
+					<p class="st-hero__subtitle"><?php echo esc_html( $subtitle ); ?></p>
+				<?php endif; ?>
+			</div>
+			<span class="st-hero__version">
+				<?php
+				/* translators: %s is the plugin version. */
+				printf( esc_html__( 'Version %s', 'supertext-polylang' ), esc_html( defined( 'SUPERTEXT_POLYLANG_VERSION' ) ? SUPERTEXT_POLYLANG_VERSION : '' ) );
+				?>
+			</span>
+		</div>
+		<?php
 	}
 
 	/**
@@ -210,9 +244,15 @@ class Page {
 		$patched  = $polylang && Patch::is_patched();
 		$active   = self::service_is_active();
 		?>
-		<h2><?php esc_html_e( 'Status', 'supertext-polylang' ); ?></h2>
-		<table class="widefat striped" style="max-width:640px;">
-			<tbody>
+		<div class="st-card">
+			<div class="st-card__head">
+				<span class="st-tile"><span class="dashicons dashicons-yes-alt"></span></span>
+				<div>
+					<h2 class="st-card__title"><?php esc_html_e( 'Status', 'supertext-polylang' ); ?></h2>
+					<p class="st-card__subtitle"><?php esc_html_e( 'Everything is connected and running.', 'supertext-polylang' ); ?></p>
+				</div>
+			</div>
+			<div class="st-rows">
 				<?php
 				self::status_row(
 					__( 'Polylang Pro (Machine Translation)', 'supertext-polylang' ),
@@ -233,7 +273,7 @@ class Page {
 				// Optional features & third-party integrations (a disabled feature is a
 				// choice, not an error — shown neutral rather than red).
 				printf(
-					'<tr><td colspan="2" style="background:#f6f7f7;font-weight:600;">%s</td></tr>',
+					'<div class="st-subhead">%s</div>',
 					esc_html__( 'Features & integrations', 'supertext-polylang' )
 				);
 
@@ -268,8 +308,8 @@ class Page {
 					self::state_row( sprintf( __( 'Integration: %s', 'supertext-polylang' ), $info['label'] ), $state, $text );
 				}
 				?>
-			</tbody>
-		</table>
+			</div>
+		</div>
 		<?php
 	}
 
@@ -284,16 +324,16 @@ class Page {
 	 */
 	private static function state_row( string $label, string $state, string $text ): void {
 		$map = array(
-			'ok'   => array( '#00a32a', '&#10003;' ),
-			'warn' => array( '#dba617', '&#9888;' ),
-			'off'  => array( '#787c82', '&#9679;' ),
+			'ok'   => array( '', 'dashicons-yes' ),
+			'warn' => array( '--warn', 'dashicons-warning' ),
+			'off'  => array( '--off', 'dashicons-minus' ),
 		);
-		list( $color, $symbol ) = $map[ $state ] ?? $map['off'];
+		list( $modifier, $icon ) = $map[ $state ] ?? $map['off'];
 		printf(
-			'<tr><td>%s</td><td><span style="color:%s;font-weight:600;">%s %s</span></td></tr>',
+			'<div class="st-row"><span class="st-row__label">%s</span><span class="st-badge st-badge%s"><span class="dashicons %s"></span>%s</span></div>',
 			esc_html( $label ),
-			esc_attr( $color ),
-			$symbol, // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- static HTML entity.
+			esc_attr( $modifier ),
+			esc_attr( $icon ),
 			esc_html( $text )
 		);
 	}
@@ -324,47 +364,69 @@ class Page {
 			);
 		}
 		?>
-		<div class="wrap">
+		<div class="wrap supertext-admin">
 			<?php
-			self::header( __( 'Supertext for Polylang', 'supertext-polylang' ) );
+			self::header(
+				__( 'Supertext for Polylang', 'supertext-polylang' ),
+				__( 'Machine & professional translation, wired straight into Polylang.', 'supertext-polylang' )
+			);
 			self::render_status_panel();
 			?>
 
-			<h2 style="margin-top:2em;"><?php esc_html_e( 'Setup', 'supertext-polylang' ); ?></h2>
+			<div class="st-card">
+				<div class="st-card__head">
+					<span class="st-tile"><span class="dashicons dashicons-admin-tools"></span></span>
+					<div>
+						<h2 class="st-card__title"><?php esc_html_e( 'Setup', 'supertext-polylang' ); ?></h2>
+						<p class="st-card__subtitle"><?php esc_html_e( 'Two steps to get translations flowing.', 'supertext-polylang' ); ?></p>
+					</div>
+				</div>
 
-			<p>
-				<strong><?php esc_html_e( '1. Patch Polylang', 'supertext-polylang' ); ?></strong><br />
-				<?php esc_html_e( 'Polylang Pro keeps its translation services in a fixed list. This adds a small filter so Supertext can register itself. It backs up the original file and is safe to run again after a Polylang update.', 'supertext-polylang' ); ?>
-			</p>
-			<?php if ( ! $polylang ) : ?>
-				<p><em><?php esc_html_e( 'Activate Polylang Pro first.', 'supertext-polylang' ); ?></em></p>
-			<?php elseif ( $patched ) : ?>
-				<p style="margin-bottom:1em;">✅ <?php esc_html_e( 'Polylang is already patched.', 'supertext-polylang' ); ?></p>
-				<?php self::patch_form( __( 'Re-apply patch', 'supertext-polylang' ), 'secondary' ); ?>
-			<?php else : ?>
-				<?php self::patch_form( __( 'Patch Polylang', 'supertext-polylang' ), 'primary' ); ?>
-			<?php endif; ?>
+				<div class="st-step">
+					<span class="st-step__num">1</span>
+					<div class="st-step__body">
+						<div class="st-step__title"><?php esc_html_e( 'Patch Polylang', 'supertext-polylang' ); ?></div>
+						<p><?php esc_html_e( 'Polylang Pro keeps its translation services in a fixed list. This adds a small filter so Supertext can register itself. It backs up the original file and is safe to run again after a Polylang update.', 'supertext-polylang' ); ?></p>
+						<?php if ( ! $polylang ) : ?>
+							<p><em><?php esc_html_e( 'Activate Polylang Pro first.', 'supertext-polylang' ); ?></em></p>
+						<?php elseif ( $patched ) : ?>
+							<span class="st-inline-ok"><span class="dashicons dashicons-yes-alt"></span><?php esc_html_e( 'Polylang is already patched.', 'supertext-polylang' ); ?></span>
+							<?php self::patch_form( __( 'Re-apply patch', 'supertext-polylang' ), 'secondary' ); ?>
+						<?php else : ?>
+							<?php self::patch_form( __( 'Patch Polylang', 'supertext-polylang' ), 'primary' ); ?>
+						<?php endif; ?>
+					</div>
+				</div>
 
-			<p style="margin-top:2em;">
-				<strong><?php esc_html_e( '2. Configure the AI service', 'supertext-polylang' ); ?></strong><br />
-				<?php esc_html_e( 'Enable Machine Translation, choose Supertext, enter your API key, and map your languages in the Polylang settings.', 'supertext-polylang' ); ?>
-			</p>
-			<p>
-				<a class="button button-secondary" href="<?php echo esc_url( self::polylang_settings_url() ); ?>">
-					<?php esc_html_e( 'Open Polylang → Languages → Settings → Machine Translation', 'supertext-polylang' ); ?>
-				</a>
-			</p>
+				<div class="st-step">
+					<span class="st-step__num">2</span>
+					<div class="st-step__body">
+						<div class="st-step__title"><?php esc_html_e( 'Configure the AI service', 'supertext-polylang' ); ?></div>
+						<p><?php esc_html_e( 'Enable Machine Translation, choose Supertext, enter your API key, and map your languages in the Polylang settings.', 'supertext-polylang' ); ?></p>
+						<a class="button button-primary st-cta-wide" href="<?php echo esc_url( self::polylang_settings_url() ); ?>">
+							<?php esc_html_e( 'Open Polylang → Languages → Settings → Machine Translation →', 'supertext-polylang' ); ?>
+						</a>
+					</div>
+				</div>
+			</div>
 
-			<h2 style="margin-top:2em;"><?php esc_html_e( 'Translation Services (human)', 'supertext-polylang' ); ?></h2>
-			<p class="description" style="max-width:640px;">
-				<?php esc_html_e( 'Professional (human) translation orders use a separate credential from the AI translation API key. Enter your Supertext account email and Order API Key below.', 'supertext-polylang' ); ?>
-			</p>
-			<?php
-			settings_errors( Settings::GROUP );
-			Settings::render_form();
+			<div class="st-card">
+				<div class="st-card__head">
+					<span class="st-tile"><span class="dashicons dashicons-groups"></span></span>
+					<div>
+						<h2 class="st-card__title"><?php esc_html_e( 'Translation Services (human)', 'supertext-polylang' ); ?></h2>
+						<p class="st-card__subtitle"><?php esc_html_e( 'Professional (human) translation orders use a separate credential from the AI translation API key. Enter your Supertext account email and Order API Key below.', 'supertext-polylang' ); ?></p>
+					</div>
+				</div>
+				<?php
+				settings_errors( Settings::GROUP );
+				Settings::render_form();
+				?>
+			</div>
 
-			Integrations::render_section();
-			?>
+			<div class="st-card">
+				<?php Integrations::render_section(); ?>
+			</div>
 		</div>
 		<?php
 	}
@@ -379,11 +441,16 @@ class Page {
 			return;
 		}
 		?>
-		<div class="wrap">
+		<div class="wrap supertext-admin">
 			<?php
-			self::header( __( 'Supertext Debug', 'supertext-polylang' ) );
-			self::render_callback_log();
+			self::header(
+				__( 'Supertext Debug', 'supertext-polylang' ),
+				__( 'Order-callback log & diagnostics.', 'supertext-polylang' )
+			);
 			?>
+			<div class="st-card">
+				<?php self::render_callback_log(); ?>
+			</div>
 		</div>
 		<?php
 	}
@@ -467,10 +534,10 @@ class Page {
 	 */
 	private static function status_row( string $label, bool $ok, string $text ): void {
 		printf(
-			'<tr><td>%s</td><td><span style="color:%s;font-weight:600;">%s %s</span></td></tr>',
+			'<div class="st-row"><span class="st-row__label">%s</span><span class="st-badge %s"><span class="dashicons %s"></span>%s</span></div>',
 			esc_html( $label ),
-			esc_attr( $ok ? '#00a32a' : '#d63638' ),
-			$ok ? '&#10003;' : '&#10007;',
+			esc_attr( $ok ? '' : 'st-badge--bad' ),
+			esc_attr( $ok ? 'dashicons-yes' : 'dashicons-no-alt' ),
 			esc_html( $text )
 		);
 	}

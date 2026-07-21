@@ -1,0 +1,295 @@
+/**
+ * Supertext admin design system.
+ *
+ * Deep forest-green hero, mint (#78ffaf) accents, pill buttons, soft cards and
+ * green status badges — scoped to `.supertext-admin`. Intentionally sets NO
+ * font-family, so WordPress's own system font stack is kept.
+ *
+ * @package Supertext_Polylang
+ */
+
+.supertext-admin {
+	--st-green: #0b3b2b;
+	--st-green-2: #17573c;
+	--st-mint: #78ffaf;
+	--st-mint-strong: #4fe39a;
+	--st-badge-bg: #e3f9ec;
+	--st-badge-fg: #0f7a48;
+	--st-tile-bg: #e3f9ec;
+	--st-tile-fg: #12864f;
+	--st-amber-bg: #fdf4e0;
+	--st-amber-fg: #9a6a00;
+	--st-grey-bg: #f0f1f1;
+	--st-grey-fg: #6a6f76;
+	--st-red-bg: #fce8e8;
+	--st-red-fg: #b32d2e;
+	--st-card-border: #e6e8e7;
+	--st-divider: #eef0ef;
+	max-width: 900px;
+}
+
+.supertext-admin .description,
+.supertext-admin p.description {
+	color: #6a6f76;
+}
+
+/* ── Hero ─────────────────────────────────────────────────────────────── */
+.supertext-admin .st-hero {
+	display: flex;
+	align-items: center;
+	gap: 18px;
+	padding: 22px 26px;
+	margin: 16px 0 24px;
+	border-radius: 16px;
+	background:
+		radial-gradient( 120% 140% at 100% 0%, rgba( 120, 255, 175, 0.18 ) 0%, rgba( 120, 255, 175, 0 ) 55% ),
+		linear-gradient( 135deg, var(--st-green) 0%, var(--st-green-2) 100% );
+	box-shadow: 0 8px 24px rgba( 11, 59, 43, 0.22 );
+	color: #fff;
+}
+.supertext-admin .st-hero__logo {
+	flex: 0 0 auto;
+	width: 52px;
+	height: 52px;
+	border-radius: 13px;
+	background: rgba( 255, 255, 255, 0.08 );
+	display: flex;
+	align-items: center;
+	justify-content: center;
+}
+.supertext-admin .st-hero__logo img {
+	width: 34px;
+	height: 34px;
+	display: block;
+}
+.supertext-admin .st-hero__text { flex: 1 1 auto; min-width: 0; }
+.supertext-admin .st-hero__title {
+	margin: 0;
+	padding: 0;
+	font-size: 22px;
+	font-weight: 700;
+	line-height: 1.2;
+	color: #fff;
+}
+.supertext-admin .st-hero__subtitle {
+	margin: 4px 0 0;
+	font-size: 13px;
+	color: rgba( 255, 255, 255, 0.78 );
+}
+.supertext-admin .st-hero__version {
+	flex: 0 0 auto;
+	display: inline-flex;
+	align-items: center;
+	gap: 7px;
+	padding: 6px 13px;
+	border-radius: 999px;
+	background: rgba( 0, 0, 0, 0.22 );
+	color: var(--st-mint);
+	font-size: 12px;
+	font-weight: 600;
+	white-space: nowrap;
+}
+.supertext-admin .st-hero__version::before {
+	content: "";
+	width: 7px;
+	height: 7px;
+	border-radius: 50%;
+	background: var(--st-mint);
+	box-shadow: 0 0 6px var(--st-mint);
+}
+
+/* ── Cards ────────────────────────────────────────────────────────────── */
+.supertext-admin .st-card {
+	background: #fff;
+	border: 1px solid var(--st-card-border);
+	border-radius: 16px;
+	padding: 22px 26px;
+	margin: 0 0 22px;
+	box-shadow: 0 1px 2px rgba( 0, 0, 0, 0.04 );
+}
+.supertext-admin .st-card__head {
+	display: flex;
+	align-items: flex-start;
+	gap: 14px;
+	margin-bottom: 6px;
+}
+.supertext-admin .st-card__head > .st-tile { margin-top: 2px; }
+.supertext-admin .st-card__title {
+	margin: 0;
+	padding: 0;
+	font-size: 17px;
+	font-weight: 700;
+	line-height: 1.3;
+	color: #1d2327;
+}
+.supertext-admin .st-card__subtitle {
+	margin: 2px 0 0;
+	font-size: 13px;
+	color: #6a6f76;
+}
+
+/* Icon tile */
+.supertext-admin .st-tile {
+	flex: 0 0 auto;
+	width: 38px;
+	height: 38px;
+	border-radius: 11px;
+	background: var(--st-tile-bg);
+	color: var(--st-tile-fg);
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+}
+.supertext-admin .st-tile .dashicons {
+	width: 20px;
+	height: 20px;
+	font-size: 20px;
+	line-height: 1;
+}
+
+/* ── Status rows + badges ─────────────────────────────────────────────── */
+.supertext-admin .st-rows { margin-top: 14px; }
+.supertext-admin .st-row {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 16px;
+	padding: 13px 2px;
+	border-top: 1px solid var(--st-divider);
+}
+.supertext-admin .st-row:first-child { border-top: 0; }
+.supertext-admin .st-row__label { color: #1d2327; font-size: 14px; }
+.supertext-admin .st-subhead {
+	margin: 16px 0 2px;
+	font-size: 11px;
+	font-weight: 700;
+	letter-spacing: 0.06em;
+	text-transform: uppercase;
+	color: #8a8f96;
+}
+
+.supertext-admin .st-badge {
+	display: inline-flex;
+	align-items: center;
+	gap: 5px;
+	padding: 4px 11px;
+	border-radius: 999px;
+	font-size: 12px;
+	font-weight: 600;
+	line-height: 1.4;
+	white-space: nowrap;
+	background: var(--st-badge-bg);
+	color: var(--st-badge-fg);
+}
+.supertext-admin .st-badge .dashicons {
+	width: 15px;
+	height: 15px;
+	font-size: 15px;
+	line-height: 1;
+}
+.supertext-admin .st-badge--warn { background: var(--st-amber-bg); color: var(--st-amber-fg); }
+.supertext-admin .st-badge--off  { background: var(--st-grey-bg);  color: var(--st-grey-fg); }
+.supertext-admin .st-badge--bad  { background: var(--st-red-bg);   color: var(--st-red-fg); }
+
+/* ── Setup steps ──────────────────────────────────────────────────────── */
+.supertext-admin .st-step {
+	display: flex;
+	gap: 14px;
+	padding: 16px 0;
+	border-top: 1px solid var(--st-divider);
+}
+.supertext-admin .st-step:first-of-type { border-top: 0; }
+.supertext-admin .st-step__num {
+	flex: 0 0 auto;
+	width: 30px;
+	height: 30px;
+	border-radius: 50%;
+	background: var(--st-mint);
+	color: #06371f;
+	font-weight: 700;
+	font-size: 14px;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+}
+.supertext-admin .st-step__body { flex: 1 1 auto; min-width: 0; }
+.supertext-admin .st-step__title { font-weight: 700; color: #1d2327; margin: 4px 0 4px; }
+.supertext-admin .st-step__body p { color: #6a6f76; margin: 0 0 12px; }
+.supertext-admin .st-step__body form { display: inline-block; margin: 0 8px 0 0; }
+.supertext-admin .st-inline-ok {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	margin-right: 10px;
+	padding: 6px 12px;
+	border-radius: 999px;
+	background: var(--st-badge-bg);
+	color: var(--st-badge-fg);
+	font-size: 13px;
+	font-weight: 600;
+}
+
+/* ── Buttons (pill) ───────────────────────────────────────────────────── */
+.supertext-admin .button,
+.supertext-admin .button-secondary {
+	border-radius: 999px !important;
+	border-color: #cfd6d2;
+	padding: 4px 16px;
+	height: auto;
+	line-height: 2;
+}
+.supertext-admin p.submit .button-primary,
+.supertext-admin .button-primary {
+	border-radius: 999px !important;
+	background: linear-gradient( 135deg, #7dffb0 0%, #4fe39a 100% );
+	border-color: #43d38d;
+	color: #06371f;
+	text-shadow: none;
+	box-shadow: 0 1px 2px rgba( 11, 59, 43, 0.15 );
+	padding: 4px 18px;
+	height: auto;
+	line-height: 2;
+	font-weight: 600;
+}
+.supertext-admin .button-primary:hover,
+.supertext-admin .button-primary:focus {
+	background: linear-gradient( 135deg, #6ff2a4 0%, #43d38d 100% );
+	border-color: #37c47f;
+	color: #06371f;
+}
+.supertext-admin .button .dashicons {
+	line-height: 1.8;
+	margin-right: 3px;
+}
+
+/* ── Form table ───────────────────────────────────────────────────────── */
+.supertext-admin .form-table { margin-top: 8px; }
+.supertext-admin .form-table th {
+	color: #1d2327;
+	font-weight: 600;
+	padding-top: 18px;
+}
+.supertext-admin .form-table td { padding-top: 15px; padding-bottom: 15px; }
+.supertext-admin .form-table tr { border-top: 1px solid var(--st-divider); }
+.supertext-admin .form-table tr:first-child { border-top: 0; }
+.supertext-admin .form-table input[type="text"],
+.supertext-admin .form-table input[type="email"],
+.supertext-admin .form-table input[type="password"],
+.supertext-admin .form-table input[type="url"],
+.supertext-admin .form-table input[type="number"],
+.supertext-admin .form-table select,
+.supertext-admin .form-table textarea,
+.supertext-admin input.regular-text,
+.supertext-admin select {
+	border-radius: 8px;
+}
+.supertext-admin .form-table input:focus,
+.supertext-admin .form-table select:focus,
+.supertext-admin .form-table textarea:focus,
+.supertext-admin select:focus {
+	border-color: var(--st-mint-strong);
+	box-shadow: 0 0 0 1px var(--st-mint-strong);
+}
+
+/* Full-width "Open Polylang…" style link button. */
+.supertext-admin .st-cta-wide { display: block; text-align: center; }
