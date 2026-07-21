@@ -59,7 +59,6 @@ class String_Table {
 			return;
 		}
 
-		$colspan = 2 + ( $show_group ? 1 : 0 ) + count( $languages );
 		?>
 		<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
 			<input type="hidden" name="action" value="<?php echo esc_attr( (string) $args['action'] ); ?>" />
@@ -67,6 +66,44 @@ class String_Table {
 				<input type="hidden" name="<?php echo esc_attr( (string) $name ); ?>" value="<?php echo esc_attr( (string) $value ); ?>" />
 			<?php endforeach; ?>
 			<?php wp_nonce_field( (string) $args['nonce_action'] ); ?>
+
+			<div class="tablenav top">
+				<div class="alignleft actions bulkactions">
+					<label for="st-bulk-action" class="screen-reader-text"><?php esc_html_e( 'Select action', 'supertext-polylang' ); ?></label>
+					<select name="st_action" id="st-bulk-action" class="st-bulk-action">
+						<option value="-1"><?php esc_html_e( 'Bulk actions', 'supertext-polylang' ); ?></option>
+						<option value="ai"><?php esc_html_e( 'Translate with AI', 'supertext-polylang' ); ?></option>
+						<?php if ( $human ) : ?>
+							<option value="human"><?php esc_html_e( 'Order human translation', 'supertext-polylang' ); ?></option>
+						<?php endif; ?>
+					</select>
+
+					<label for="st-target-lang" class="screen-reader-text"><?php esc_html_e( 'Target language', 'supertext-polylang' ); ?></label>
+					<select name="lang" id="st-target-lang" class="st-picker st-picker-lang" style="display:none;">
+						<?php foreach ( $languages as $lang ) : ?>
+							<option value="<?php echo esc_attr( $lang['slug'] ); ?>"><?php echo esc_html( $lang['name'] ); ?></option>
+						<?php endforeach; ?>
+					</select>
+
+					<?php if ( $human ) : ?>
+						<label for="st-service" class="screen-reader-text"><?php esc_html_e( 'Translation type', 'supertext-polylang' ); ?></label>
+						<select name="service_id" id="st-service" class="st-picker st-picker-human" style="display:none;">
+							<?php foreach ( (array) ( $args['human_services'] ?? array() ) as $id => $service ) : ?>
+								<option value="<?php echo esc_attr( (string) $id ); ?>"><?php echo esc_html( (string) ( $service['label'] ?? $id ) ); ?></option>
+							<?php endforeach; ?>
+						</select>
+						<label for="st-express" class="screen-reader-text"><?php esc_html_e( 'Delivery', 'supertext-polylang' ); ?></label>
+						<select name="express" id="st-express" class="st-picker st-picker-human" style="display:none;">
+							<?php foreach ( (array) ( $args['express_options'] ?? array() ) as $id => $label ) : ?>
+								<option value="<?php echo esc_attr( (string) $id ); ?>"><?php echo esc_html( (string) $label ); ?></option>
+							<?php endforeach; ?>
+						</select>
+					<?php endif; ?>
+
+					<input type="submit" name="st_apply" class="button action" value="<?php esc_attr_e( 'Apply', 'supertext-polylang' ); ?>" />
+				</div>
+				<br class="clear" />
+			</div>
 
 			<table class="widefat striped fixed">
 				<thead>
@@ -109,52 +146,14 @@ class String_Table {
 				</tbody>
 			</table>
 
-			<div style="margin:1em 0;padding:1em;background:#fff;border:1px solid #dcdcde;display:flex;flex-wrap:wrap;gap:1.5em;align-items:flex-end;">
-				<div>
-					<label for="st-target-lang" style="display:block;font-weight:600;"><?php esc_html_e( 'Target language', 'supertext-polylang' ); ?></label>
-					<select name="lang" id="st-target-lang">
-						<?php foreach ( $languages as $lang ) : ?>
-							<option value="<?php echo esc_attr( $lang['slug'] ); ?>"><?php echo esc_html( $lang['name'] ); ?></option>
-						<?php endforeach; ?>
-					</select>
-				</div>
-
-				<div>
-					<button type="submit" name="st_do" value="ai" class="button button-primary">
-						<?php esc_html_e( 'Translate selected with AI', 'supertext-polylang' ); ?>
-					</button>
-				</div>
-
-				<?php if ( $human ) : ?>
-					<div>
-						<label for="st-service" style="display:block;font-weight:600;"><?php esc_html_e( 'Human: type', 'supertext-polylang' ); ?></label>
-						<select name="service_id" id="st-service">
-							<?php foreach ( (array) ( $args['human_services'] ?? array() ) as $id => $service ) : ?>
-								<option value="<?php echo esc_attr( (string) $id ); ?>"><?php echo esc_html( (string) ( $service['label'] ?? $id ) ); ?></option>
-							<?php endforeach; ?>
-						</select>
-					</div>
-					<div>
-						<label for="st-express" style="display:block;font-weight:600;"><?php esc_html_e( 'Delivery', 'supertext-polylang' ); ?></label>
-						<select name="express" id="st-express">
-							<?php foreach ( (array) ( $args['express_options'] ?? array() ) as $id => $label ) : ?>
-								<option value="<?php echo esc_attr( (string) $id ); ?>"><?php echo esc_html( (string) $label ); ?></option>
-							<?php endforeach; ?>
-						</select>
-					</div>
-					<div>
-						<button type="submit" name="st_do" value="human" class="button">
-							<?php esc_html_e( 'Order human translation for selected', 'supertext-polylang' ); ?>
-						</button>
-					</div>
-				<?php endif; ?>
-
-				<div style="margin-left:auto;">
-					<button type="submit" name="st_do" value="save" class="button">
-						<?php esc_html_e( 'Save changes', 'supertext-polylang' ); ?>
-					</button>
-				</div>
-			</div>
+			<p class="submit" style="margin-top:1em;">
+				<button type="submit" name="st_save" value="1" class="button button-primary">
+					<?php esc_html_e( 'Save changes', 'supertext-polylang' ); ?>
+				</button>
+				<span class="description" style="margin-left:.5em;">
+					<?php esc_html_e( 'Save your manual edits. To translate, tick rows, pick an action above, and Apply.', 'supertext-polylang' ); ?>
+				</span>
+			</p>
 		</form>
 		<?php
 	}
@@ -166,7 +165,8 @@ class String_Table {
 	 */
 	public static function read_submit(): array {
 		// phpcs:disable WordPress.Security.NonceVerification.Missing -- caller verifies the nonce.
-		$do         = isset( $_POST['st_do'] ) ? sanitize_key( wp_unslash( $_POST['st_do'] ) ) : 'save';
+		$action     = isset( $_POST['st_action'] ) ? sanitize_key( wp_unslash( $_POST['st_action'] ) ) : '-1';
+		$apply      = isset( $_POST['st_apply'] );
 		$lang       = isset( $_POST['lang'] ) ? sanitize_key( wp_unslash( $_POST['lang'] ) ) : '';
 		$service_id = isset( $_POST['service_id'] ) ? (int) $_POST['service_id'] : 0;
 		$express    = isset( $_POST['express'] ) ? sanitize_key( wp_unslash( $_POST['express'] ) ) : '';
@@ -175,13 +175,17 @@ class String_Table {
 		$sel        = ( isset( $_POST['sel'] ) && is_array( $_POST['sel'] ) ) ? array_map( 'intval', (array) $_POST['sel'] ) : array();
 		// phpcs:enable WordPress.Security.NonceVerification.Missing
 
+		// "Apply" runs the chosen bulk action; anything else (Save changes, or Apply
+		// with no action picked) just saves the grid.
+		$do = ( $apply && in_array( $action, array( 'ai', 'human' ), true ) ) ? $action : 'save';
+
 		$src_clean = array();
 		foreach ( $src as $i => $value ) {
 			$src_clean[ (int) $i ] = (string) $value;
 		}
 
 		return array(
-			'do'         => in_array( $do, array( 'ai', 'human', 'save' ), true ) ? $do : 'save',
+			'do'         => $do,
 			'lang'       => $lang,
 			'service_id' => $service_id,
 			'express'    => $express,
