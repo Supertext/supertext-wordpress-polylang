@@ -24,7 +24,7 @@ use Supertext\Polylang\Admin\Integrations;
  * Because `PLL_MO` is keyed by the *source string value* (gettext msgid), two fields
  * with identical text share one translation — this is inherent to Polylang's model.
  *
- * @since 0.9.0
+ * @since 0.6.0
  */
 class Strings {
 	/**
@@ -144,6 +144,84 @@ class Strings {
 	}
 
 	/**
+	 * Returns the form's unique translatable strings in a stable order.
+	 *
+	 * Both the string editor and its save handler use this so a row index maps to
+	 * the same source string on render and on save.
+	 *
+	 * @param array $form Gravity Forms form.
+	 * @return array<int, array{name: string, source: string}>
+	 */
+	public static function collect_unique( array $form ): array {
+		$out  = array();
+		$seen = array();
+		foreach ( Fields::collect( $form ) as $path => $value ) {
+			if ( in_array( $value, $seen, true ) ) {
+				continue;
+			}
+			$seen[] = $value;
+			$out[]  = array(
+				'name'   => self::string_name( $path ),
+				'source' => $value,
+			);
+		}
+		return $out;
+	}
+
+	/**
+	 * Returns the Polylang languages other than the default (i.e. translation targets).
+	 *
+	 * @return array<int, array{slug: string, name: string}>
+	 */
+	public static function target_languages(): array {
+		if ( ! function_exists( 'PLL' ) || ! isset( PLL()->model ) ) {
+			return array();
+		}
+		$default = function_exists( 'pll_default_language' ) ? (string) pll_default_language( 'slug' ) : '';
+		$out     = array();
+		foreach ( PLL()->model->get_languages_list() as $lang ) {
+			if ( $lang->slug === $default ) {
+				continue;
+			}
+			$out[] = array(
+				'slug' => $lang->slug,
+				'name' => $lang->name,
+			);
+		}
+		return $out;
+	}
+
+	/**
+	 * Reads translations of many source strings for one language in a single pass.
+	 *
+	 * Imports the language's PLL_MO once (unlike {@see get_translation()} which
+	 * imports per call), so the editor can build a whole column cheaply.
+	 *
+	 * @param string   $lang_slug Language slug.
+	 * @param string[] $sources   Source strings.
+	 * @return array<string, string> source => translation ('' when untranslated).
+	 */
+	public static function translations_for( string $lang_slug, array $sources ): array {
+		$out      = array();
+		$language = self::language( $lang_slug );
+		if ( null === $language || ! class_exists( 'PLL_MO' ) ) {
+			foreach ( $sources as $source ) {
+				$out[ (string) $source ] = '';
+			}
+			return $out;
+		}
+
+		$mo = new \PLL_MO();
+		$mo->import_from_db( $language );
+		foreach ( $sources as $source ) {
+			$source        = (string) $source;
+			$translation   = $mo->translate( $source );
+			$out[ $source ] = ( is_string( $translation ) && $translation !== $source ) ? $translation : '';
+		}
+		return $out;
+	}
+
+	/**
 	 * Reads the current translation of a single source string for a language.
 	 *
 	 * @param string $source    Source string.
@@ -208,14 +286,9 @@ class Strings {
 	 * @return array<string, string> name => source string.
 	 */
 	private static function unique_strings( array $form ): array {
-		$out  = array();
-		$seen = array();
-		foreach ( Fields::collect( $form ) as $path => $value ) {
-			if ( in_array( $value, $seen, true ) ) {
-				continue;
-			}
-			$seen[]                              = $value;
-			$out[ self::string_name( $path ) ] = $value;
+		$out = array();
+		foreach ( self::collect_unique( $form ) as $item ) {
+			$out[ $item['name'] ] = $item['source'];
 		}
 		return $out;
 	}

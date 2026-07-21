@@ -82,6 +82,21 @@ class Admin_Page {
 			return;
 		}
 
+		// The per-form string editor lives on the same page, keyed by `form_id`.
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended
+		if ( isset( $_GET['form_id'] ) ) {
+			Editor::render( (int) $_GET['form_id'] );
+			return;
+		}
+
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended
+		if ( isset( $_GET['saved'] ) ) {
+			printf(
+				'<div class="notice notice-success is-dismissible"><p>%s</p></div>',
+				esc_html__( 'Translations saved.', 'supertext-polylang' )
+			);
+		}
+
 		$notice_key = self::NOTICE_TRANSIENT . '_' . get_current_user_id();
 		$notice     = get_transient( $notice_key );
 		if ( is_array( $notice ) ) {
@@ -143,6 +158,11 @@ class Admin_Page {
 								<td>
 									<strong><?php echo esc_html( (string) $form['title'] ); ?></strong>
 									<div style="color:#787c82;">#<?php echo (int) $form_id; ?></div>
+									<div>
+										<a href="<?php echo esc_url( add_query_arg( array( 'page' => self::SLUG, 'form_id' => $form_id ), admin_url( 'admin.php' ) ) ); ?>">
+											<?php esc_html_e( 'Edit translations', 'supertext-polylang' ); ?>
+										</a>
+									</div>
 								</td>
 								<?php foreach ( $languages as $lang ) : ?>
 									<?php $status = Strings::translation_status( $form, $lang['slug'] ); ?>
@@ -287,19 +307,7 @@ class Admin_Page {
 	 * @return array<int, array{slug: string, name: string}>
 	 */
 	private static function target_languages(): array {
-		if ( ! function_exists( 'pll_the_languages' ) || ! function_exists( 'PLL' ) || ! isset( PLL()->model ) ) {
-			return array();
-		}
-
-		$default = function_exists( 'pll_default_language' ) ? (string) pll_default_language( 'slug' ) : '';
-		$out     = array();
-		foreach ( PLL()->model->get_languages_list() as $lang ) {
-			if ( $lang->slug === $default ) {
-				continue;
-			}
-			$out[] = array( 'slug' => $lang->slug, 'name' => $lang->name );
-		}
-		return $out;
+		return Strings::target_languages();
 	}
 
 	/**
