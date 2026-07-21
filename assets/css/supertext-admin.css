@@ -45,10 +45,8 @@
 	padding: 22px 26px;
 	margin: 16px 0 24px;
 	border-radius: 16px;
-	background:
-		radial-gradient( 120% 140% at 100% 0%, rgba( 120, 255, 175, 0.18 ) 0%, rgba( 120, 255, 175, 0 ) 55% ),
-		linear-gradient( 135deg, var(--st-green) 0%, var(--st-green-2) 100% );
-	box-shadow: 0 8px 24px rgba( 11, 59, 43, 0.22 );
+	background: rgb( 0, 50, 48 );
+	box-shadow: 0 8px 24px rgba( 0, 50, 48, 0.22 );
 	color: #fff;
 }
 .supertext-admin .st-hero__logo {
