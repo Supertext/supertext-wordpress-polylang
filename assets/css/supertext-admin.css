@@ -25,8 +25,12 @@
 	--st-red-fg: #b32d2e;
 	--st-card-border: #e6e8e7;
 	--st-divider: #eef0ef;
-	max-width: 900px;
 }
+
+/* Narrow, card-based pages (Settings, Orders, Tools, Debug) get a comfortable
+   reading width; wide table pages (String Translation, Gravity Forms) omit
+   `st-narrow` and stay full width. */
+.supertext-admin.st-narrow { max-width: 900px; }
 
 .supertext-admin .description,
 .supertext-admin p.description {

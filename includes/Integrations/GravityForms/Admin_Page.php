@@ -104,8 +104,13 @@ class Admin_Page {
 		$languages = self::target_languages();
 		$default   = function_exists( 'pll_default_language' ) ? (string) pll_default_language( 'name' ) : '';
 		?>
-		<div class="wrap">
-			<h1><?php esc_html_e( 'Gravity Forms — Supertext', 'supertext-polylang' ); ?></h1>
+		<div class="wrap supertext-admin">
+			<?php
+			\Supertext\Polylang\Admin\Page::hero(
+				__( 'Gravity Forms — Supertext', 'supertext-polylang' ),
+				__( 'Translate your Gravity Forms forms into every language.', 'supertext-polylang' )
+			);
+			?>
 			<p class="description" style="max-width:720px;">
 				<?php
 				if ( '' !== $default ) {

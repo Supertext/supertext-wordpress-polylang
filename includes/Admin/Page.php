@@ -211,7 +211,7 @@ class Page {
 	 * @param string $title Page title.
 	 * @return void
 	 */
-	private static function header( string $title, string $subtitle = '' ): void {
+	public static function hero( string $title, string $subtitle = '' ): void {
 		$logo = defined( 'SUPERTEXT_POLYLANG_FILE' ) ? plugins_url( 'assets/icon-v2-64.png', SUPERTEXT_POLYLANG_FILE ) : '';
 		?>
 		<div class="st-hero">
@@ -364,9 +364,9 @@ class Page {
 			);
 		}
 		?>
-		<div class="wrap supertext-admin">
+		<div class="wrap supertext-admin st-narrow">
 			<?php
-			self::header(
+			self::hero(
 				__( 'Supertext for Polylang', 'supertext-polylang' ),
 				__( 'Machine & professional translation, wired straight into Polylang.', 'supertext-polylang' )
 			);
@@ -441,9 +441,9 @@ class Page {
 			return;
 		}
 		?>
-		<div class="wrap supertext-admin">
+		<div class="wrap supertext-admin st-narrow">
 			<?php
-			self::header(
+			self::hero(
 				__( 'Supertext Debug', 'supertext-polylang' ),
 				__( 'Order-callback log & diagnostics.', 'supertext-polylang' )
 			);

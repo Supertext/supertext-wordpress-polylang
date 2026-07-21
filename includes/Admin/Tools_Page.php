@@ -59,11 +59,23 @@ class Tools_Page {
 			return;
 		}
 		?>
-		<div class="wrap">
-			<h1><?php esc_html_e( 'Supertext Tools', 'supertext-polylang' ); ?></h1>
-
-			<h2><?php esc_html_e( 'ACF fields', 'supertext-polylang' ); ?></h2>
-			<?php self::render_acf_fields(); ?>
+		<div class="wrap supertext-admin">
+			<?php
+			Page::hero(
+				__( 'Supertext Tools', 'supertext-polylang' ),
+				__( 'Field-translation overview & utilities.', 'supertext-polylang' )
+			);
+			?>
+			<div class="st-card">
+				<div class="st-card__head">
+					<span class="st-tile"><span class="dashicons dashicons-feedback"></span></span>
+					<div>
+						<h2 class="st-card__title"><?php esc_html_e( 'ACF fields', 'supertext-polylang' ); ?></h2>
+						<p class="st-card__subtitle"><?php esc_html_e( 'Every ACF field and whether Polylang translates it.', 'supertext-polylang' ); ?></p>
+					</div>
+				</div>
+				<?php self::render_acf_fields(); ?>
+			</div>
 		</div>
 		<?php
 	}

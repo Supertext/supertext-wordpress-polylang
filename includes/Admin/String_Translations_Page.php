@@ -156,8 +156,13 @@ class String_Translations_Page {
 			$translations[ $lang['slug'] ] = String_Store::translations_for( $lang['slug'], $sources );
 		}
 		?>
-		<div class="wrap">
-			<h1><?php esc_html_e( 'String Translation — Supertext', 'supertext-polylang' ); ?></h1>
+		<div class="wrap supertext-admin">
+			<?php
+			Page::hero(
+				__( 'String Translation', 'supertext-polylang' ),
+				__( 'Translate any Polylang string with Supertext AI or human translation.', 'supertext-polylang' )
+			);
+			?>
 			<p class="description" style="max-width:820px;">
 				<?php esc_html_e( 'All translatable strings registered with Polylang. Tick the rows you want, then translate them with Supertext AI or order human translation — or edit a translation directly and Save. These are the same translations as Languages → String translations.', 'supertext-polylang' ); ?>
 			</p>

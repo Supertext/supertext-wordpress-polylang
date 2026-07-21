@@ -107,13 +107,11 @@ class Editor {
 			$translations[ $lang['slug'] ] = String_Store::translations_for( $lang['slug'], $sources );
 		}
 		?>
-		<div class="wrap">
-			<h1>
-				<?php
-				/* translators: %s is the form title. */
-				printf( esc_html__( 'Translate strings: %s', 'supertext-polylang' ), esc_html( (string) $form['title'] ) );
-				?>
-			</h1>
+		<div class="wrap supertext-admin">
+			<?php
+			/* translators: %s is the form title. */
+			\Supertext\Polylang\Admin\Page::hero( sprintf( __( 'Translate strings: %s', 'supertext-polylang' ), (string) $form['title'] ) );
+			?>
 			<p><a href="<?php echo esc_url( $back ); ?>">&larr; <?php esc_html_e( 'Back to forms', 'supertext-polylang' ); ?></a></p>
 
 			<?php self::render_notices(); ?>

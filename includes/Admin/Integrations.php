@@ -119,31 +119,30 @@ class Integrations {
 			printf( '<div class="notice notice-success is-dismissible"><p>%s</p></div>', esc_html( $notice ) );
 		}
 		?>
-		<h2 style="margin-top:2em;"><?php esc_html_e( 'Integrations', 'supertext-polylang' ); ?></h2>
-		<p class="description" style="max-width:640px;">
-			<?php esc_html_e( 'Some page builders and form plugins store content outside of posts, so Supertext integrates with them directly. Click detect to scan for supported plugins; each one found gets its own entry under the Supertext menu.', 'supertext-polylang' ); ?>
-		</p>
+		<div class="st-card__head">
+			<span class="st-tile"><span class="dashicons dashicons-admin-plugins"></span></span>
+			<div>
+				<h2 class="st-card__title"><?php esc_html_e( 'Integrations', 'supertext-polylang' ); ?></h2>
+				<p class="st-card__subtitle"><?php esc_html_e( 'Some page builders and form plugins store content outside of posts, so Supertext integrates with them directly. Click detect to scan for supported plugins; each one found gets its own entry under the Supertext menu.', 'supertext-polylang' ); ?></p>
+			</div>
+		</div>
 
-		<table class="widefat striped" style="max-width:640px;margin:1em 0;">
-			<tbody>
-				<?php foreach ( self::supported() as $slug => $info ) : ?>
-					<tr>
-						<td><?php echo esc_html( $info['label'] ); ?></td>
-						<td>
-							<?php if ( self::enabled( $slug ) ) : ?>
-								<span style="color:#00a32a;font-weight:600;">&#10003; <?php esc_html_e( 'Detected & enabled', 'supertext-polylang' ); ?></span>
-							<?php elseif ( $info['detected'] ) : ?>
-								<span style="color:#dba617;"><?php esc_html_e( 'Active — click detect to enable', 'supertext-polylang' ); ?></span>
-							<?php else : ?>
-								<span style="color:#787c82;"><?php esc_html_e( 'Not detected', 'supertext-polylang' ); ?></span>
-							<?php endif; ?>
-						</td>
-					</tr>
-				<?php endforeach; ?>
-			</tbody>
-		</table>
+		<div class="st-rows">
+			<?php foreach ( self::supported() as $slug => $info ) : ?>
+				<div class="st-row">
+					<span class="st-row__label"><?php echo esc_html( $info['label'] ); ?></span>
+					<?php if ( self::enabled( $slug ) ) : ?>
+						<span class="st-badge"><span class="dashicons dashicons-yes"></span><?php esc_html_e( 'Detected & enabled', 'supertext-polylang' ); ?></span>
+					<?php elseif ( $info['detected'] ) : ?>
+						<span class="st-badge st-badge--warn"><span class="dashicons dashicons-warning"></span><?php esc_html_e( 'Active — click detect to enable', 'supertext-polylang' ); ?></span>
+					<?php else : ?>
+						<span class="st-badge st-badge--off"><span class="dashicons dashicons-minus"></span><?php esc_html_e( 'Not detected', 'supertext-polylang' ); ?></span>
+					<?php endif; ?>
+				</div>
+			<?php endforeach; ?>
+		</div>
 
-		<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
+		<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" style="margin-top:14px;">
 			<input type="hidden" name="action" value="<?php echo esc_attr( self::DETECT_ACTION ); ?>" />
 			<?php wp_nonce_field( self::DETECT_ACTION ); ?>
 			<?php submit_button( __( 'Detect plugins', 'supertext-polylang' ), 'secondary', 'submit', false ); ?>

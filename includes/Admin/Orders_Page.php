@@ -186,8 +186,13 @@ class Orders_Page {
 		$in_progress_count = count( array_filter( $orders, static fn( $o ) => ! $is_collected( $o ) ) );
 		$visible           = 'all' === $view ? $orders : array_filter( $orders, static fn( $o ) => ! $is_collected( $o ) );
 		?>
-		<div class="wrap">
-			<h1><?php esc_html_e( 'Supertext Orders', 'supertext-polylang' ); ?></h1>
+		<div class="wrap supertext-admin">
+			<?php
+			Page::hero(
+				__( 'Supertext Orders', 'supertext-polylang' ),
+				__( 'Human-translation orders placed from WordPress through this plugin.', 'supertext-polylang' )
+			);
+			?>
 
 			<p class="description" style="max-width:640px;">
 				<?php
