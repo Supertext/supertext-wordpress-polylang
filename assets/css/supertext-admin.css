@@ -214,13 +214,18 @@
 .supertext-admin .st-step__body { flex: 1 1 auto; min-width: 0; }
 .supertext-admin .st-step__title { font-weight: 600; font-size: 14px; color: #1d2327; margin: 9px 0 6px; }
 .supertext-admin .st-step__body p { color: #6a6f76; margin: 0 0 12px; }
-.supertext-admin .st-step__body form { display: inline-block; margin: 0 8px 0 0; }
+.supertext-admin .st-step__actions {
+	display: flex;
+	align-items: center;
+	flex-wrap: wrap;
+	gap: 10px;
+}
+.supertext-admin .st-step__actions form { margin: 0; }
 .supertext-admin .st-inline-ok {
 	display: inline-flex;
 	align-items: center;
 	gap: 6px;
-	margin-right: 10px;
-	padding: 6px 12px;
+	padding: 7px 14px;
 	border-radius: 999px;
 	background: var(--st-badge-bg);
 	color: var(--st-badge-fg);
