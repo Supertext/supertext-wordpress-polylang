@@ -89,14 +89,6 @@ class Admin_Page {
 			return;
 		}
 
-		// phpcs:ignore WordPress.Security.NonceVerification.Recommended
-		if ( isset( $_GET['saved'] ) ) {
-			printf(
-				'<div class="notice notice-success is-dismissible"><p>%s</p></div>',
-				esc_html__( 'Translations saved.', 'supertext-polylang' )
-			);
-		}
-
 		$notice_key = self::NOTICE_TRANSIENT . '_' . get_current_user_id();
 		$notice     = get_transient( $notice_key );
 		if ( is_array( $notice ) ) {

@@ -137,6 +137,13 @@ class Editor {
 				printf( esc_html__( 'Translate strings: %s', 'supertext-polylang' ), esc_html( (string) $form['title'] ) );
 				?>
 			</h1>
+
+			<?php
+			// phpcs:ignore WordPress.Security.NonceVerification.Recommended
+			if ( isset( $_GET['saved'] ) ) :
+				?>
+				<div class="notice notice-success is-dismissible"><p><?php esc_html_e( 'Translations saved.', 'supertext-polylang' ); ?></p></div>
+			<?php endif; ?>
 			<p><a href="<?php echo esc_url( $back ); ?>">&larr; <?php esc_html_e( 'Back to forms', 'supertext-polylang' ); ?></a></p>
 
 			<?php if ( empty( $languages ) ) : ?>
