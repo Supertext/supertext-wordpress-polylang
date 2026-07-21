@@ -51,17 +51,13 @@
 }
 .supertext-admin .st-hero__logo {
 	flex: 0 0 auto;
-	width: 52px;
-	height: 52px;
-	border-radius: 13px;
-	background: rgba( 255, 255, 255, 0.08 );
 	display: flex;
 	align-items: center;
 	justify-content: center;
 }
 .supertext-admin .st-hero__logo img {
-	width: 34px;
-	height: 34px;
+	width: 48px;
+	height: 48px;
 	display: block;
 }
 .supertext-admin .st-hero__text { flex: 1 1 auto; min-width: 0; }
