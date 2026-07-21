@@ -64,9 +64,9 @@
 .supertext-admin .st-hero__title {
 	margin: 0;
 	padding: 0;
-	font-size: 22px;
-	font-weight: 700;
-	line-height: 1.2;
+	font-size: 23px;
+	font-weight: 400;
+	line-height: 1.3;
 	color: #fff;
 }
 .supertext-admin .st-hero__subtitle {
@@ -116,7 +116,7 @@
 	margin: 0;
 	padding: 0;
 	font-size: 17px;
-	font-weight: 700;
+	font-weight: 500;
 	line-height: 1.3;
 	color: #1d2327;
 }
