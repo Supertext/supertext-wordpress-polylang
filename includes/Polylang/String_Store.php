@@ -99,10 +99,33 @@ class String_Store {
 		$mo->import_from_db( $language );
 		foreach ( $sources as $source ) {
 			$source         = (string) $source;
-			$translation    = $mo->translate( $source );
-			$out[ $source ] = ( is_string( $translation ) && $translation !== $source ) ? $translation : '';
+			$out[ $source ] = self::entry_translation( $mo, $source );
 		}
 		return $out;
+	}
+
+	/**
+	 * Returns the stored translation of a source string, or '' if there is none.
+	 *
+	 * Unlike gettext's `translate()` — which returns the source for BOTH an absent
+	 * translation and a translation that equals the source — this checks whether an
+	 * explicit MO entry exists. So a string translated to the same text (e.g. an
+	 * English label "translated" to English) counts as translated and is shown.
+	 *
+	 * @param \PLL_MO $mo     Imported MO.
+	 * @param string  $source Source string.
+	 * @return string
+	 */
+	private static function entry_translation( $mo, string $source ): string {
+		$entries = ( isset( $mo->entries ) && is_array( $mo->entries ) ) ? $mo->entries : array();
+		if ( ! isset( $entries[ $source ] ) ) {
+			return '';
+		}
+		$entry = $entries[ $source ];
+		if ( is_object( $entry ) && ! empty( $entry->translations ) && isset( $entry->translations[0] ) ) {
+			return (string) $entry->translations[0];
+		}
+		return '';
 	}
 
 	/**
