@@ -3,7 +3,7 @@
  * Plugin Name:       Supertext for Polylang
  * Plugin URI:        https://github.com/Supertext/supertext-wordpress-polylang
  * Description:       Adds Supertext as a native machine-translation and human translation service in Polylang Pro.
- * Version:           0.5.8
+ * Version:           0.6.0
  * Requires PHP:      8.1
  * Author:            Supertext
  * Author URI:        https://www.supertext.com
@@ -15,7 +15,7 @@
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'SUPERTEXT_POLYLANG_VERSION', '0.5.8' );
+define( 'SUPERTEXT_POLYLANG_VERSION', '0.6.0' );
 define( 'SUPERTEXT_POLYLANG_FILE', __FILE__ );
 define( 'SUPERTEXT_POLYLANG_DIR', plugin_dir_path( __FILE__ ) );
 
@@ -100,6 +100,10 @@ add_filter(
 // "Gravity Forms" submenu. Both guard themselves on the integration being enabled.
 \Supertext\Polylang\Integrations\GravityForms\Integration::init();
 \Supertext\Polylang\Integrations\GravityForms\Admin_Page::init();
+
+// Register Gravity Forms strings with Polylang so their translations live in — and
+// can be edited from — Languages → String translations.
+\Supertext\Polylang\Integrations\GravityForms\Strings::init();
 
 // Add the "Supertext AI/Human Translation" bulk actions to the posts list table.
 \Supertext\Polylang\Admin\Bulk_Actions::init();

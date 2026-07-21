@@ -112,6 +112,15 @@ class Admin_Page {
 				}
 				?>
 			</p>
+			<p class="description" style="max-width:720px;">
+				<?php
+				printf(
+					/* translators: %s is a link to Polylang's String translations screen. */
+					esc_html__( 'Translations are stored in Polylang and can be reviewed or edited under %s.', 'supertext-polylang' ),
+					'<a href="' . esc_url( admin_url( 'admin.php?page=mlang_strings' ) ) . '">' . esc_html__( 'Languages → String translations', 'supertext-polylang' ) . '</a>'
+				);
+				?>
+			</p>
 
 			<?php if ( empty( $languages ) ) : ?>
 				<p><em><?php esc_html_e( 'Add at least one non-default language in Polylang to translate forms.', 'supertext-polylang' ); ?></em></p>
@@ -136,11 +145,14 @@ class Admin_Page {
 									<div style="color:#787c82;">#<?php echo (int) $form_id; ?></div>
 								</td>
 								<?php foreach ( $languages as $lang ) : ?>
+									<?php $status = Strings::translation_status( $form, $lang['slug'] ); ?>
 									<td>
-										<?php if ( Store::has( $form_id, $lang['slug'] ) ) : ?>
+										<?php if ( $status['total'] > 0 && $status['translated'] >= $status['total'] ) : ?>
 											<span style="color:#00a32a;">&#10003; <?php esc_html_e( 'Translated', 'supertext-polylang' ); ?></span><br />
+										<?php elseif ( $status['translated'] > 0 ) : ?>
+											<span style="color:#dba617;" title="<?php echo esc_attr( sprintf( '%d / %d', $status['translated'], $status['total'] ) ); ?>">&#9888; <?php esc_html_e( 'Partly translated', 'supertext-polylang' ); ?></span><br />
 										<?php endif; ?>
-										<?php self::translate_button( $form_id, $lang['slug'], Store::has( $form_id, $lang['slug'] ) ); ?>
+										<?php self::translate_button( $form_id, $lang['slug'], $status['translated'] > 0 ); ?>
 									</td>
 								<?php endforeach; ?>
 							</tr>
@@ -252,7 +264,19 @@ class Admin_Page {
 			return $translated;
 		}
 
-		Store::save( $form_id, $lang, array_filter( (array) $translated, static fn( $v ) => '' !== (string) $v ) );
+		// Map path => translation back onto source => translation and write it into
+		// Polylang's own store, so the result shows up (and stays editable) under
+		// Languages → String translations.
+		$pairs = array();
+		foreach ( (array) $translated as $path => $value ) {
+			$src = isset( $strings[ $path ] ) ? (string) $strings[ $path ] : '';
+			if ( '' !== $src && '' !== (string) $value ) {
+				$pairs[ $src ] = (string) $value;
+			}
+		}
+
+		Strings::register_form( $form );
+		Strings::save_translations( $lang, $pairs );
 
 		return true;
 	}

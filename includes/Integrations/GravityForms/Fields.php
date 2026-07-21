@@ -131,6 +131,64 @@ class Fields {
 	}
 
 	/**
+	 * Walks a form's translatable strings and replaces each with `$cb($source)`.
+	 *
+	 * Covers exactly the same locations as {@see collect()}, but instead of
+	 * recording them by path it swaps each value in place — used at render time with
+	 * a Polylang lookup (`pll__`) as the callback. The callback receives the source
+	 * string and returns its replacement.
+	 *
+	 * @param array    $form Gravity Forms form (fields are GF_Field objects).
+	 * @param callable $cb   fn(string $source): string.
+	 * @return array
+	 */
+	public static function apply_callback( array $form, callable $cb ): array {
+		if ( isset( $form['title'] ) && is_string( $form['title'] ) && '' !== trim( $form['title'] ) ) {
+			$form['title'] = (string) $cb( $form['title'] );
+		}
+		if ( isset( $form['description'] ) && is_string( $form['description'] ) && '' !== trim( $form['description'] ) ) {
+			$form['description'] = (string) $cb( $form['description'] );
+		}
+		if ( isset( $form['button']['text'] ) && is_string( $form['button']['text'] ) && '' !== trim( $form['button']['text'] ) ) {
+			$form['button']['text'] = (string) $cb( $form['button']['text'] );
+		}
+
+		foreach ( (array) ( $form['fields'] ?? array() ) as $field ) {
+			foreach ( array( 'label', 'description', 'placeholder', 'errorMessage', 'content' ) as $prop ) {
+				$value = self::get( $field, $prop );
+				if ( '' !== trim( $value ) ) {
+					self::set( $field, $prop, (string) $cb( $value ) );
+				}
+			}
+
+			$choices = self::get_array( $field, 'choices' );
+			if ( is_array( $choices ) ) {
+				foreach ( $choices as $j => $choice ) {
+					if ( is_array( $choice ) && isset( $choice['text'] ) && '' !== trim( (string) $choice['text'] ) ) {
+						$choices[ $j ]['text'] = (string) $cb( (string) $choice['text'] );
+					}
+				}
+				self::set( $field, 'choices', $choices );
+			}
+
+			$inputs = self::get_array( $field, 'inputs' );
+			if ( is_array( $inputs ) ) {
+				foreach ( $inputs as $k => $input ) {
+					if ( is_array( $input ) && isset( $input['label'] ) && '' !== trim( (string) $input['label'] ) ) {
+						$inputs[ $k ]['label'] = (string) $cb( (string) $input['label'] );
+					}
+					if ( is_array( $input ) && isset( $input['placeholder'] ) && '' !== trim( (string) $input['placeholder'] ) ) {
+						$inputs[ $k ]['placeholder'] = (string) $cb( (string) $input['placeholder'] );
+					}
+				}
+				self::set( $field, 'inputs', $inputs );
+			}
+		}
+
+		return $form;
+	}
+
+	/**
 	 * Adds a trimmed, non-empty value to the map.
 	 *
 	 * @param array<string,string> $out   Map (by reference).
