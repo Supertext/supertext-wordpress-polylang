@@ -1,52 +1,20 @@
 /**
- * Supertext string tables: "select all" checkbox + bulk-action picker toggling.
- *
- * Mirrors the Posts/Pages bulk-actions bar: choosing "Translate with AI" reveals
- * the target-language picker; "Order human translation" also reveals the service
- * and delivery pickers.
+ * "Select all" checkbox for the Supertext string tables.
  *
  * @package Supertext_Polylang
  */
 ( function () {
 	'use strict';
 
-	function syncPickers( select ) {
-		var form = select.closest( 'form' );
-		if ( ! form ) {
-			return;
-		}
-		var value = select.value;
-		var showLang = value === 'ai' || value === 'human';
-		var showHuman = value === 'human';
-
-		form.querySelectorAll( '.st-picker-lang' ).forEach( function ( el ) {
-			el.style.display = showLang ? '' : 'none';
-		} );
-		form.querySelectorAll( '.st-picker-human' ).forEach( function ( el ) {
-			el.style.display = showHuman ? '' : 'none';
-		} );
-	}
-
 	document.addEventListener( 'change', function ( e ) {
-		var target = e.target;
-
-		if ( target.closest && target.closest( '.st-check-all' ) ) {
-			var form = target.closest( 'form' );
-			if ( form ) {
-				form.querySelectorAll( '.st-row-check' ).forEach( function ( box ) {
-					box.checked = target.checked;
-				} );
-			}
+		var all = e.target.closest ? e.target.closest( '.st-check-all' ) : null;
+		if ( ! all ) {
 			return;
 		}
-
-		if ( target.closest && target.closest( '.st-bulk-action' ) ) {
-			syncPickers( target );
-		}
-	} );
-
-	// Set the initial picker visibility on load.
-	document.addEventListener( 'DOMContentLoaded', function () {
-		document.querySelectorAll( '.st-bulk-action' ).forEach( syncPickers );
+		// The row checkboxes live in the POST form; the select-all lives in the
+		// table card, so scope by the whole document (one table per page).
+		document.querySelectorAll( '.st-row-check' ).forEach( function ( box ) {
+			box.checked = all.checked;
+		} );
 	} );
 } )();

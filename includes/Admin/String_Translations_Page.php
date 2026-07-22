@@ -169,26 +169,35 @@ class String_Translations_Page {
 
 			<?php self::render_notices(); ?>
 
-			<form method="get" style="margin:1em 0;">
+			<?php
+			// The filter is a GET form rendered into the toolbar card (as a slot, so it
+			// isn't nested inside the POST form).
+			ob_start();
+			?>
+			<form method="get" class="st-filter">
 				<input type="hidden" name="page" value="<?php echo esc_attr( self::SLUG ); ?>" />
 				<label for="st-filter-group" class="screen-reader-text"><?php esc_html_e( 'Group', 'supertext-polylang' ); ?></label>
-				<select name="st_group" id="st-filter-group">
+				<select name="st_group" id="st-filter-group" class="st-filter__group">
 					<option value=""><?php esc_html_e( 'All groups', 'supertext-polylang' ); ?></option>
 					<?php foreach ( $groups as $g ) : ?>
 						<option value="<?php echo esc_attr( $g ); ?>" <?php selected( $group, $g ); ?>><?php echo esc_html( $g ); ?></option>
 					<?php endforeach; ?>
 				</select>
-				<input type="search" name="st_search" value="<?php echo esc_attr( $search ); ?>" placeholder="<?php esc_attr_e( 'Search strings…', 'supertext-polylang' ); ?>" />
-				<?php submit_button( __( 'Filter', 'supertext-polylang' ), 'secondary', 'filter', false ); ?>
-				<span style="color:#787c82;margin-left:.5em;">
+				<span class="st-search">
+					<span class="dashicons dashicons-search"></span>
+					<input type="search" name="st_search" value="<?php echo esc_attr( $search ); ?>" placeholder="<?php esc_attr_e( 'Search strings…', 'supertext-polylang' ); ?>" />
+				</span>
+				<button type="submit" class="button st-btn-dark"><?php esc_html_e( 'Filter', 'supertext-polylang' ); ?></button>
+				<span class="st-count">
 					<?php
 					/* translators: %d is the number of strings shown. */
 					printf( esc_html( _n( '%d string', '%d strings', count( $rows ), 'supertext-polylang' ) ), count( $rows ) );
 					?>
 				</span>
 			</form>
-
 			<?php
+			$filter_html = ob_get_clean();
+
 			String_Table::render(
 				array(
 					'action'          => self::ACTION,
@@ -204,6 +213,7 @@ class String_Translations_Page {
 					'human'           => Settings::is_configured(),
 					'human_services'  => Bulk_Actions::HUMAN_SERVICES,
 					'express_options' => Bulk_Actions::EXPRESS_OPTIONS,
+					'filter_html'     => $filter_html,
 				)
 			);
 			?>

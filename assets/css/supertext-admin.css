@@ -307,3 +307,152 @@
 
 /* Full-width "Open Polylang…" style link button. */
 .supertext-admin .st-cta-wide { display: block; text-align: center; }
+
+/* ── String Translation table ─────────────────────────────────────────── */
+.supertext-admin .st-toolbar { padding: 18px 22px; }
+.supertext-admin .st-toolbar__sep {
+	height: 1px;
+	background: var(--st-divider);
+	margin: 16px 0;
+}
+.supertext-admin .st-toolbar__actions {
+	display: flex;
+	align-items: flex-end;
+	justify-content: space-between;
+	gap: 18px;
+	flex-wrap: wrap;
+}
+.supertext-admin .st-toolbar__pickers {
+	display: flex;
+	align-items: flex-end;
+	gap: 14px;
+	flex-wrap: wrap;
+}
+.supertext-admin .st-toolbar__buttons {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	flex-wrap: wrap;
+}
+.supertext-admin .st-field {
+	display: flex;
+	flex-direction: column;
+	gap: 5px;
+}
+.supertext-admin .st-field > span {
+	font-size: 11px;
+	font-weight: 600;
+	letter-spacing: 0.04em;
+	text-transform: uppercase;
+	color: #8a8f96;
+}
+.supertext-admin .st-field select {
+	border-radius: 8px;
+	min-width: 150px;
+}
+.supertext-admin .st-btn-icon {
+	display: inline-flex !important;
+	align-items: center;
+	gap: 6px;
+}
+.supertext-admin .st-btn-icon .dashicons {
+	font-size: 17px;
+	width: 17px;
+	height: 17px;
+	line-height: 1;
+}
+
+/* Filter row */
+.supertext-admin .st-filter {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	flex-wrap: wrap;
+}
+.supertext-admin .st-filter__group { border-radius: 8px; min-width: 170px; }
+.supertext-admin .st-search { position: relative; display: inline-flex; align-items: center; }
+.supertext-admin .st-search .dashicons {
+	position: absolute;
+	left: 11px;
+	color: #8a8f96;
+	font-size: 16px;
+	width: 16px;
+	height: 16px;
+	pointer-events: none;
+}
+.supertext-admin .st-search input[type="search"] {
+	border-radius: 999px;
+	padding-left: 34px;
+	min-width: 240px;
+}
+.supertext-admin .st-count { color: #8a8f96; font-size: 13px; margin-left: 2px; }
+.supertext-admin .st-btn-dark {
+	border-radius: 999px !important;
+	background: rgb( 0, 50, 48 ) !important;
+	border-color: rgb( 0, 50, 48 ) !important;
+	color: #fff !important;
+	padding: 4px 18px;
+	height: auto;
+	line-height: 2;
+}
+.supertext-admin .st-btn-dark:hover,
+.supertext-admin .st-btn-dark:focus {
+	background: #0a423a !important;
+	border-color: #0a423a !important;
+	color: #fff !important;
+}
+
+/* Table card */
+.supertext-admin .st-tablecard { padding: 0; overflow: hidden; }
+.supertext-admin .st-table { width: 100%; border-collapse: collapse; }
+.supertext-admin .st-table thead th {
+	text-align: left;
+	text-transform: uppercase;
+	letter-spacing: 0.05em;
+	font-size: 11px;
+	font-weight: 600;
+	color: #8a8f96;
+	padding: 14px 18px;
+	background: #fafbfb;
+	border-bottom: 1px solid var(--st-divider);
+}
+.supertext-admin .st-table td {
+	padding: 14px 18px;
+	border-bottom: 1px solid var(--st-divider);
+	vertical-align: top;
+}
+.supertext-admin .st-table tbody tr:last-child td { border-bottom: 0; }
+.supertext-admin .st-col-check { width: 44px; text-align: center; }
+.supertext-admin .st-col-field { color: #6a6f76; font-size: 13px; }
+.supertext-admin .st-col-source { color: #1d2327; }
+
+.supertext-admin .st-chip {
+	display: inline-block;
+	padding: 3px 11px;
+	border-radius: 999px;
+	background: #eef1f0;
+	color: #50565e;
+	font-size: 12px;
+	font-weight: 500;
+	white-space: nowrap;
+}
+
+.supertext-admin .st-tr-input {
+	width: 100%;
+	box-sizing: border-box;
+	border-radius: 8px;
+	border: 1px solid #dcdcde;
+	padding: 8px 10px;
+	resize: vertical;
+	min-height: 40px;
+	font-size: 13px;
+	line-height: 1.45;
+	background: #fff;
+	color: #1d2327;
+}
+.supertext-admin .st-tr-input::placeholder { color: #b3b8be; }
+.supertext-admin .st-tr-input:focus {
+	outline: none;
+	border-color: var(--st-mint-strong);
+	box-shadow: 0 0 0 1px var(--st-mint-strong);
+}
