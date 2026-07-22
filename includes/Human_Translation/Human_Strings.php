@@ -10,6 +10,7 @@ defined( 'ABSPATH' ) || exit;
 use DOMDocument;
 use DOMXPath;
 use WP_Error;
+use Supertext\Polylang\Admin\Bulk_Actions;
 use Supertext\Polylang\Admin\Settings;
 use Supertext\Polylang\Polylang\String_Store;
 
@@ -27,13 +28,131 @@ use Supertext\Polylang\Polylang\String_Store;
  * @since 0.9.0
  */
 class Human_Strings {
+	/** AJAX action for the live string price quote. */
+	const QUOTE_ACTION = 'supertext_polylang_str_quote';
+
 	/**
-	 * Registers the generic (`str`) writeback.
+	 * Registers the generic (`str`) writeback and the price-quote endpoint.
 	 *
 	 * @return void
 	 */
 	public static function init(): void {
 		add_action( 'supertext_polylang_order_completed', array( self::class, 'writeback' ), 10, 5 );
+		add_action( 'wp_ajax_' . self::QUOTE_ACTION, array( self::class, 'handle_quote' ) );
+	}
+
+	/**
+	 * AJAX: returns a live price quote (word count + per-delivery prices) for the
+	 * checked source strings + chosen service, so the String Translation table can
+	 * offer the same delivery/price picker as the Posts/Pages Human workflow.
+	 *
+	 * @return void
+	 */
+	public static function handle_quote(): void {
+		check_ajax_referer( self::QUOTE_ACTION, 'nonce' );
+
+		if ( ! current_user_can( 'manage_options' ) ) {
+			wp_send_json_error( array( 'message' => __( 'You are not allowed to do this.', 'supertext-polylang' ) ), 403 );
+		}
+		if ( ! Settings::is_configured() ) {
+			wp_send_json_error( array( 'message' => __( 'Supertext human-translation credentials are not configured.', 'supertext-polylang' ) ) );
+		}
+
+		// phpcs:disable WordPress.Security.NonceVerification.Missing -- nonce checked above.
+		$target_lang = sanitize_key( wp_unslash( $_POST['target_lang'] ?? '' ) );
+		$service_id  = (int) ( $_POST['service_id'] ?? 0 );
+		$sources     = ( isset( $_POST['sources'] ) && is_array( $_POST['sources'] ) ) ? wp_unslash( $_POST['sources'] ) : array(); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- source strings are sent verbatim to the quote API.
+		// phpcs:enable WordPress.Security.NonceVerification.Missing
+
+		$sources = array_values( array_filter( array_map( 'strval', (array) $sources ), static fn( $s ) => '' !== trim( $s ) ) );
+
+		if ( '' === $target_lang || ! isset( Bulk_Actions::HUMAN_SERVICES[ $service_id ] ) || empty( $sources ) ) {
+			wp_send_json_error( array( 'message' => __( 'Select a translation type, a target language, and at least one row.', 'supertext-polylang' ) ) );
+		}
+
+		$quote = self::quote( $sources, $target_lang, $service_id );
+		if ( is_wp_error( $quote ) ) {
+			wp_send_json_error( array( 'message' => $quote->get_error_message() ) );
+		}
+
+		wp_send_json_success( $quote );
+	}
+
+	/**
+	 * Uploads the given source strings and requests a price quote for one service +
+	 * target language, returning the aggregated word count and per-delivery prices.
+	 *
+	 * @param string[] $sources    Source strings.
+	 * @param string   $lang       Target language slug.
+	 * @param int      $service_id OrderTypeConfigurationId.
+	 * @return array{currency:string, currencySymbol:string, wordCount:int, deliveries:array[]}|WP_Error
+	 */
+	public static function quote( array $sources, string $lang, int $service_id ) {
+		if ( ! function_exists( 'PLL' ) || ! isset( PLL()->model ) ) {
+			return new WP_Error( 'supertext_no_pll', __( 'Polylang is not available.', 'supertext-polylang' ) );
+		}
+
+		$model  = PLL()->model;
+		$target = $model->get_language( $lang );
+		$source = function_exists( 'pll_default_language' ) ? $model->get_language( (string) pll_default_language( 'slug' ) ) : null;
+		if ( ! $target || ! $source ) {
+			return new WP_Error( 'supertext_bad_lang', __( 'Unknown source or target language.', 'supertext-polylang' ) );
+		}
+
+		$sources = array_values( array_unique( array_filter( array_map( 'strval', $sources ), static fn( $s ) => '' !== trim( $s ) ) ) );
+		if ( empty( $sources ) ) {
+			return new WP_Error( 'supertext_empty', __( 'No strings selected to translate.', 'supertext-polylang' ) );
+		}
+
+		$client      = new Client();
+		$document_id = $client->upload_file( self::build_html( $sources ), 'strings-quote.html' );
+		if ( is_wp_error( $document_id ) ) {
+			return $document_id;
+		}
+
+		$currency_req = (string) apply_filters( 'supertext_polylang_quote_currency', '' );
+
+		$body = array(
+			'OrderTypeConfigurationId' => $service_id,
+			'OrderTypeId'              => Bulk_Actions::order_type_id( $service_id ),
+			'SourceLang'               => (string) $source->w3c,
+			'TargetLanguages'          => array( (string) $target->w3c ),
+			'Files'                    => array( array( 'Id' => (int) $document_id, 'Comment' => 'Polylang strings' ) ),
+		);
+		if ( '' !== $currency_req ) {
+			$body['Currency'] = $currency_req;
+		}
+
+		$quote = $client->get_quote( $body );
+		if ( is_wp_error( $quote ) ) {
+			return $quote;
+		}
+
+		$symbol     = (string) ( $quote['CurrencySymbol'] ?? '' );
+		$currency   = (string) ( $quote['Currency'] ?? '' );
+		$option     = ( isset( $quote['Options'][0] ) && is_array( $quote['Options'][0] ) ) ? $quote['Options'][0] : array();
+		$deliveries = array();
+		foreach ( (array) ( $option['DeliveryOptions'] ?? array() ) as $do ) {
+			$did = (int) ( $do['DeliveryId'] ?? 0 );
+			if ( $did <= 0 ) {
+				continue;
+			}
+			$deliveries[ $did ] = array(
+				'delivery_id' => $did,
+				'name'        => (string) ( $do['Name'] ?? '' ),
+				'price'       => (float) ( $do['Price'] ?? 0 ),
+				'date'        => (string) ( $do['DeliveryDate'] ?? '' ),
+				'is_default'  => (bool) ( $do['IsDefaultDeliveryOption'] ?? false ),
+			);
+		}
+		ksort( $deliveries );
+
+		return array(
+			'currency'       => $currency,
+			'currencySymbol' => '' !== $symbol ? $symbol : $currency,
+			'wordCount'      => (int) ( $quote['WordCount'] ?? 0 ),
+			'deliveries'     => array_values( $deliveries ),
+		);
 	}
 
 	/**

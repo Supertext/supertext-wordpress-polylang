@@ -430,6 +430,12 @@
 }
 .supertext-admin .st-bulkrow__right { margin-left: auto; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
 .supertext-admin .st-picker-human { display: none; }
+.supertext-admin .st-quote-status {
+	align-items: center;
+	color: #667085;
+	font-size: 13px;
+	font-style: italic;
+}
 
 /* Buttons */
 .supertext-admin .st-btn-outline {

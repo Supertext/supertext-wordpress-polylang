@@ -7,6 +7,7 @@ namespace Supertext\Polylang\Admin;
 
 defined( 'ABSPATH' ) || exit;
 
+use Supertext\Polylang\Human_Translation\Human_Strings;
 use Supertext\Polylang\Polylang\String_Store;
 
 /**
@@ -29,6 +30,42 @@ class String_Table {
 	 * @var string
 	 */
 	const FORM_ID = 'supertext-string-form';
+
+	/**
+	 * Enqueues the table script and its live-quote config. Call from a screen's
+	 * `admin_enqueue_scripts` handler.
+	 *
+	 * @return void
+	 */
+	public static function enqueue(): void {
+		wp_enqueue_script(
+			'supertext-string-table',
+			plugins_url( 'assets/js/string-table.js', SUPERTEXT_POLYLANG_FILE ),
+			array(),
+			SUPERTEXT_POLYLANG_VERSION,
+			true
+		);
+
+		wp_localize_script(
+			'supertext-string-table',
+			'SupertextStringTable',
+			array(
+				'ajaxUrl'     => admin_url( 'admin-ajax.php' ),
+				'quoteAction' => Human_Strings::QUOTE_ACTION,
+				'quoteNonce'  => wp_create_nonce( Human_Strings::QUOTE_ACTION ),
+				'i18n'        => array(
+					'quoting'     => __( 'Getting price…', 'supertext-polylang' ),
+					'delivery'    => __( 'Delivery', 'supertext-polylang' ),
+					'noOptions'   => __( 'No delivery options', 'supertext-polylang' ),
+					'quoteFail'   => __( 'Could not get a price.', 'supertext-polylang' ),
+					'needRows'    => __( 'Select at least one row.', 'supertext-polylang' ),
+					'needLang'    => __( 'Select a target language.', 'supertext-polylang' ),
+					'needService' => __( 'Select a translation type.', 'supertext-polylang' ),
+					'needDelivery' => __( 'Select a delivery option.', 'supertext-polylang' ),
+				),
+			)
+		);
+	}
 
 	/**
 	 * Renders the editor.
@@ -78,7 +115,8 @@ class String_Table {
 
 					<?php if ( $human ) : ?>
 						<span class="st-select-wrap st-picker st-picker-human">
-							<select name="lang" form="<?php echo esc_attr( $fid ); ?>" class="st-select" title="<?php esc_attr_e( 'Target language', 'supertext-polylang' ); ?>">
+							<select name="lang" id="st-lang" form="<?php echo esc_attr( $fid ); ?>" class="st-select" title="<?php esc_attr_e( 'Target language', 'supertext-polylang' ); ?>">
+								<option value=""><?php esc_html_e( 'Target language', 'supertext-polylang' ); ?></option>
 								<?php foreach ( $languages as $lang ) : ?>
 									<option value="<?php echo esc_attr( $lang['slug'] ); ?>"><?php echo esc_html( $lang['name'] ); ?></option>
 								<?php endforeach; ?>
@@ -86,21 +124,22 @@ class String_Table {
 							<span class="dashicons dashicons-arrow-down-alt2 st-select-chevron"></span>
 						</span>
 						<span class="st-select-wrap st-picker st-picker-human">
-							<select name="service_id" form="<?php echo esc_attr( $fid ); ?>" class="st-select" title="<?php esc_attr_e( 'Translation type', 'supertext-polylang' ); ?>">
+							<select name="service_id" id="st-service" form="<?php echo esc_attr( $fid ); ?>" class="st-select" title="<?php esc_attr_e( 'Translation type', 'supertext-polylang' ); ?>">
+								<option value=""><?php esc_html_e( 'Translation type', 'supertext-polylang' ); ?></option>
 								<?php foreach ( (array) ( $args['human_services'] ?? array() ) as $id => $service ) : ?>
 									<option value="<?php echo esc_attr( (string) $id ); ?>"><?php echo esc_html( (string) ( $service['label'] ?? $id ) ); ?></option>
 								<?php endforeach; ?>
 							</select>
 							<span class="dashicons dashicons-arrow-down-alt2 st-select-chevron"></span>
 						</span>
+						<?php // Delivery options + prices are filled in from a live quote; disabled until then. ?>
 						<span class="st-select-wrap st-picker st-picker-human">
-							<select name="express" form="<?php echo esc_attr( $fid ); ?>" class="st-select" title="<?php esc_attr_e( 'Delivery', 'supertext-polylang' ); ?>">
-								<?php foreach ( (array) ( $args['express_options'] ?? array() ) as $id => $label ) : ?>
-									<option value="<?php echo esc_attr( (string) $id ); ?>"><?php echo esc_html( (string) $label ); ?></option>
-								<?php endforeach; ?>
+							<select name="express" id="st-express" form="<?php echo esc_attr( $fid ); ?>" class="st-select" title="<?php esc_attr_e( 'Delivery', 'supertext-polylang' ); ?>" disabled>
+								<option value=""><?php esc_html_e( 'Delivery', 'supertext-polylang' ); ?></option>
 							</select>
 							<span class="dashicons dashicons-arrow-down-alt2 st-select-chevron"></span>
 						</span>
+						<span class="st-quote-status st-picker st-picker-human" aria-live="polite"></span>
 					<?php endif; ?>
 
 				</div>

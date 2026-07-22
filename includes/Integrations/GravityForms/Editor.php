@@ -65,13 +65,7 @@ class Editor {
 		if ( ! self::is_editor_screen() ) {
 			return;
 		}
-		wp_enqueue_script(
-			'supertext-string-table',
-			plugins_url( 'assets/js/string-table.js', SUPERTEXT_POLYLANG_FILE ),
-			array(),
-			SUPERTEXT_POLYLANG_VERSION,
-			true
-		);
+		String_Table::enqueue();
 	}
 
 	/**

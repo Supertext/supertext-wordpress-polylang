@@ -76,13 +76,7 @@ class String_Translations_Page {
 		if ( ! isset( $_GET['page'] ) || self::SLUG !== $_GET['page'] ) {
 			return;
 		}
-		wp_enqueue_script(
-			'supertext-string-table',
-			plugins_url( 'assets/js/string-table.js', SUPERTEXT_POLYLANG_FILE ),
-			array(),
-			SUPERTEXT_POLYLANG_VERSION,
-			true
-		);
+		String_Table::enqueue();
 	}
 
 	/**
