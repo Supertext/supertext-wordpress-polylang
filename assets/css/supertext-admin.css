@@ -429,6 +429,7 @@
 .supertext-admin .st-btn-mint:focus { background: #5ef29c; color: #0d3025; }
 .supertext-admin .st-btn-outline .dashicons,
 .supertext-admin .st-btn-mint .dashicons { font-size: 18px; width: 18px; height: 18px; line-height: 1; }
+.supertext-admin .st-svg { width: 18px; height: 18px; flex: 0 0 18px; display: block; }
 
 /* Table card */
 .supertext-admin .st-tablecard { padding: 0; overflow: hidden; }
@@ -451,7 +452,14 @@
 }
 .supertext-admin .st-table tbody tr:hover td { background: #fbfdfc; }
 .supertext-admin .st-col-check { width: 44px; text-align: center; }
-.supertext-admin .st-col-check input { accent-color: #12885a; width: 18px; height: 18px; }
+.supertext-admin .st-col-check input,
+.supertext-admin .st-check-all,
+.supertext-admin .st-row-check {
+	accent-color: #12885a;
+	width: 18px;
+	height: 18px;
+	cursor: pointer;
+}
 .supertext-admin .st-col-field { width: 150px; font-size: 13.5px; font-weight: 600; color: #344054; }
 .supertext-admin .st-col-group { width: 120px; }
 .supertext-admin .st-col-source { color: #475467; font-size: 14px; line-height: 1.5; word-break: break-word; }

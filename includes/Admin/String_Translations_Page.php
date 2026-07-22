@@ -236,7 +236,7 @@ class String_Translations_Page {
 			);
 		}
 		if ( isset( $_GET['ordered'] ) ) {
-			echo '<div class="notice notice-success is-dismissible"><p>' . esc_html__( 'Human translation order submitted. It will be written back automatically when complete.', 'supertext-polylang' ) . '</p></div>';
+			echo '<div class="notice notice-success is-dismissible"><p>' . esc_html__( 'Fused translation order submitted. It will be written back automatically when complete.', 'supertext-polylang' ) . '</p></div>';
 		}
 		if ( isset( $_GET['error'] ) ) {
 			$msg = get_transient( 'supertext_polylang_strings_error_' . get_current_user_id() );

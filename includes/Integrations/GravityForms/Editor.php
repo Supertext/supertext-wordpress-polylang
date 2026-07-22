@@ -155,7 +155,7 @@ class Editor {
 			);
 		}
 		if ( isset( $_GET['ordered'] ) ) {
-			echo '<div class="notice notice-success is-dismissible"><p>' . esc_html__( 'Human translation order submitted. It will be written back automatically when complete.', 'supertext-polylang' ) . '</p></div>';
+			echo '<div class="notice notice-success is-dismissible"><p>' . esc_html__( 'Fused translation order submitted. It will be written back automatically when complete.', 'supertext-polylang' ) . '</p></div>';
 		}
 		if ( isset( $_GET['order_error'] ) ) {
 			$msg = get_transient( 'supertext_polylang_gf_order_error_' . get_current_user_id() );
