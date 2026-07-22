@@ -116,10 +116,6 @@ class Editor {
 
 			<?php self::render_notices(); ?>
 
-			<p class="description" style="max-width:820px;">
-				<?php esc_html_e( 'Tick the rows you want, choose a target language, then translate them with Supertext AI or order human translation. Or edit a translation directly and Save. These are the same translations shown under Languages → String translations.', 'supertext-polylang' ); ?>
-			</p>
-
 			<?php
 			String_Table::render(
 				array(
@@ -133,6 +129,7 @@ class Editor {
 					'human'           => Settings::is_configured(),
 					'human_services'  => Bulk_Actions::HUMAN_SERVICES,
 					'express_options' => Bulk_Actions::EXPRESS_OPTIONS,
+					'intro'           => __( 'Tick the rows you want, then translate them with Supertext AI or order human translation — or edit a translation directly and Save. These are the same translations shown under Languages → String translations.', 'supertext-polylang' ),
 				)
 			);
 			?>
@@ -199,14 +196,21 @@ class Editor {
 				self::order_error( __( 'Select at least one row to translate.', 'supertext-polylang' ) );
 				$args['order_error'] = '1';
 			} else {
-				$map = String_Store::translate_many( $sources, $submit['lang'] );
-				if ( is_wp_error( $map ) ) {
-					self::order_error( $map->get_error_message() );
-					$args['order_error'] = '1';
-				} else {
-					$filled = array_filter( $map, static fn( $v ) => '' !== (string) $v );
-					String_Store::save_translations( $submit['lang'], $filled );
-					$args['ai'] = (string) count( $filled );
+				// "Translate with AI" fills every target-language column.
+				$count = 0;
+				foreach ( Strings::target_languages() as $lang ) {
+					$map = String_Store::translate_many( $sources, $lang['slug'] );
+					if ( is_wp_error( $map ) ) {
+						self::order_error( $map->get_error_message() );
+						$args['order_error'] = '1';
+						break;
+					}
+					$pairs = array_filter( $map, static fn( $v ) => '' !== (string) $v );
+					String_Store::save_translations( $lang['slug'], $pairs );
+					$count += count( $pairs );
+				}
+				if ( ! isset( $args['order_error'] ) ) {
+					$args['ai'] = (string) $count;
 				}
 			}
 		} elseif ( 'human' === $submit['do'] ) {

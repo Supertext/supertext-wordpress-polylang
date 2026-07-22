@@ -163,10 +163,6 @@ class String_Translations_Page {
 				__( 'Translate any Polylang string with Supertext AI or human translation.', 'supertext-polylang' )
 			);
 			?>
-			<p class="description" style="max-width:820px;">
-				<?php esc_html_e( 'All translatable strings registered with Polylang. Tick the rows you want, then translate them with Supertext AI or order human translation — or edit a translation directly and Save. These are the same translations as Languages → String translations.', 'supertext-polylang' ); ?>
-			</p>
-
 			<?php self::render_notices(); ?>
 
 			<?php
@@ -187,7 +183,7 @@ class String_Translations_Page {
 					<span class="dashicons dashicons-search"></span>
 					<input type="search" name="st_search" value="<?php echo esc_attr( $search ); ?>" placeholder="<?php esc_attr_e( 'Search strings…', 'supertext-polylang' ); ?>" />
 				</span>
-				<button type="submit" class="button st-btn-dark"><?php esc_html_e( 'Filter', 'supertext-polylang' ); ?></button>
+				<button type="submit" class="st-btn-outline"><?php esc_html_e( 'Filter', 'supertext-polylang' ); ?></button>
 				<span class="st-count">
 					<?php
 					/* translators: %d is the number of strings shown. */
@@ -214,6 +210,7 @@ class String_Translations_Page {
 					'human_services'  => Bulk_Actions::HUMAN_SERVICES,
 					'express_options' => Bulk_Actions::EXPRESS_OPTIONS,
 					'filter_html'     => $filter_html,
+					'intro'           => __( 'All translatable strings registered with Polylang. Tick the rows you want, then translate them with Supertext AI or order human translation — or edit a translation directly and Save. These are the same translations as Languages → String translations.', 'supertext-polylang' ),
 				)
 			);
 			?>
@@ -285,13 +282,21 @@ class String_Translations_Page {
 				$args['error'] = '1';
 				self::error( __( 'Select at least one row to translate.', 'supertext-polylang' ) );
 			} else {
-				$map = String_Store::translate_many( $sources, $submit['lang'] );
-				if ( is_wp_error( $map ) ) {
-					$args['error'] = '1';
-					self::error( $map->get_error_message() );
-				} else {
-					$saved = String_Store::save_translations( $submit['lang'], array_filter( $map, static fn( $v ) => '' !== (string) $v ) );
-					$args['ai'] = (string) count( array_filter( $map, static fn( $v ) => '' !== (string) $v ) );
+				// "Translate with AI" fills every target-language column.
+				$filled = 0;
+				foreach ( String_Store::target_languages() as $lang ) {
+					$map = String_Store::translate_many( $sources, $lang['slug'] );
+					if ( is_wp_error( $map ) ) {
+						$args['error'] = '1';
+						self::error( $map->get_error_message() );
+						break;
+					}
+					$pairs = array_filter( $map, static fn( $v ) => '' !== (string) $v );
+					String_Store::save_translations( $lang['slug'], $pairs );
+					$filled += count( $pairs );
+				}
+				if ( ! isset( $args['error'] ) ) {
+					$args['ai'] = (string) $filled;
 				}
 			}
 		} elseif ( 'human' === $submit['do'] ) {

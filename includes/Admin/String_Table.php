@@ -10,17 +10,15 @@ defined( 'ABSPATH' ) || exit;
 use Supertext\Polylang\Polylang\String_Store;
 
 /**
- * Shared editor UI for translating a set of Polylang strings.
+ * Shared editor UI for translating a set of Polylang strings, styled to the
+ * Supertext design: a toolbar card (intro + optional filter slot + a Bulk-actions
+ * row) and a table card (checkbox, field, group chip, source, one rounded input per
+ * target language), plus a mint Save bar.
  *
- * Renders a Supertext-styled toolbar card (optional filter slot + target-language /
- * human pickers + "Translate with AI" and human-order buttons) followed by a table
- * card: a checkbox per row, the group as a chip, and a rounded translation input per
- * target language. The two translate actions act on the **checked** rows for the
- * chosen target language; a Save action writes the whole grid. Used by both the
- * Gravity Forms per-form editor and the general String Translation page.
- *
- * The action controls live in the toolbar card but submit the POST form (which wraps
- * the table) via the HTML5 `form="…"` attribute, so the two cards render separately.
+ * The "Translate with AI" action fills every target-language column for the checked
+ * rows; human orders use the revealed target-language / type / delivery pickers. The
+ * action controls live in the toolbar card but submit the POST form (which wraps the
+ * table) via the HTML5 `form="…"` attribute, so the two cards render separately.
  *
  * @since 0.9.0
  */
@@ -35,19 +33,9 @@ class String_Table {
 	/**
 	 * Renders the editor.
 	 *
-	 * @param array $args {
-	 *     @type string                                    $action          admin-post action name.
-	 *     @type string                                    $nonce_action    Nonce action.
-	 *     @type array<string,string>                      $hidden          Extra hidden inputs.
-	 *     @type array<int,array{name:string,group?:string,source:string}> $rows Rows.
-	 *     @type array<int,array{slug:string,name:string}> $languages       Target languages.
-	 *     @type array<string,array<string,string>>        $translations    lang => (source => translation).
-	 *     @type bool                                      $show_group      Show a Group column.
-	 *     @type bool                                      $human           Show the human-order controls.
-	 *     @type array<int,array{label:string}>            $human_services  OrderTypeConfigurationId => service.
-	 *     @type array<string,string>                      $express_options DeliveryId => label.
-	 *     @type string                                    $filter_html     Pre-escaped filter row markup (optional).
-	 * }
+	 * @param array $args See the properties read below (rows, languages, translations,
+	 *                    action, nonce_action, hidden, show_group, human, human_services,
+	 *                    express_options, filter_html, intro).
 	 * @return void
 	 */
 	public static function render( array $args ): void {
@@ -57,125 +45,142 @@ class String_Table {
 		$show_group   = ! empty( $args['show_group'] );
 		$human        = ! empty( $args['human'] );
 		$filter       = (string) ( $args['filter_html'] ?? '' );
+		$intro        = (string) ( $args['intro'] ?? '' );
 		$fid          = self::FORM_ID;
-
-		if ( empty( $languages ) ) {
-			if ( '' !== $filter ) {
-				echo '<div class="st-panel st-toolbar">' . $filter . '</div>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- caller-escaped.
-			}
-			echo '<p><em>' . esc_html__( 'Add at least one non-default language in Polylang to translate strings.', 'supertext-polylang' ) . '</em></p>';
-			return;
-		}
+		$confirm      = esc_js( __( 'Order human translation for the checked rows?', 'supertext-polylang' ) );
 		?>
 		<div class="st-panel st-toolbar">
-			<?php if ( '' !== $filter ) : ?>
-				<?php echo $filter; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- built + escaped by the caller. ?>
-				<div class="st-toolbar__sep"></div>
+			<?php if ( '' !== $intro ) : ?>
+				<p class="st-toolbar__intro"><?php echo esc_html( $intro ); ?></p>
 			<?php endif; ?>
 
-			<div class="st-toolbar__actions">
-				<div class="st-toolbar__pickers">
-					<label class="st-field">
-						<span><?php esc_html_e( 'Target language', 'supertext-polylang' ); ?></span>
-						<select name="lang" form="<?php echo esc_attr( $fid ); ?>">
-							<?php foreach ( $languages as $lang ) : ?>
-								<option value="<?php echo esc_attr( $lang['slug'] ); ?>"><?php echo esc_html( $lang['name'] ); ?></option>
-							<?php endforeach; ?>
+			<?php
+			if ( '' !== $filter ) {
+				echo $filter; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- built + escaped by the caller.
+			}
+			?>
+
+			<?php if ( empty( $languages ) ) : ?>
+				<p><em><?php esc_html_e( 'Add at least one non-default language in Polylang to translate strings.', 'supertext-polylang' ); ?></em></p>
+			<?php else : ?>
+				<div class="st-bulkrow">
+					<span class="st-select-wrap">
+						<select name="st_action" form="<?php echo esc_attr( $fid ); ?>" class="st-select st-bulk-action">
+							<option value="-1"><?php esc_html_e( 'Bulk actions', 'supertext-polylang' ); ?></option>
+							<option value="ai"><?php esc_html_e( 'Translate with Supertext AI', 'supertext-polylang' ); ?></option>
+							<?php if ( $human ) : ?>
+								<option value="human"><?php esc_html_e( 'Order human translation', 'supertext-polylang' ); ?></option>
+							<?php endif; ?>
 						</select>
-					</label>
+						<span class="dashicons dashicons-arrow-down-alt2 st-select-chevron"></span>
+					</span>
+					<button type="submit" name="st_apply" value="1" form="<?php echo esc_attr( $fid ); ?>" class="st-btn-outline"><?php esc_html_e( 'Apply', 'supertext-polylang' ); ?></button>
+
 					<?php if ( $human ) : ?>
-						<label class="st-field st-field--human">
-							<span><?php esc_html_e( 'Type', 'supertext-polylang' ); ?></span>
-							<select name="service_id" form="<?php echo esc_attr( $fid ); ?>">
+						<span class="st-select-wrap st-picker st-picker-human">
+							<select name="lang" form="<?php echo esc_attr( $fid ); ?>" class="st-select" title="<?php esc_attr_e( 'Target language', 'supertext-polylang' ); ?>">
+								<?php foreach ( $languages as $lang ) : ?>
+									<option value="<?php echo esc_attr( $lang['slug'] ); ?>"><?php echo esc_html( $lang['name'] ); ?></option>
+								<?php endforeach; ?>
+							</select>
+							<span class="dashicons dashicons-arrow-down-alt2 st-select-chevron"></span>
+						</span>
+						<span class="st-select-wrap st-picker st-picker-human">
+							<select name="service_id" form="<?php echo esc_attr( $fid ); ?>" class="st-select" title="<?php esc_attr_e( 'Translation type', 'supertext-polylang' ); ?>">
 								<?php foreach ( (array) ( $args['human_services'] ?? array() ) as $id => $service ) : ?>
 									<option value="<?php echo esc_attr( (string) $id ); ?>"><?php echo esc_html( (string) ( $service['label'] ?? $id ) ); ?></option>
 								<?php endforeach; ?>
 							</select>
-						</label>
-						<label class="st-field st-field--human">
-							<span><?php esc_html_e( 'Delivery', 'supertext-polylang' ); ?></span>
-							<select name="express" form="<?php echo esc_attr( $fid ); ?>">
+							<span class="dashicons dashicons-arrow-down-alt2 st-select-chevron"></span>
+						</span>
+						<span class="st-select-wrap st-picker st-picker-human">
+							<select name="express" form="<?php echo esc_attr( $fid ); ?>" class="st-select" title="<?php esc_attr_e( 'Delivery', 'supertext-polylang' ); ?>">
 								<?php foreach ( (array) ( $args['express_options'] ?? array() ) as $id => $label ) : ?>
 									<option value="<?php echo esc_attr( (string) $id ); ?>"><?php echo esc_html( (string) $label ); ?></option>
 								<?php endforeach; ?>
 							</select>
-						</label>
+							<span class="dashicons dashicons-arrow-down-alt2 st-select-chevron"></span>
+						</span>
 					<?php endif; ?>
-				</div>
 
-				<div class="st-toolbar__buttons">
-					<button type="submit" name="st_do" value="ai" form="<?php echo esc_attr( $fid ); ?>" class="button st-btn-icon">
-						<span class="dashicons dashicons-superhero-alt"></span><?php esc_html_e( 'Translate with AI', 'supertext-polylang' ); ?>
-					</button>
-					<?php if ( $human ) : ?>
-						<button type="submit" name="st_do" value="human" form="<?php echo esc_attr( $fid ); ?>" class="button button-primary st-btn-icon">
-							<span class="dashicons dashicons-groups"></span><?php esc_html_e( 'Order human translation', 'supertext-polylang' ); ?>
+					<span class="st-bulkrow__right">
+						<button type="submit" name="st_do" value="ai" form="<?php echo esc_attr( $fid ); ?>" class="st-btn-outline st-btn-icon">
+							<span class="dashicons dashicons-superhero-alt"></span><?php esc_html_e( 'Translate with AI', 'supertext-polylang' ); ?>
 						</button>
-					<?php endif; ?>
+						<?php if ( $human ) : ?>
+							<button type="submit" name="st_do" value="human" form="<?php echo esc_attr( $fid ); ?>" class="st-btn-mint st-btn-icon" onclick="return confirm('<?php echo $confirm; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- esc_js above. ?>');">
+								<span class="dashicons dashicons-groups"></span><?php esc_html_e( 'Order human translation', 'supertext-polylang' ); ?>
+							</button>
+						<?php endif; ?>
+					</span>
 				</div>
-			</div>
+			<?php endif; ?>
 		</div>
 
-		<form method="post" id="<?php echo esc_attr( $fid ); ?>" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
-			<input type="hidden" name="action" value="<?php echo esc_attr( (string) $args['action'] ); ?>" />
-			<?php foreach ( (array) ( $args['hidden'] ?? array() ) as $name => $value ) : ?>
-				<input type="hidden" name="<?php echo esc_attr( (string) $name ); ?>" value="<?php echo esc_attr( (string) $value ); ?>" />
-			<?php endforeach; ?>
-			<?php wp_nonce_field( (string) $args['nonce_action'] ); ?>
+		<?php if ( ! empty( $languages ) ) : ?>
+			<form method="post" id="<?php echo esc_attr( $fid ); ?>" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
+				<input type="hidden" name="action" value="<?php echo esc_attr( (string) $args['action'] ); ?>" />
+				<?php foreach ( (array) ( $args['hidden'] ?? array() ) as $name => $value ) : ?>
+					<input type="hidden" name="<?php echo esc_attr( (string) $name ); ?>" value="<?php echo esc_attr( (string) $value ); ?>" />
+				<?php endforeach; ?>
+				<?php wp_nonce_field( (string) $args['nonce_action'] ); ?>
 
-			<?php if ( empty( $rows ) ) : ?>
-				<div class="st-panel"><p style="margin:0;"><?php esc_html_e( 'No strings to translate.', 'supertext-polylang' ); ?></p></div>
-			<?php else : ?>
-				<div class="st-panel st-tablecard">
-					<table class="st-table">
-						<thead>
-							<tr>
-								<th class="st-col-check"><input type="checkbox" class="st-check-all" title="<?php esc_attr_e( 'Select all', 'supertext-polylang' ); ?>" /></th>
-								<th><?php esc_html_e( 'Field', 'supertext-polylang' ); ?></th>
-								<?php if ( $show_group ) : ?>
-									<th><?php esc_html_e( 'Group', 'supertext-polylang' ); ?></th>
-								<?php endif; ?>
-								<th><?php esc_html_e( 'Source', 'supertext-polylang' ); ?></th>
-								<?php foreach ( $languages as $lang ) : ?>
-									<th><?php echo esc_html( $lang['name'] ); ?></th>
-								<?php endforeach; ?>
-							</tr>
-						</thead>
-						<tbody>
-							<?php foreach ( $rows as $i => $row ) : ?>
+				<?php if ( empty( $rows ) ) : ?>
+					<div class="st-panel"><p style="margin:0;"><?php esc_html_e( 'No strings to translate.', 'supertext-polylang' ); ?></p></div>
+				<?php else : ?>
+					<div class="st-panel st-tablecard">
+						<table class="st-table">
+							<thead>
 								<tr>
-									<td class="st-col-check"><input type="checkbox" class="st-row-check" name="sel[]" value="<?php echo (int) $i; ?>" /></td>
-									<td class="st-col-field"><?php echo esc_html( (string) ( $row['name'] ?? '' ) ); ?></td>
+									<th class="st-col-check"><input type="checkbox" class="st-check-all" title="<?php esc_attr_e( 'Select all', 'supertext-polylang' ); ?>" /></th>
+									<th class="st-col-field"><?php esc_html_e( 'Field', 'supertext-polylang' ); ?></th>
 									<?php if ( $show_group ) : ?>
-										<td><span class="st-chip"><?php echo esc_html( (string) ( $row['group'] ?? '' ) ); ?></span></td>
+										<th class="st-col-group"><?php esc_html_e( 'Group', 'supertext-polylang' ); ?></th>
 									<?php endif; ?>
-									<td class="st-col-source">
-										<?php echo esc_html( (string) $row['source'] ); ?>
-										<input type="hidden" name="src[<?php echo (int) $i; ?>]" value="<?php echo esc_attr( (string) $row['source'] ); ?>" />
-									</td>
+									<th class="st-col-source"><?php esc_html_e( 'Source', 'supertext-polylang' ); ?></th>
 									<?php foreach ( $languages as $lang ) : ?>
-										<?php $slug = $lang['slug']; ?>
-										<td>
-											<textarea
-												name="tr[<?php echo esc_attr( $slug ); ?>][<?php echo (int) $i; ?>]"
-												rows="2"
-												class="st-tr-input"
-												placeholder="<?php echo esc_attr( sprintf( /* translators: %s language name */ __( 'Add %s translation…', 'supertext-polylang' ), $lang['name'] ) ); ?>"
-											><?php echo esc_textarea( (string) ( $translations[ $slug ][ $row['source'] ] ?? '' ) ); ?></textarea>
-										</td>
+										<th><?php echo esc_html( $lang['name'] ); ?></th>
 									<?php endforeach; ?>
 								</tr>
-							<?php endforeach; ?>
-						</tbody>
-					</table>
-				</div>
+							</thead>
+							<tbody>
+								<?php foreach ( $rows as $i => $row ) : ?>
+									<tr>
+										<td class="st-col-check"><input type="checkbox" class="st-row-check" name="sel[]" value="<?php echo (int) $i; ?>" /></td>
+										<td class="st-col-field"><?php echo esc_html( (string) ( $row['name'] ?? '' ) ); ?></td>
+										<?php if ( $show_group ) : ?>
+											<td class="st-col-group"><span class="st-chip"><?php echo esc_html( (string) ( $row['group'] ?? '' ) ); ?></span></td>
+										<?php endif; ?>
+										<td class="st-col-source">
+											<?php echo esc_html( (string) $row['source'] ); ?>
+											<input type="hidden" name="src[<?php echo (int) $i; ?>]" value="<?php echo esc_attr( (string) $row['source'] ); ?>" />
+										</td>
+										<?php foreach ( $languages as $lang ) : ?>
+											<?php $slug = $lang['slug']; ?>
+											<td>
+												<textarea
+													name="tr[<?php echo esc_attr( $slug ); ?>][<?php echo (int) $i; ?>]"
+													rows="1"
+													class="st-tr-input"
+													placeholder="<?php echo esc_attr( sprintf( /* translators: %s language name */ __( 'Add %s translation…', 'supertext-polylang' ), $lang['name'] ) ); ?>"
+												><?php echo esc_textarea( (string) ( $translations[ $slug ][ $row['source'] ] ?? '' ) ); ?></textarea>
+											</td>
+										<?php endforeach; ?>
+									</tr>
+								<?php endforeach; ?>
+							</tbody>
+						</table>
+					</div>
 
-				<p class="submit">
-					<button type="submit" name="st_save" value="1" class="button"><?php esc_html_e( 'Save changes', 'supertext-polylang' ); ?></button>
-					<span class="description" style="margin-left:.5em;"><?php esc_html_e( 'Tick rows, then use “Translate with AI” or order human translation. Or edit directly and Save.', 'supertext-polylang' ); ?></span>
-				</p>
-			<?php endif; ?>
-		</form>
+					<div class="st-savebar">
+						<button type="submit" name="st_save" value="1" class="st-btn-mint st-btn-icon">
+							<span class="dashicons dashicons-yes"></span><?php esc_html_e( 'Save translations', 'supertext-polylang' ); ?>
+						</button>
+						<span class="st-savebar__note"><?php esc_html_e( 'Changes apply to the strings shown under Languages → String translations.', 'supertext-polylang' ); ?></span>
+					</div>
+				<?php endif; ?>
+			</form>
+		<?php endif; ?>
 		<?php
 	}
 
@@ -186,7 +191,9 @@ class String_Table {
 	 */
 	public static function read_submit(): array {
 		// phpcs:disable WordPress.Security.NonceVerification.Missing -- caller verifies the nonce.
-		$do         = isset( $_POST['st_do'] ) ? sanitize_key( wp_unslash( $_POST['st_do'] ) ) : '';
+		$do_btn     = isset( $_POST['st_do'] ) ? sanitize_key( wp_unslash( $_POST['st_do'] ) ) : '';
+		$apply      = isset( $_POST['st_apply'] );
+		$action     = isset( $_POST['st_action'] ) ? sanitize_key( wp_unslash( $_POST['st_action'] ) ) : '-1';
 		$lang       = isset( $_POST['lang'] ) ? sanitize_key( wp_unslash( $_POST['lang'] ) ) : '';
 		$service_id = isset( $_POST['service_id'] ) ? (int) $_POST['service_id'] : 0;
 		$express    = isset( $_POST['express'] ) ? sanitize_key( wp_unslash( $_POST['express'] ) ) : '';
@@ -195,9 +202,15 @@ class String_Table {
 		$sel        = ( isset( $_POST['sel'] ) && is_array( $_POST['sel'] ) ) ? array_map( 'intval', (array) $_POST['sel'] ) : array();
 		// phpcs:enable WordPress.Security.NonceVerification.Missing
 
-		// The AI / human buttons submit `st_do`; the Save button doesn't, so anything
-		// else just saves the visible grid.
-		$do = in_array( $do, array( 'ai', 'human' ), true ) ? $do : 'save';
+		// A right-hand button (st_do) wins; otherwise "Apply" runs the dropdown action;
+		// the Save button (neither) just saves the visible grid.
+		if ( in_array( $do_btn, array( 'ai', 'human' ), true ) ) {
+			$do = $do_btn;
+		} elseif ( $apply && in_array( $action, array( 'ai', 'human' ), true ) ) {
+			$do = $action;
+		} else {
+			$do = 'save';
+		}
 
 		$src_clean = array();
 		foreach ( $src as $i => $value ) {

@@ -1,20 +1,32 @@
 /**
- * "Select all" checkbox for the Supertext string tables.
+ * Supertext string table: "select all" + reveal the human-order pickers when the
+ * bulk-action dropdown is set to human.
  *
  * @package Supertext_Polylang
  */
 ( function () {
 	'use strict';
 
+	function syncPickers() {
+		var sel = document.querySelector( '.st-bulk-action' );
+		var human = sel && sel.value === 'human';
+		document.querySelectorAll( '.st-picker-human' ).forEach( function ( el ) {
+			el.style.display = human ? '' : 'none';
+		} );
+	}
+
 	document.addEventListener( 'change', function ( e ) {
-		var all = e.target.closest ? e.target.closest( '.st-check-all' ) : null;
-		if ( ! all ) {
+		var t = e.target;
+		if ( t.closest && t.closest( '.st-check-all' ) ) {
+			document.querySelectorAll( '.st-row-check' ).forEach( function ( box ) {
+				box.checked = t.checked;
+			} );
 			return;
 		}
-		// The row checkboxes live in the POST form; the select-all lives in the
-		// table card, so scope by the whole document (one table per page).
-		document.querySelectorAll( '.st-row-check' ).forEach( function ( box ) {
-			box.checked = all.checked;
-		} );
+		if ( t.closest && t.closest( '.st-bulk-action' ) ) {
+			syncPickers();
+		}
 	} );
+
+	document.addEventListener( 'DOMContentLoaded', syncPickers );
 } )();
