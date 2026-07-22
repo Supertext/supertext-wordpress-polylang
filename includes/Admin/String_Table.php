@@ -67,9 +67,9 @@ class String_Table {
 					<span class="st-select-wrap">
 						<select name="st_action" form="<?php echo esc_attr( $fid ); ?>" class="st-select st-bulk-action">
 							<option value="-1"><?php esc_html_e( 'Bulk actions', 'supertext-polylang' ); ?></option>
-							<option value="ai"><?php esc_html_e( 'Translate with Supertext AI', 'supertext-polylang' ); ?></option>
+							<option value="ai"><?php esc_html_e( 'Supertext AI Translation', 'supertext-polylang' ); ?></option>
 							<?php if ( $human ) : ?>
-								<option value="human"><?php esc_html_e( 'Fused translation', 'supertext-polylang' ); ?></option>
+								<option value="human"><?php esc_html_e( 'Supertext Human Translation', 'supertext-polylang' ); ?></option>
 							<?php endif; ?>
 						</select>
 						<span class="dashicons dashicons-arrow-down-alt2 st-select-chevron"></span>
