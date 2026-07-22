@@ -255,20 +255,20 @@
 .supertext-admin p.submit .button-primary,
 .supertext-admin .button-primary {
 	border-radius: 999px !important;
-	background: linear-gradient( 135deg, #a2ffd0 0%, #23c06f 100% );
-	border-color: #1eae63;
+	background: #7ce7a1;
+	border-color: #7ce7a1;
 	color: #06371f;
 	text-shadow: none;
-	box-shadow: 0 1px 2px rgba( 11, 59, 43, 0.18 );
-	padding: 4px 18px;
+	box-shadow: none;
+	padding: 5px 20px;
 	height: auto;
 	line-height: 2;
 	font-weight: 600;
 }
 .supertext-admin .button-primary:hover,
 .supertext-admin .button-primary:focus {
-	background: linear-gradient( 135deg, #8ff7c0 0%, #17a95d 100% );
-	border-color: #159952;
+	background: #6cdd91;
+	border-color: #6cdd91;
 	color: #06371f;
 }
 .supertext-admin .button .dashicons {
