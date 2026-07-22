@@ -11,6 +11,7 @@ use GFAPI;
 use WP_Syntex\Polylang_Pro\Modules\Machine_Translation\Factory;
 use Supertext\Polylang\Admin\Integrations;
 use Supertext\Polylang\Admin\Page;
+use Supertext\Polylang\Admin\String_Translations_Page;
 
 /**
  * "Gravity Forms" submenu under Supertext (shown only when the integration is
@@ -82,13 +83,6 @@ class Admin_Page {
 			return;
 		}
 
-		// The per-form string editor lives on the same page, keyed by `form_id`.
-		// phpcs:ignore WordPress.Security.NonceVerification.Recommended
-		if ( isset( $_GET['form_id'] ) ) {
-			Editor::render( (int) $_GET['form_id'] );
-			return;
-		}
-
 		$notice_key = self::NOTICE_TRANSIENT . '_' . get_current_user_id();
 		$notice     = get_transient( $notice_key );
 		if ( is_array( $notice ) ) {
@@ -156,7 +150,7 @@ class Admin_Page {
 									<strong><?php echo esc_html( (string) $form['title'] ); ?></strong>
 									<div style="color:#787c82;">#<?php echo (int) $form_id; ?></div>
 									<div>
-										<a href="<?php echo esc_url( add_query_arg( array( 'page' => self::SLUG, 'form_id' => $form_id ), admin_url( 'admin.php' ) ) ); ?>">
+										<a href="<?php echo esc_url( add_query_arg( array( 'page' => String_Translations_Page::SLUG, 'st_group' => Strings::group_name( $form ) ), admin_url( 'admin.php' ) ) ); ?>">
 											<?php esc_html_e( 'Edit translations', 'supertext-polylang' ); ?>
 										</a>
 									</div>

@@ -244,12 +244,13 @@ class Strings {
 	}
 
 	/**
-	 * Builds the Polylang group label for a form.
+	 * Builds the Polylang group label for a form. Public so the Gravity Forms
+	 * overview can link into the String Translation page pre-filtered to this group.
 	 *
 	 * @param array $form Gravity Forms form.
 	 * @return string
 	 */
-	private static function group_name( array $form ): string {
+	public static function group_name( array $form ): string {
 		$id    = (int) ( $form['id'] ?? 0 );
 		$title = trim( (string) ( $form['title'] ?? '' ) );
 		return '' !== $title
