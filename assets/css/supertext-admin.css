@@ -354,6 +354,37 @@
 }
 .supertext-admin .st-count { color: #98a2b3; font-size: 13.5px; font-weight: 600; }
 
+/* "Empty translation only" pill toggle */
+.supertext-admin .st-check-pill {
+	display: inline-flex;
+	align-items: center;
+	gap: 9px;
+	border: 1px solid #d0d5dd;
+	border-radius: 999px;
+	padding: 8px 18px;
+	font-size: 13.5px;
+	font-weight: 600;
+	color: #101828;
+	background: #fff;
+	cursor: pointer;
+	white-space: nowrap;
+}
+.supertext-admin .st-check-pill input[type="checkbox"] {
+	-webkit-appearance: checkbox !important;
+	-moz-appearance: checkbox !important;
+	appearance: auto !important;
+	accent-color: #12885a;
+	width: 18px;
+	height: 18px;
+	min-width: 18px;
+	margin: 0;
+	border: 0 !important;
+	box-shadow: none !important;
+	background: none !important;
+	cursor: pointer;
+}
+.supertext-admin .st-check-pill input[type="checkbox"]:checked::before { content: none !important; }
+
 /* Pill selects with a custom chevron */
 .supertext-admin .st-select-wrap { position: relative; display: inline-flex; }
 .supertext-admin .st-select {

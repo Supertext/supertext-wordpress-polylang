@@ -104,6 +104,7 @@ class String_Translations_Page {
 		// phpcs:disable WordPress.Security.NonceVerification.Recommended
 		$group  = isset( $_GET['st_group'] ) ? sanitize_text_field( wp_unslash( $_GET['st_group'] ) ) : '';
 		$search = isset( $_GET['st_search'] ) ? sanitize_text_field( wp_unslash( $_GET['st_search'] ) ) : '';
+		$empty  = ! empty( $_GET['st_empty'] );
 		// phpcs:enable WordPress.Security.NonceVerification.Recommended
 
 		$all    = PLL_Admin_Strings::get_strings();
@@ -155,6 +156,24 @@ class String_Translations_Page {
 		foreach ( $languages as $lang ) {
 			$translations[ $lang['slug'] ] = String_Store::translations_for( $lang['slug'], $sources );
 		}
+
+		// "Empty translation only": keep rows missing at least one target-language
+		// translation.
+		if ( $empty ) {
+			$rows = array_values(
+				array_filter(
+					$rows,
+					static function ( $row ) use ( $languages, $translations ) {
+						foreach ( $languages as $lang ) {
+							if ( '' === (string) ( $translations[ $lang['slug'] ][ $row['source'] ] ?? '' ) ) {
+								return true;
+							}
+						}
+						return false;
+					}
+				)
+			);
+		}
 		?>
 		<div class="wrap supertext-admin">
 			<?php
@@ -179,6 +198,10 @@ class String_Translations_Page {
 						<option value="<?php echo esc_attr( $g ); ?>" <?php selected( $group, $g ); ?>><?php echo esc_html( $g ); ?></option>
 					<?php endforeach; ?>
 				</select>
+				<label class="st-check-pill">
+					<input type="checkbox" name="st_empty" value="1" <?php checked( $empty ); ?> onchange="this.form.submit();" />
+					<span><?php esc_html_e( 'Empty translation only', 'supertext-polylang' ); ?></span>
+				</label>
 				<span class="st-search">
 					<span class="dashicons dashicons-search"></span>
 					<input type="search" name="st_search" value="<?php echo esc_attr( $search ); ?>" placeholder="<?php esc_attr_e( 'Search strings…', 'supertext-polylang' ); ?>" />
@@ -201,6 +224,7 @@ class String_Translations_Page {
 					'hidden'          => array(
 						'st_group'  => $group,
 						'st_search' => $search,
+						'st_empty'  => $empty ? '1' : '',
 					),
 					'rows'            => $rows,
 					'languages'       => $languages,
@@ -272,6 +296,9 @@ class String_Translations_Page {
 		}
 		if ( isset( $_POST['st_search'] ) ) {
 			$args['st_search'] = sanitize_text_field( wp_unslash( $_POST['st_search'] ) );
+		}
+		if ( ! empty( $_POST['st_empty'] ) ) {
+			$args['st_empty'] = '1';
 		}
 		// phpcs:enable WordPress.Security.NonceVerification.Missing
 
