@@ -47,7 +47,7 @@ class String_Table {
 		$filter       = (string) ( $args['filter_html'] ?? '' );
 		$intro        = (string) ( $args['intro'] ?? '' );
 		$fid          = self::FORM_ID;
-		$confirm      = esc_js( __( 'Start a Fused translation order for the checked rows?', 'supertext-polylang' ) );
+		$confirm      = __( 'Start a Fused translation order for the checked rows?', 'supertext-polylang' );
 		?>
 		<div class="st-panel st-toolbar">
 			<?php if ( '' !== $intro ) : ?>
@@ -74,7 +74,7 @@ class String_Table {
 						</select>
 						<span class="dashicons dashicons-arrow-down-alt2 st-select-chevron"></span>
 					</span>
-					<button type="submit" name="st_apply" value="1" form="<?php echo esc_attr( $fid ); ?>" class="st-btn-outline"><?php esc_html_e( 'Apply', 'supertext-polylang' ); ?></button>
+					<button type="submit" name="st_apply" value="1" form="<?php echo esc_attr( $fid ); ?>" class="st-btn-outline st-apply" data-confirm="<?php echo esc_attr( $confirm ); ?>"><?php esc_html_e( 'Apply', 'supertext-polylang' ); ?></button>
 
 					<?php if ( $human ) : ?>
 						<span class="st-select-wrap st-picker st-picker-human">
@@ -103,16 +103,6 @@ class String_Table {
 						</span>
 					<?php endif; ?>
 
-					<span class="st-bulkrow__right">
-						<button type="submit" name="st_do" value="ai" form="<?php echo esc_attr( $fid ); ?>" class="st-btn-outline st-btn-icon">
-							<svg class="st-svg" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2.5l1.7 4.6 4.6 1.7-4.6 1.7L12 15.1l-1.7-4.6L5.7 8.8l4.6-1.7L12 2.5z"/><path d="M18.5 13.5l.9 2.4 2.4.9-2.4.9-.9 2.4-.9-2.4-2.4-.9 2.4-.9.9-2.4z"/></svg><?php esc_html_e( 'Translate with AI', 'supertext-polylang' ); ?>
-						</button>
-						<?php if ( $human ) : ?>
-							<button type="submit" name="st_do" value="human" form="<?php echo esc_attr( $fid ); ?>" class="st-btn-mint st-btn-icon" onclick="return confirm('<?php echo $confirm; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- esc_js above. ?>');">
-								<svg class="st-svg" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M16 11c1.66 0 3-1.34 3-3s-1.34-3-3-3-3 1.34-3 3 1.34 3 3 3zm-8 0c1.66 0 3-1.34 3-3S9.66 5 8 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5C15 14.17 10.33 13 8 13zm8 0c-.29 0-.62.02-.97.05C16.19 13.89 17 15.02 17 16.5V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg><?php esc_html_e( 'Fused translation', 'supertext-polylang' ); ?>
-							</button>
-						<?php endif; ?>
-					</span>
 				</div>
 			<?php endif; ?>
 		</div>

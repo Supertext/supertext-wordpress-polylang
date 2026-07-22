@@ -347,29 +347,26 @@
 	width: 100%;
 	border: 1px solid #d0d5dd;
 	border-radius: 999px;
-	padding: 9px 18px 9px 40px;
+	padding: 0 18px 0 40px;
 	font-size: 13.5px;
 	color: #101828;
 	background: #fff;
 }
 .supertext-admin .st-count { color: #98a2b3; font-size: 13.5px; font-weight: 600; }
 
-/* "Empty translation only" pill toggle */
-.supertext-admin .st-check-pill {
+/* "Empty translation only" — borderless toggle */
+.supertext-admin .st-check-plain {
 	display: inline-flex;
 	align-items: center;
 	gap: 9px;
-	border: 1px solid #d0d5dd;
-	border-radius: 999px;
-	padding: 8px 18px;
 	font-size: 13.5px;
 	font-weight: 600;
 	color: #101828;
-	background: #fff;
 	cursor: pointer;
 	white-space: nowrap;
+	height: 40px;
 }
-.supertext-admin .st-check-pill input[type="checkbox"] {
+.supertext-admin .st-check-plain input[type="checkbox"] {
 	-webkit-appearance: checkbox !important;
 	-moz-appearance: checkbox !important;
 	appearance: auto !important;
@@ -383,7 +380,16 @@
 	background: none !important;
 	cursor: pointer;
 }
-.supertext-admin .st-check-pill input[type="checkbox"]:checked::before { content: none !important; }
+.supertext-admin .st-check-plain input[type="checkbox"]:checked::before { content: none !important; }
+
+/* Uniform control height across the toolbar */
+.supertext-admin .st-select,
+.supertext-admin .st-search input[type="search"],
+.supertext-admin .st-btn-outline,
+.supertext-admin .st-btn-mint {
+	height: 40px;
+	box-sizing: border-box;
+}
 
 /* Pill selects with a custom chevron */
 .supertext-admin .st-select-wrap { position: relative; display: inline-flex; }
@@ -392,7 +398,8 @@
 	-webkit-appearance: none;
 	border: 1px solid #d0d5dd;
 	border-radius: 999px;
-	padding: 9px 40px 9px 18px;
+	padding: 0 40px 0 18px;
+	line-height: 38px;
 	font-size: 13.5px;
 	font-weight: 600;
 	color: #101828;
@@ -428,11 +435,12 @@
 .supertext-admin .st-btn-outline {
 	display: inline-flex;
 	align-items: center;
+	justify-content: center;
 	gap: 8px;
 	border: 1px solid #1f4f3d;
 	background: #fff;
 	color: #123a2e;
-	padding: 9px 22px;
+	padding: 0 24px;
 	border-radius: 999px;
 	font-size: 13.5px;
 	font-weight: 600;
@@ -444,11 +452,12 @@
 .supertext-admin .st-btn-mint {
 	display: inline-flex;
 	align-items: center;
+	justify-content: center;
 	gap: 8px;
 	border: none;
 	background: #78ffaf;
 	color: #0d3025;
-	padding: 10px 22px;
+	padding: 0 24px;
 	border-radius: 999px;
 	font-size: 13.5px;
 	font-weight: 700;

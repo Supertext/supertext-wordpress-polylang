@@ -192,20 +192,23 @@ class String_Translations_Page {
 			<form method="get" class="st-filter">
 				<input type="hidden" name="page" value="<?php echo esc_attr( self::SLUG ); ?>" />
 				<label for="st-filter-group" class="screen-reader-text"><?php esc_html_e( 'Group', 'supertext-polylang' ); ?></label>
-				<select name="st_group" id="st-filter-group" class="st-filter__group">
-					<option value=""><?php esc_html_e( 'All groups', 'supertext-polylang' ); ?></option>
-					<?php foreach ( $groups as $g ) : ?>
-						<option value="<?php echo esc_attr( $g ); ?>" <?php selected( $group, $g ); ?>><?php echo esc_html( $g ); ?></option>
-					<?php endforeach; ?>
-				</select>
-				<label class="st-check-pill">
-					<input type="checkbox" name="st_empty" value="1" <?php checked( $empty ); ?> onchange="this.form.submit();" />
-					<span><?php esc_html_e( 'Empty translation only', 'supertext-polylang' ); ?></span>
-				</label>
+				<span class="st-select-wrap">
+					<select name="st_group" id="st-filter-group" class="st-select st-filter__group">
+						<option value=""><?php esc_html_e( 'All groups', 'supertext-polylang' ); ?></option>
+						<?php foreach ( $groups as $g ) : ?>
+							<option value="<?php echo esc_attr( $g ); ?>" <?php selected( $group, $g ); ?>><?php echo esc_html( $g ); ?></option>
+						<?php endforeach; ?>
+					</select>
+					<span class="dashicons dashicons-arrow-down-alt2 st-select-chevron"></span>
+				</span>
 				<span class="st-search">
 					<span class="dashicons dashicons-search"></span>
 					<input type="search" name="st_search" value="<?php echo esc_attr( $search ); ?>" placeholder="<?php esc_attr_e( 'Search strings…', 'supertext-polylang' ); ?>" />
 				</span>
+				<label class="st-check-plain">
+					<input type="checkbox" name="st_empty" value="1" <?php checked( $empty ); ?> onchange="this.form.submit();" />
+					<span><?php esc_html_e( 'Empty translation only', 'supertext-polylang' ); ?></span>
+				</label>
 				<button type="submit" class="st-btn-outline"><?php esc_html_e( 'Filter', 'supertext-polylang' ); ?></button>
 				<span class="st-count">
 					<?php

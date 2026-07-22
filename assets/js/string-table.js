@@ -28,5 +28,17 @@
 		}
 	} );
 
+	// Confirm before Apply places a Fused (human) order.
+	document.addEventListener( 'click', function ( e ) {
+		var apply = e.target.closest ? e.target.closest( '.st-apply' ) : null;
+		if ( ! apply ) {
+			return;
+		}
+		var sel = document.querySelector( '.st-bulk-action' );
+		if ( sel && sel.value === 'human' && ! window.confirm( apply.getAttribute( 'data-confirm' ) || 'Confirm?' ) ) {
+			e.preventDefault();
+		}
+	} );
+
 	document.addEventListener( 'DOMContentLoaded', syncPickers );
 } )();
