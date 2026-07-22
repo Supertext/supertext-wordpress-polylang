@@ -452,14 +452,22 @@
 }
 .supertext-admin .st-table tbody tr:hover td { background: #fbfdfc; }
 .supertext-admin .st-col-check { width: 44px; text-align: center; }
-.supertext-admin .st-col-check input,
-.supertext-admin .st-check-all,
-.supertext-admin .st-row-check {
+/* WordPress styles checkboxes with a custom appearance (which ignores
+   accent-color); force native rendering so the green accent shows. */
+.supertext-admin .st-col-check input[type="checkbox"] {
+	-webkit-appearance: checkbox !important;
+	-moz-appearance: checkbox !important;
+	appearance: auto !important;
 	accent-color: #12885a;
 	width: 18px;
 	height: 18px;
+	min-width: 18px;
+	border: 0 !important;
+	box-shadow: none !important;
+	background: none !important;
 	cursor: pointer;
 }
+.supertext-admin .st-col-check input[type="checkbox"]:checked::before { content: none !important; }
 .supertext-admin .st-col-field { width: 150px; font-size: 13.5px; font-weight: 600; color: #344054; }
 .supertext-admin .st-col-group { width: 120px; }
 .supertext-admin .st-col-source { color: #475467; font-size: 14px; line-height: 1.5; word-break: break-word; }
