@@ -61,13 +61,12 @@
 		return Number( n ).toFixed( 2 );
 	}
 
-	// Collapses Delivery to a single disabled placeholder (options depend on the quote).
+	// Collapses Delivery to a single placeholder (options depend on the quote).
 	function deliveryPlaceholder( text ) {
 		var sel = document.getElementById( 'st-express' );
 		if ( ! sel ) {
 			return;
 		}
-		sel.disabled = true;
 		sel.innerHTML = '';
 		var opt = document.createElement( 'option' );
 		opt.value = '';
@@ -107,7 +106,6 @@
 			}
 		} );
 
-		sel.disabled = false;
 		sel.value = toSelect;
 	}
 

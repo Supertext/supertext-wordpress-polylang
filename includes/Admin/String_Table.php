@@ -132,9 +132,9 @@ class String_Table {
 							</select>
 							<span class="dashicons dashicons-arrow-down-alt2 st-select-chevron"></span>
 						</span>
-						<?php // Delivery options + prices are filled in from a live quote; disabled until then. ?>
+						<?php // Delivery options + prices are filled in from a live quote. ?>
 						<span class="st-select-wrap st-picker st-picker-human">
-							<select name="express" id="st-express" form="<?php echo esc_attr( $fid ); ?>" class="st-select" title="<?php esc_attr_e( 'Delivery', 'supertext-polylang' ); ?>" disabled>
+							<select name="express" id="st-express" form="<?php echo esc_attr( $fid ); ?>" class="st-select" title="<?php esc_attr_e( 'Delivery', 'supertext-polylang' ); ?>">
 								<option value=""><?php esc_html_e( 'Delivery', 'supertext-polylang' ); ?></option>
 							</select>
 							<span class="dashicons dashicons-arrow-down-alt2 st-select-chevron"></span>
