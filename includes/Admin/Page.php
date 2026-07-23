@@ -405,7 +405,7 @@ class Page {
 					<div class="st-step__body">
 						<div class="st-step__title"><?php esc_html_e( 'Configure the AI service', 'supertext-polylang' ); ?></div>
 						<p><?php esc_html_e( 'Enable Machine Translation, choose Supertext, enter your API key, and map your languages in the Polylang settings.', 'supertext-polylang' ); ?></p>
-						<a class="button button-primary st-cta-wide" href="<?php echo esc_url( self::polylang_settings_url() ); ?>">
+						<a class="button button-primary st-cta-wide st-btn-plainfont" href="<?php echo esc_url( self::polylang_settings_url() ); ?>">
 							<?php esc_html_e( 'Open Polylang → Languages → Settings → Machine Translation → Supertext', 'supertext-polylang' ); ?>
 						</a>
 					</div>

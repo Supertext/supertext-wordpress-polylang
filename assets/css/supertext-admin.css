@@ -308,6 +308,14 @@
 /* Full-width "Open Polylang…" style link button. */
 .supertext-admin .st-cta-wide { display: block; text-align: center; }
 
+/* Button label typed like the ".st-inline-ok" status text (13px / 600), not the
+   heavier default primary-button weight. Uses !important to beat the more specific
+   "p.submit .button-primary" rule that wraps submit_button() output. */
+.supertext-admin .st-btn-plainfont {
+	font-size: 13px !important;
+	font-weight: 600 !important;
+}
+
 /* ── String Translation table (Supertext design) ──────────────────────── */
 .supertext-admin .st-panel {
 	background: #fff;

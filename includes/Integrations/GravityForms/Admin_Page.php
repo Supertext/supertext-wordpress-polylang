@@ -159,11 +159,12 @@ class Admin_Page {
 									<?php $status = Strings::translation_status( $form, $lang['slug'] ); ?>
 									<td>
 										<?php if ( $status['total'] > 0 && $status['translated'] >= $status['total'] ) : ?>
-											<span style="color:#00a32a;">&#10003; <?php esc_html_e( 'Translated', 'supertext-polylang' ); ?></span><br />
+											<span style="color:#00a32a;">&#10003; <?php esc_html_e( 'Translated', 'supertext-polylang' ); ?></span>
 										<?php elseif ( $status['translated'] > 0 ) : ?>
-											<span style="color:#dba617;" title="<?php echo esc_attr( sprintf( '%d / %d', $status['translated'], $status['total'] ) ); ?>">&#9888; <?php esc_html_e( 'Partly translated', 'supertext-polylang' ); ?></span><br />
+											<span style="color:#dba617;" title="<?php echo esc_attr( sprintf( '%d / %d', $status['translated'], $status['total'] ) ); ?>">&#9888; <?php esc_html_e( 'Partly translated', 'supertext-polylang' ); ?></span>
+										<?php else : ?>
+											<?php self::translate_button( $form_id, $lang['slug'] ); ?>
 										<?php endif; ?>
-										<?php self::translate_button( $form_id, $lang['slug'], $status['translated'] > 0 ); ?>
 									</td>
 								<?php endforeach; ?>
 							</tr>
@@ -176,28 +177,23 @@ class Admin_Page {
 	}
 
 	/**
-	 * Renders a translate button for one form + language.
+	 * Renders a "Translate (AI)" button for one untranslated form + language.
 	 *
-	 * @param int    $form_id   Form id.
-	 * @param string $lang      Target language slug.
-	 * @param bool   $retranslate Whether a translation already exists.
+	 * Only shown when no translation exists yet; re-translating or editing an
+	 * existing translation is done from the String Translation page.
+	 *
+	 * @param int    $form_id Form id.
+	 * @param string $lang    Target language slug.
 	 * @return void
 	 */
-	private static function translate_button( int $form_id, string $lang, bool $retranslate ): void {
+	private static function translate_button( int $form_id, string $lang ): void {
 		?>
 		<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" style="display:inline;">
 			<input type="hidden" name="action" value="<?php echo esc_attr( self::TRANSLATE_ACTION ); ?>" />
 			<input type="hidden" name="form_id" value="<?php echo esc_attr( (string) $form_id ); ?>" />
 			<input type="hidden" name="lang" value="<?php echo esc_attr( $lang ); ?>" />
 			<?php wp_nonce_field( self::TRANSLATE_ACTION . '_' . $form_id . '_' . $lang ); ?>
-			<?php
-			submit_button(
-				$retranslate ? __( 'Re-translate (AI)', 'supertext-polylang' ) : __( 'Translate (AI)', 'supertext-polylang' ),
-				'small',
-				'submit',
-				false
-			);
-			?>
+			<?php submit_button( __( 'Translate (AI)', 'supertext-polylang' ), 'small', 'submit', false ); ?>
 		</form>
 		<?php
 	}

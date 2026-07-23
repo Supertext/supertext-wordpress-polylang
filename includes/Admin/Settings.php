@@ -379,7 +379,7 @@ class Settings {
 					</td>
 				</tr>
 			</table>
-			<?php submit_button( __( 'Save human translation settings', 'supertext-polylang' ) ); ?>
+			<?php submit_button( __( 'Save human translation settings', 'supertext-polylang' ), 'primary st-btn-plainfont' ); ?>
 		</form>
 		<?php
 	}
