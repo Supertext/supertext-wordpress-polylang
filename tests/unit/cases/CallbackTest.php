@@ -34,6 +34,24 @@ class CallbackTest extends TestCase {
 		$this->assertSame( array( 'type' => 'gf', 'id' => 7, 'lang' => 'fr' ), $parsed );
 	}
 
+	public function test_typed_reference_data_allows_zero_id(): void {
+		// String-translation orders (type `str`) have no backing entity, so they
+		// carry id 0. The callback must accept — and round-trip — that tuple, or the
+		// write-back is rejected with "Invalid or missing ReferenceData."
+		$ref = Callback::reference_data_for( 'str', 0, 'en' );
+
+		$this->assertStringStartsWith( 'str:0:en:', $ref );
+
+		$parsed = self::callPrivate( Callback::class, 'parse_reference_data', array( $ref ) );
+		$this->assertSame( array( 'type' => 'str', 'id' => 0, 'lang' => 'en' ), $parsed );
+	}
+
+	public function test_typed_reference_data_rejects_negative_id(): void {
+		$ref    = Callback::reference_data_for( 'str', 0, 'en' );
+		$forged = 'str:-1:en:' . substr( $ref, strrpos( $ref, ':' ) + 1 );
+		$this->assertNull( self::callPrivate( Callback::class, 'parse_reference_data', array( $forged ) ) );
+	}
+
 	public function test_typed_reference_data_rejects_tampering(): void {
 		$ref    = Callback::reference_data_for( 'gf', 7, 'fr' );
 		$forged = 'gf:999:fr:' . substr( $ref, strrpos( $ref, ':' ) + 1 );

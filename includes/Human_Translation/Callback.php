@@ -272,7 +272,10 @@ class Callback {
 		if ( count( $parts ) === 4 ) {
 			list( $type, $id, $lang, $token ) = $parts;
 			$id = (int) $id;
-			if ( '' === $type || $id <= 0 || '' === $lang ) {
+			// id 0 is valid here: string-translation orders (type `str`) have no
+			// backing entity, so they legitimately carry id 0. Only a negative id is
+			// malformed. The HMAC below still authenticates the whole tuple.
+			if ( '' === $type || $id < 0 || '' === $lang ) {
 				return null;
 			}
 			if ( ! hash_equals( self::sign_typed( $type, $id, $lang ), (string) $token ) ) {
