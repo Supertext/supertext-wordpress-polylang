@@ -136,7 +136,14 @@
 		var lang = document.getElementById( 'st-lang' );
 		var sources = selectedSources();
 
-		if ( ! service || ! service.value || ! lang || ! lang.value || ! sources.length ) {
+		// No rows ticked: the quote (and therefore the Delivery options) can't be
+		// built, so explain why the Delivery dropdown is empty.
+		if ( ! sources.length ) {
+			deliveryPlaceholder();
+			status( i18n.needRowsPrice || 'Tick at least one row to see delivery options and the price.' );
+			return;
+		}
+		if ( ! service || ! service.value || ! lang || ! lang.value ) {
 			deliveryPlaceholder();
 			status( '' );
 			return;

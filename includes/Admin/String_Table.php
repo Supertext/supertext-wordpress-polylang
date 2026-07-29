@@ -65,6 +65,7 @@ class String_Table {
 					'order'        => __( 'Order', 'supertext-polylang' ),
 					'translate'    => __( 'Translate', 'supertext-polylang' ),
 					'apply'        => __( 'Apply', 'supertext-polylang' ),
+					'needRowsPrice' => __( 'Tick at least one row to see delivery options and the price.', 'supertext-polylang' ),
 				),
 			)
 		);
