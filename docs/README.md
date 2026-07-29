@@ -87,7 +87,7 @@ AI translation is configured in Polylang's own Machine Translation settings.
    button that links straight there), enable **Machine Translation**, and choose
    **Supertext**.
 2. Enter your **API key**. You can generate it at
-   **supertext.com → Integrations → API** (requires the *Admin* role) — the field links to
+   **[supertext.com → Integrations → API](https://www.supertext.com/en/integrations/api)** (requires the *Admin* role) — the field links to
    it directly.
 3. Pick the **Environment** (Live / Staging / Testing).
 4. Map each Polylang language to the matching **Supertext language code** (the fields are
