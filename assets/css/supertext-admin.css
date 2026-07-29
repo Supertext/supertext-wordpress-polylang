@@ -232,17 +232,6 @@
 	font-size: 13px;
 	font-weight: 600;
 }
-/* Larger status pill — used for the "Polylang is already patched" confirmation so
-   it reads at the same visual weight as the wide green CTA button beneath it. */
-.supertext-admin .st-inline-ok--lg {
-	font-size: 16px;
-	padding: 9px 18px;
-}
-.supertext-admin .st-inline-ok--lg .dashicons {
-	font-size: 20px;
-	width: 20px;
-	height: 20px;
-}
 
 /* ── Buttons (pill) ───────────────────────────────────────────────────── */
 .supertext-admin .button,
