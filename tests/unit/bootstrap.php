@@ -68,6 +68,7 @@ if ( ! class_exists( 'WP_Error' ) ) {
 $root = dirname( __DIR__, 2 );
 
 require_once $root . '/includes/Integrations/YooTheme/Layout.php';
+require_once $root . '/includes/Integrations/GravityForms/Fields.php';
 require_once $root . '/includes/Human_Translation/Callback.php';
 require_once $root . '/includes/Human_Translation/Client.php';
 require_once $root . '/includes/Human_Translation/Writeback.php';
