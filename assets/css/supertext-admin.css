@@ -232,6 +232,12 @@
 	font-size: 13px;
 	font-weight: 600;
 }
+/* Match the pill's overall height to the adjacent buttons (40px) without changing
+   the font — only the "Polylang is already patched" confirmation uses this. */
+.supertext-admin .st-inline-ok--btn-h {
+	padding-top: 10px;
+	padding-bottom: 10px;
+}
 
 /* ── Buttons (pill) ───────────────────────────────────────────────────── */
 .supertext-admin .button,

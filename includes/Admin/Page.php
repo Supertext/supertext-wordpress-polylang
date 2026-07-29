@@ -393,7 +393,7 @@ class Page {
 							<p><em><?php esc_html_e( 'Activate Polylang Pro first.', 'supertext-polylang' ); ?></em></p>
 						<?php elseif ( $patched ) : ?>
 							<div class="st-step__actions">
-								<span class="st-inline-ok"><span class="dashicons dashicons-yes-alt"></span><?php esc_html_e( 'Polylang is already patched.', 'supertext-polylang' ); ?></span>
+								<span class="st-inline-ok st-inline-ok--btn-h"><span class="dashicons dashicons-yes-alt"></span><?php esc_html_e( 'Polylang is already patched.', 'supertext-polylang' ); ?></span>
 								<?php self::patch_form( __( 'Re-apply patch', 'supertext-polylang' ), 'secondary' ); ?>
 							</div>
 						<?php else : ?>
