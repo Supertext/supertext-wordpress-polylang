@@ -129,9 +129,10 @@ class Admin_Page {
 			<p class="description" style="max-width:720px;">
 				<?php
 				printf(
-					/* translators: %s is a link to Polylang's String translations screen. */
-					esc_html__( 'Translations are stored in Polylang and can be reviewed or edited under %s.', 'supertext-polylang' ),
-					'<a href="' . esc_url( admin_url( 'admin.php?page=mlang_strings' ) ) . '">' . esc_html__( 'Languages → String translations', 'supertext-polylang' ) . '</a>'
+					/* translators: 1: link to Polylang's String translations screen, 2: link to the Supertext String Translations screen. */
+					esc_html__( 'Translations are stored in %1$s and can be reviewed, edited or ordered from Supertext under %2$s.', 'supertext-polylang' ),
+					'<a href="' . esc_url( admin_url( 'admin.php?page=mlang_strings' ) ) . '">' . esc_html__( 'Polylang', 'supertext-polylang' ) . '</a>',
+					'<a href="' . esc_url( admin_url( 'admin.php?page=' . String_Translations_Page::SLUG ) ) . '">' . esc_html__( 'Supertext → String Translations', 'supertext-polylang' ) . '</a>'
 				);
 				?>
 			</p>
