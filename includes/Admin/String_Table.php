@@ -62,6 +62,9 @@ class String_Table {
 					'needLang'    => __( 'Select a target language.', 'supertext-polylang' ),
 					'needService' => __( 'Select a translation type.', 'supertext-polylang' ),
 					'needDelivery' => __( 'Select a delivery option.', 'supertext-polylang' ),
+					'order'        => __( 'Order', 'supertext-polylang' ),
+					'translate'    => __( 'Translate', 'supertext-polylang' ),
+					'apply'        => __( 'Apply', 'supertext-polylang' ),
 				),
 			)
 		);
@@ -111,8 +114,6 @@ class String_Table {
 						</select>
 						<span class="dashicons dashicons-arrow-down-alt2 st-select-chevron"></span>
 					</span>
-					<button type="submit" name="st_apply" value="1" form="<?php echo esc_attr( $fid ); ?>" class="st-btn-outline st-apply" data-confirm="<?php echo esc_attr( $confirm ); ?>"><?php esc_html_e( 'Apply', 'supertext-polylang' ); ?></button>
-
 					<?php if ( $human ) : ?>
 						<span class="st-select-wrap st-picker st-picker-human">
 							<select name="lang" id="st-lang" form="<?php echo esc_attr( $fid ); ?>" class="st-select" title="<?php esc_attr_e( 'Target language', 'supertext-polylang' ); ?>">
@@ -142,6 +143,7 @@ class String_Table {
 						<span class="st-quote-status st-picker st-picker-human" aria-live="polite"></span>
 					<?php endif; ?>
 
+						<button type="submit" name="st_apply" value="1" form="<?php echo esc_attr( $fid ); ?>" class="st-btn-outline st-apply" data-confirm="<?php echo esc_attr( $confirm ); ?>"><?php esc_html_e( 'Apply', 'supertext-polylang' ); ?></button>
 				</div>
 			<?php endif; ?>
 		</div>

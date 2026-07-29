@@ -25,6 +25,24 @@
 		return !! sel && sel.value === 'human';
 	}
 
+	// Relabels the action button to match the selected bulk action: "Order" for a
+	// human order, "Translate" for AI, and the neutral "Apply" when nothing is picked.
+	function syncButton() {
+		var btn = document.querySelector( '.st-apply' );
+		if ( ! btn ) {
+			return;
+		}
+		var sel = bulkSelect();
+		var value = sel ? sel.value : '';
+		if ( 'human' === value ) {
+			btn.textContent = i18n.order || 'Order';
+		} else if ( 'ai' === value ) {
+			btn.textContent = i18n.translate || 'Translate';
+		} else {
+			btn.textContent = i18n.apply || 'Apply';
+		}
+	}
+
 	// Shows/hides the human pickers (and the quote status line) to match the action.
 	function syncPickers() {
 		var human = isHuman();
@@ -32,6 +50,7 @@
 			// Explicit value, not '': the base .st-picker-human rule is display:none.
 			el.style.display = human ? 'inline-flex' : 'none';
 		} );
+		syncButton();
 		if ( human ) {
 			scheduleQuote();
 		}
