@@ -523,7 +523,7 @@ class Bulk_Actions {
 			return 0;
 		}
 
-		$image = ( new \Supertext\Polylang\Integrations\VibeBoost\Client() )->capture( $url );
+		$image = ( new \Supertext\Polylang\Integrations\VibeBoost\Client( Settings::screenshots_api_key() ) )->capture( $url );
 		if ( is_wp_error( $image ) || '' === (string) $image ) {
 			return 0;
 		}

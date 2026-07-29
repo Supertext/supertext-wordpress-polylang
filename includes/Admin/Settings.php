@@ -83,6 +83,7 @@ class Settings {
 			'writeback_status'          => 'draft',
 			'preview_links_enabled'     => true,
 			'screenshots_enabled'       => true,
+			'screenshots_api_key'       => '',
 		);
 	}
 
@@ -109,6 +110,7 @@ class Settings {
 
 		$out['preview_links_enabled'] = ! empty( $input['preview_links_enabled'] );
 		$out['screenshots_enabled']   = ! empty( $input['screenshots_enabled'] );
+		$out['screenshots_api_key']   = sanitize_text_field( (string) ( $input['screenshots_api_key'] ?? '' ) );
 
 		return $out;
 	}
@@ -224,6 +226,16 @@ class Settings {
 	 */
 	public static function screenshots_enabled(): bool {
 		return (bool) self::get()['screenshots_enabled'];
+	}
+
+	/**
+	 * Returns the VibeBoost Screenshots API key (personal key, prefixed `vibe_`), or
+	 * '' when none is configured. Required for the Pro capture options the plugin uses.
+	 *
+	 * @return string
+	 */
+	public static function screenshots_api_key(): string {
+		return (string) self::get()['screenshots_api_key'];
 	}
 
 	/**
@@ -372,6 +384,33 @@ class Settings {
 									'<a href="%s" target="_blank" rel="noopener">%s</a>',
 									esc_url( 'https://vibeboost.me' ),
 									esc_html__( 'VibeBoost Screenshots', 'supertext-polylang' )
+								)
+							); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- link built from escaped parts.
+							?>
+						</p>
+					</td>
+				</tr>
+				<tr>
+					<th scope="row"><label for="supertext-screenshots-api-key"><?php esc_html_e( 'Screenshot API key', 'supertext-polylang' ); ?></label></th>
+					<td>
+						<input
+							name="<?php echo esc_attr( self::OPTION . '[screenshots_api_key]' ); ?>"
+							id="supertext-screenshots-api-key"
+							type="password"
+							autocomplete="off"
+							class="regular-text"
+							value="<?php echo esc_attr( $current['screenshots_api_key'] ); ?>"
+							placeholder="vibe_…"
+						/>
+						<p class="description">
+							<?php
+							printf(
+								/* translators: %s is a link to the VibeBoost account/API-keys page. */
+								esc_html__( 'Your personal VibeBoost API key (starts with "vibe_"). Required for page screenshots — the capture options the plugin uses need an authenticated key. Create one in your %s.', 'supertext-polylang' ),
+								sprintf(
+									'<a href="%s" target="_blank" rel="noopener">%s</a>',
+									esc_url( 'https://vibeboost.me/account' ),
+									esc_html__( 'VibeBoost account', 'supertext-polylang' )
 								)
 							); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- link built from escaped parts.
 							?>

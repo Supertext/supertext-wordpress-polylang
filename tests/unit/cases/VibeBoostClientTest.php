@@ -107,6 +107,22 @@ class VibeBoostClientTest extends TestCase {
 		$this->assertSame( 'supertext_screenshot_bad_response', $result->get_error_code() );
 	}
 
+	public function test_capture_sends_bearer_auth_when_key_is_configured(): void {
+		$cap = $this->stubResponse( 200, 'image/png', 'X' );
+
+		( new Client( 'vibe_secret123' ) )->capture( 'https://x.example/' );
+
+		$this->assertSame( 'Bearer vibe_secret123', $cap->args['headers']['Authorization'] ?? null );
+	}
+
+	public function test_capture_omits_auth_header_without_key(): void {
+		$cap = $this->stubResponse( 200, 'image/png', 'X' );
+
+		( new Client() )->capture( 'https://x.example/' );
+
+		$this->assertArrayNotHasKey( 'Authorization', $cap->args['headers'] );
+	}
+
 	public function test_capture_returns_error_on_empty_url(): void {
 		$result = ( new Client() )->capture( '   ' );
 

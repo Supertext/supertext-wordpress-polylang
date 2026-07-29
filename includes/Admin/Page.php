@@ -287,6 +287,8 @@ class Page {
 				$shots_on = Settings::screenshots_enabled();
 				if ( ! $shots_on ) {
 					self::state_row( __( 'Page screenshots (VibeBoost)', 'supertext-polylang' ), 'off', __( 'Off', 'supertext-polylang' ) );
+				} elseif ( '' === Settings::screenshots_api_key() ) {
+					self::state_row( __( 'Page screenshots (VibeBoost)', 'supertext-polylang' ), 'warn', __( 'On — but no VibeBoost API key is set, so captures will fail', 'supertext-polylang' ) );
 				} elseif ( $preview_on ) {
 					self::state_row( __( 'Page screenshots (VibeBoost)', 'supertext-polylang' ), 'ok', __( 'On', 'supertext-polylang' ) );
 				} else {

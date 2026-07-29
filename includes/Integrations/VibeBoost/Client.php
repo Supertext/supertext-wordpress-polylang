@@ -18,10 +18,13 @@ use WP_Error;
  * secret preview URL (see {@see \Supertext\Polylang\Preview\Draft_Preview}), which
  * lets the service capture even an unpublished draft.
  *
- * The public capture endpoint needs no authentication, but heavier use may require
- * a VibeBoost subscription. The service is still in development.
+ * VibeBoost now requires a personal API key (prefixed `vibe_`) for the "Pro" capture
+ * options we rely on — `fullPage` and `hideCookies`. The key is sent as an
+ * `Authorization: Bearer vibe_…` header. Configure it in the plugin settings
+ * ({@see \Supertext\Polylang\Admin\Settings::screenshots_api_key()}); create keys at
+ * https://vibeboost.me/account.
  *
- * @see https://vibeboost.me
+ * @see https://vibeboost.me/api/docs
  * @since 0.5.0
  */
 class Client {
@@ -32,6 +35,21 @@ class Client {
 	 * @var string
 	 */
 	const ENDPOINT = 'https://vibeboost.me/api/screenshot';
+
+	/**
+	 * Personal VibeBoost API key (prefixed `vibe_`), or '' when none is configured.
+	 *
+	 * @var string
+	 */
+	private string $api_key;
+
+	/**
+	 * @param string $api_key VibeBoost API key. When empty, the request is sent
+	 *                        unauthenticated (Pro options may then be ignored or rejected).
+	 */
+	public function __construct( string $api_key = '' ) {
+		$this->api_key = trim( $api_key );
+	}
 
 	/**
 	 * Captures a screenshot of a URL and returns the raw image bytes.
@@ -67,11 +85,18 @@ class Client {
 		$separator = ( false === strpos( $endpoint, '?' ) ) ? '?' : '&';
 		$request   = $endpoint . $separator . http_build_query( $params );
 
+		$headers = array( 'Accept' => 'image/png,image/jpeg,image/*' );
+		if ( '' !== $this->api_key ) {
+			// VibeBoost authenticates with a personal key via HTTP Bearer auth; it's
+			// required for the Pro options (fullPage, hideCookies) we send.
+			$headers['Authorization'] = 'Bearer ' . $this->api_key;
+		}
+
 		$response = wp_remote_get(
 			$request,
 			array(
 				'timeout' => 60,
-				'headers' => array( 'Accept' => 'image/png,image/jpeg,image/*' ),
+				'headers' => $headers,
 			)
 		);
 
