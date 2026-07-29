@@ -160,13 +160,6 @@ class Admin_Page {
 								<td>
 									<strong><?php echo esc_html( (string) $form['title'] ); ?></strong>
 									<div style="color:#787c82;">#<?php echo (int) $form_id; ?></div>
-									<?php if ( Strings::is_enabled() ) : ?>
-										<div>
-											<a href="<?php echo esc_url( add_query_arg( array( 'page' => String_Translations_Page::SLUG, 'st_group' => Strings::group_name( $form ) ), admin_url( 'admin.php' ) ) ); ?>">
-												<?php esc_html_e( 'Edit translations', 'supertext-polylang' ); ?>
-											</a>
-										</div>
-									<?php endif; ?>
 								</td>
 								<?php foreach ( $languages as $lang ) : ?>
 									<?php $status = Strings::translation_status( $form, $lang['slug'] ); ?>

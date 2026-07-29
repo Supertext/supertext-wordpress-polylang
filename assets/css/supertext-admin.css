@@ -512,6 +512,10 @@
 }
 .supertext-admin .st-table tbody tr:hover td { background: #fbfdfc; }
 .supertext-admin .st-col-check { width: 44px; text-align: center; }
+/* The generic "thead th { text-align:left }" above out-specifies .st-col-check, so
+   the header checkbox would sit left while the row checkboxes are centred. Re-centre
+   the header cell so the whole checkbox column lines up. */
+.supertext-admin .st-table thead th.st-col-check { text-align: center; }
 /* WordPress styles checkboxes with a custom appearance (which ignores
    accent-color); force native rendering so the green accent shows. */
 .supertext-admin .st-col-check input[type="checkbox"] {
