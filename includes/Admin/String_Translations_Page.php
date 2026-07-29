@@ -262,7 +262,19 @@ class String_Translations_Page {
 			);
 		}
 		if ( isset( $_GET['ordered'] ) ) {
-			echo '<div class="notice notice-success is-dismissible"><p>' . esc_html__( 'Fused translation order submitted. It will be written back automatically when complete.', 'supertext-polylang' ) . '</p></div>';
+			$ids          = array_filter( array_map( 'absint', explode( '-', sanitize_text_field( wp_unslash( $_GET['ordered'] ) ) ) ) );
+			$orders_link  = '<a href="' . esc_url( admin_url( 'admin.php?page=' . Orders_Page::SLUG ) ) . '">' . esc_html__( 'Supertext → Orders', 'supertext-polylang' ) . '</a>';
+			if ( ! empty( $ids ) ) {
+				$numbers = implode( ', ', array_map( static fn( $id ) => '#' . $id, $ids ) );
+				$message = sprintf(
+					/* translators: %s is a comma-separated list of Supertext order numbers (e.g. "#12345"). */
+					_n( 'Order %s submitted to Supertext. It will be written back automatically when complete; track it under', 'Orders %s submitted to Supertext. They will be written back automatically when complete; track them under', count( $ids ), 'supertext-polylang' ),
+					$numbers
+				);
+			} else {
+				$message = __( 'Translation order submitted to Supertext. It will be written back automatically when complete; track it under', 'supertext-polylang' );
+			}
+			echo '<div class="notice notice-success is-dismissible"><p>' . esc_html( $message ) . ' ' . $orders_link . '.</p></div>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- message is esc_html'd; link is built from esc_url/esc_html.
 		}
 		if ( isset( $_GET['error'] ) ) {
 			$msg = get_transient( 'supertext_polylang_strings_error_' . get_current_user_id() );
@@ -342,7 +354,8 @@ class String_Translations_Page {
 				$args['error'] = '1';
 				self::error( $result->get_error_message() );
 			} else {
-				$args['ordered'] = '1';
+				$ids             = array_filter( array_map( 'absint', (array) $result ) );
+				$args['ordered'] = ! empty( $ids ) ? implode( '-', $ids ) : '1';
 			}
 		} else {
 			$args['saved'] = '1';

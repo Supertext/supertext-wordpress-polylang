@@ -491,6 +491,19 @@
 .supertext-admin .st-btn-mint .dashicons { font-size: 18px; width: 18px; height: 18px; line-height: 1; }
 .supertext-admin .st-svg { width: 18px; height: 18px; flex: 0 0 18px; display: block; }
 
+/* Action button in its submitting state: a spinner + "Ordering…/Translating…". */
+.supertext-admin .st-apply--busy { pointer-events: none; opacity: 0.9; gap: 8px; }
+.supertext-admin .st-spinner {
+	width: 15px;
+	height: 15px;
+	border-radius: 50%;
+	border: 2px solid currentColor;
+	border-top-color: transparent;
+	display: inline-block;
+	animation: st-spin 0.6s linear infinite;
+}
+@keyframes st-spin { to { transform: rotate( 360deg ); } }
+
 /* Table card */
 .supertext-admin .st-tablecard { padding: 0; overflow: hidden; }
 .supertext-admin .st-table { width: 100%; border-collapse: collapse; }

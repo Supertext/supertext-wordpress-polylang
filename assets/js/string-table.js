@@ -222,39 +222,68 @@
 		}
 	} );
 
-	// Validate + confirm before Apply places a Human order.
+	// Puts the action button into a loading state for the synchronous POST. We do
+	// NOT set `disabled`: a disabled submit button is left out of the form data, so
+	// its name/value (st_apply) — which the handler keys on — would go missing.
+	function setSubmitting( btn, action ) {
+		if ( btn.dataset.stBusy ) {
+			return;
+		}
+		btn.dataset.stBusy = '1';
+		btn.classList.add( 'st-apply--busy' );
+		var label = ( 'human' === action ) ? ( i18n.ordering || 'Ordering…' ) : ( i18n.translating || 'Translating…' );
+		btn.innerHTML = '<span class="st-spinner" aria-hidden="true"></span>' + label;
+	}
+
+	// Validate + confirm before Apply submits, then show a spinner while the
+	// synchronous order/translation POST is in flight (the page reloads on return).
 	document.addEventListener( 'click', function ( e ) {
 		var apply = e.target.closest ? e.target.closest( '.st-apply' ) : null;
-		if ( ! apply || ! isHuman() ) {
+		if ( ! apply ) {
 			return;
 		}
-		var lang = document.getElementById( 'st-lang' );
-		var service = document.getElementById( 'st-service' );
-		var express = document.getElementById( 'st-express' );
+		var sel = bulkSelect();
+		var action = sel ? sel.value : '';
 
-		if ( ! selectedSources().length ) {
-			e.preventDefault();
-			status( i18n.needRows || 'Select at least one row.' );
+		if ( 'human' === action ) {
+			var lang = document.getElementById( 'st-lang' );
+			var service = document.getElementById( 'st-service' );
+			var express = document.getElementById( 'st-express' );
+
+			if ( ! selectedSources().length ) {
+				e.preventDefault();
+				status( i18n.needRows || 'Select at least one row.' );
+				return;
+			}
+			if ( ! lang || ! lang.value ) {
+				e.preventDefault();
+				status( i18n.needLang || 'Select a target language.' );
+				return;
+			}
+			if ( ! service || ! service.value ) {
+				e.preventDefault();
+				status( i18n.needService || 'Select a translation type.' );
+				return;
+			}
+			if ( ! express || ! express.value ) {
+				e.preventDefault();
+				status( i18n.needDelivery || 'Select a delivery option.' );
+				return;
+			}
+			if ( ! window.confirm( apply.getAttribute( 'data-confirm' ) || 'Confirm?' ) ) {
+				e.preventDefault();
+				return;
+			}
+		} else if ( 'ai' === action ) {
+			// No rows: let the server report it — no point spinning for a no-op.
+			if ( ! selectedSources().length ) {
+				return;
+			}
+		} else {
 			return;
 		}
-		if ( ! lang || ! lang.value ) {
-			e.preventDefault();
-			status( i18n.needLang || 'Select a target language.' );
-			return;
-		}
-		if ( ! service || ! service.value ) {
-			e.preventDefault();
-			status( i18n.needService || 'Select a translation type.' );
-			return;
-		}
-		if ( ! express || ! express.value ) {
-			e.preventDefault();
-			status( i18n.needDelivery || 'Select a delivery option.' );
-			return;
-		}
-		if ( ! window.confirm( apply.getAttribute( 'data-confirm' ) || 'Confirm?' ) ) {
-			e.preventDefault();
-		}
+
+		setSubmitting( apply, action );
 	} );
 
 	document.addEventListener( 'DOMContentLoaded', syncPickers );
