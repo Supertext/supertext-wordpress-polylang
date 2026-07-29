@@ -61,7 +61,7 @@ class Layout {
 		 */
 		$keys = apply_filters(
 			'supertext_polylang_yootheme_fields',
-			array( 'content', 'title', 'meta', 'alt', 'image_alt' )
+			array( 'content', 'title', 'meta', 'alt', 'image_alt', 'link_text' )
 		);
 
 		return array_map( 'strval', $keys );
