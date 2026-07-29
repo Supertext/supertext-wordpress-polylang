@@ -93,6 +93,35 @@ add_filter( 'supertext_polylang_yootheme_fields', function ( array $keys ): arra
 > works out of the box. Adding a callback (in an mu-plugin, theme `functions.php`, or this
 > plugin) is only needed to *extend* the defaults.
 
+## Gravity Forms integration
+
+Gravity Forms aren't posts — they live in Gravity Forms' own tables — so they can't ride
+Polylang's post pipeline like YOOtheme does. Instead the integration
+(`includes/Integrations/GravityForms/`) collects a form's visible strings, registers them
+with Polylang, and swaps them at render time.
+
+- **Collection** — `Fields::collect()` walks a form and returns its translatable strings
+  keyed by a stable path (`title`, `button.text`, `field.7.label`, `field.7.choice.2.text`,
+  `field.9.input.1.customLabel`), keyed by field *id* so the paths survive field reordering.
+  Covered properties: the form title/description/button text, and per field its `label`,
+  `description`, `placeholder`, `errorMessage` and `content`, each choice's `text`, and each
+  input's placeholder and **sub-label**.
+- **Sub-labels** — multi-input fields (Name, Email-with-confirmation, …) render an input's
+  `customLabel` when the admin set one, and only fall back to the built-in `label`
+  otherwise. Collection *and* render therefore target `customLabel` when present (that is
+  what the visitor actually sees); inputs flagged `isHidden` (e.g. an unused name
+  prefix/suffix) are skipped. See `Fields::sublabel_prop()`. Getting this wrong stores a
+  translation that never displays — see `tests/unit/cases/GravityFormsFieldsTest.php`.
+- **Storage** — strings are registered with Polylang (`pll_register_string`, grouped per
+  form) and their translations live in Polylang's own per-language store (`PLL_MO`), keyed
+  by the *source string value*. A Supertext AI translation, an edit in Polylang's grid and
+  an edit here are all the same record. Registration is per-request and gated by a
+  persistent opt-in flag (`Strings::is_enabled()` — the **Add to String Translations**
+  button); front-end rendering does not depend on that flag.
+- **Render** — `Integration::translate_form()` hooks `gform_pre_render` and
+  `gform_pre_validation`, and on a non-default language rewrites each visible string through
+  `Fields::apply_callback()` with `pll__()`. Untranslated strings fall back to the source.
+
 ## Required Polylang patch (one line)
 
 Polylang Pro keeps its MT services in a **hardcoded const** with no registration hook:

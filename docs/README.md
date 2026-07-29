@@ -207,20 +207,37 @@ them through its normal pipeline. This plugin adds a dedicated integration inste
 Forms is found, a **Gravity Forms** entry appears under the **Supertext** menu. (The menu is
 hidden until the integration is detected and enabled.)
 
-**2. Translate a form.** Open **Supertext → Gravity Forms**. Each form is listed with a
-column per non‑default language. Click **Translate (AI)** for a form + language to translate
-its text with Supertext AI — labels, descriptions, placeholders, choices, the submit button,
-and so on. A translated cell shows a ✓ and a **Re‑translate (AI)** button to refresh it.
+**2. Add the form strings to Polylang.** Open **Supertext → Gravity Forms** and click
+**Add to String Translations**. This lists every form's translatable text under Polylang's
+own **Languages → String translations**, so form fields are translated and stored exactly
+like the rest of your site's strings. (Click **Remove from String Translations** later to
+hide them again — existing translations are kept either way.)
 
-**3. It shows automatically.** On the front end, when a visitor views the form in a
+**3. Translate a form.** Each form is listed with a column per non‑default language:
+   - **Translate (AI)** — shown while a language is still untranslated. Click it to translate
+     the whole form with Supertext AI.
+   - **✓ Translated** / **⚠ Partly translated** — the current status. To review, edit or
+     re‑translate, use **Edit translations** (or **Languages → String translations**), which
+     opens that form's strings in Polylang's grid.
+
+   What gets translated: the form title and description, each field's label, description,
+   placeholder and validation message, drop‑down/radio/checkbox choices, the submit button,
+   and the sub‑labels of multi‑input fields — a **Name** field's *First*/*Last* and an
+   **Email** field's *Confirm* box, including any custom sub‑labels you set. Hidden
+   sub‑fields (such as an unused name prefix or suffix) are skipped.
+
+**4. It shows automatically.** On the front end, when a visitor views the form in a
 non‑default language, the plugin swaps in the stored translation at render time (via
 `gform_pre_render`/`gform_pre_validation`). Nothing changes in the source form; the original
-language is served untouched. If a form has no translation for the current language, the
+language is served untouched. If a string has no translation for the current language, the
 default text is shown as‑is.
 
-> Translations are stored per form and language by the plugin (not inside Gravity Forms), so
-> re‑saving the form in Gravity Forms won't erase them. New or changed fields simply need a
-> re‑translate.
+> Translations live in **Polylang's** String Translations (keyed by the source text), not
+> inside Gravity Forms — so re‑saving a form in Gravity Forms won't erase them. New or
+> changed fields simply need a re‑translate.
+
+> **Caching note:** front‑end pages may be cached, so after translating a form do a hard
+> refresh (or purge your page cache) to see the new text.
 
 ### Page screenshots (VibeBoost Screenshots)
 
