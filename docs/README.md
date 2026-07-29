@@ -107,7 +107,7 @@ plugin's own settings page.
 1. Go to **Supertext → Settings → Translation Services (human)**.
 2. Choose the **Environment** (Live / Staging / Testing).
 3. Enter your **Account email** and **Order API Key** — find the Order API Key in your
-   **Supertext account settings** (the field links to it).
+   **[Supertext account settings](https://www.supertext.com/services/customer/accountsettings)** (the field links to it).
 4. Choose the **Write‑back** behaviour:
    - **Allow multiple write‑backs** — re‑apply the translation on every completed‑order
      callback (off by default, so the first result wins and your manual edits are kept).
