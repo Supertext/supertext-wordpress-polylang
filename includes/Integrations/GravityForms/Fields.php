@@ -16,8 +16,11 @@ defined( 'ABSPATH' ) || exit;
  * the in-memory form object at render time.
  *
  * Paths look like `title`, `button.text`, `field.7.label`,
- * `field.7.choice.2.text`, `field.9.input.1.label` — keyed by field *id* (not
- * position) so they survive field reordering.
+ * `field.7.choice.2.text`, `field.9.input.1.customLabel` — keyed by field *id* (not
+ * position) so they survive field reordering. For multi-input fields (Name, Email
+ * with confirmation, …) only visible inputs are collected, and the sub-label is read
+ * from `customLabel` when the admin set one (that is what Gravity Forms displays),
+ * falling back to the built-in `label`.
  *
  * @since 0.3.0
  */
@@ -55,10 +58,14 @@ class Fields {
 				}
 			}
 			foreach ( (array) self::get_array( $field, 'inputs' ) as $k => $input ) {
-				if ( is_array( $input ) && isset( $input['label'] ) ) {
-					self::add( $out, "field.$id.input.$k.label", $input['label'] );
+				if ( ! is_array( $input ) || ! empty( $input['isHidden'] ) ) {
+					continue;
 				}
-				if ( is_array( $input ) && isset( $input['placeholder'] ) ) {
+				$prop = self::sublabel_prop( $input );
+				if ( '' !== $prop ) {
+					self::add( $out, "field.$id.input.$k.$prop", $input[ $prop ] );
+				}
+				if ( isset( $input['placeholder'] ) ) {
 					self::add( $out, "field.$id.input.$k.placeholder", $input['placeholder'] );
 				}
 			}
@@ -116,10 +123,14 @@ class Fields {
 			$inputs = self::get_array( $field, 'inputs' );
 			if ( is_array( $inputs ) ) {
 				foreach ( $inputs as $k => $input ) {
-					if ( is_array( $input ) && self::has( $map, "field.$id.input.$k.label" ) ) {
-						$inputs[ $k ]['label'] = $map[ "field.$id.input.$k.label" ];
+					if ( ! is_array( $input ) || ! empty( $input['isHidden'] ) ) {
+						continue;
 					}
-					if ( is_array( $input ) && self::has( $map, "field.$id.input.$k.placeholder" ) ) {
+					$prop = self::sublabel_prop( $input );
+					if ( '' !== $prop && self::has( $map, "field.$id.input.$k.$prop" ) ) {
+						$inputs[ $k ][ $prop ] = $map[ "field.$id.input.$k.$prop" ];
+					}
+					if ( self::has( $map, "field.$id.input.$k.placeholder" ) ) {
 						$inputs[ $k ]['placeholder'] = $map[ "field.$id.input.$k.placeholder" ];
 					}
 				}
@@ -174,10 +185,14 @@ class Fields {
 			$inputs = self::get_array( $field, 'inputs' );
 			if ( is_array( $inputs ) ) {
 				foreach ( $inputs as $k => $input ) {
-					if ( is_array( $input ) && isset( $input['label'] ) && '' !== trim( (string) $input['label'] ) ) {
-						$inputs[ $k ]['label'] = (string) $cb( (string) $input['label'] );
+					if ( ! is_array( $input ) || ! empty( $input['isHidden'] ) ) {
+						continue;
 					}
-					if ( is_array( $input ) && isset( $input['placeholder'] ) && '' !== trim( (string) $input['placeholder'] ) ) {
+					$prop = self::sublabel_prop( $input );
+					if ( '' !== $prop ) {
+						$inputs[ $k ][ $prop ] = (string) $cb( (string) $input[ $prop ] );
+					}
+					if ( isset( $input['placeholder'] ) && '' !== trim( (string) $input['placeholder'] ) ) {
 						$inputs[ $k ]['placeholder'] = (string) $cb( (string) $input['placeholder'] );
 					}
 				}
@@ -225,6 +240,27 @@ class Fields {
 		}
 		if ( is_array( $field ) && isset( $field['id'] ) ) {
 			return (string) $field['id'];
+		}
+		return '';
+	}
+
+	/**
+	 * Returns which input property holds the *displayed* sub-label.
+	 *
+	 * Gravity Forms renders an input's `customLabel` when it is set, and only falls
+	 * back to the built-in `label` otherwise (e.g. a Name field's "First"/"Last", or
+	 * an email-confirmation field). Translating the wrong one is invisible on the
+	 * front end, so both collection and render must target whichever is shown.
+	 *
+	 * @param array $input GF input definition.
+	 * @return string 'customLabel', 'label', or '' when neither carries text.
+	 */
+	private static function sublabel_prop( array $input ): string {
+		if ( isset( $input['customLabel'] ) && '' !== trim( (string) $input['customLabel'] ) ) {
+			return 'customLabel';
+		}
+		if ( isset( $input['label'] ) && '' !== trim( (string) $input['label'] ) ) {
+			return 'label';
 		}
 		return '';
 	}
