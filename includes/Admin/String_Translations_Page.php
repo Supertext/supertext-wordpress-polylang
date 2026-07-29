@@ -90,8 +90,9 @@ class String_Translations_Page {
 		}
 
 		// Gravity Forms strings are only registered on Polylang's own screens; make
-		// sure they're registered here too so they show up in the list.
-		if ( class_exists( GF_Strings::class ) ) {
+		// sure they're registered here too so they show up in the list — but only
+		// once the user has opted in via the Gravity Forms page's "Add" button.
+		if ( class_exists( GF_Strings::class ) && GF_Strings::is_enabled() ) {
 			GF_Strings::register_all();
 		}
 

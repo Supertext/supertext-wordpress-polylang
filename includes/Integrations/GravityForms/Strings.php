@@ -29,6 +29,16 @@ use Supertext\Polylang\Polylang\String_Store;
  */
 class Strings {
 	/**
+	 * Option flag: whether the user has opted to expose Gravity Forms strings in
+	 * Polylang's String Translations. Off by default — the strings only enter the
+	 * list once the user presses the "Add to String Translations" button, which is
+	 * more discoverable than silently populating the list.
+	 *
+	 * @var string
+	 */
+	const OPTION_ENABLED = 'supertext_polylang_gf_strings_enabled';
+
+	/**
 	 * Registers the hooks that keep Polylang's string list populated.
 	 *
 	 * @return void
@@ -38,6 +48,25 @@ class Strings {
 		add_action( 'admin_init', array( self::class, 'maybe_register_all' ) );
 		// Keep a form's strings fresh the moment it's edited.
 		add_action( 'gform_after_save_form', array( self::class, 'on_form_saved' ), 10, 2 );
+	}
+
+	/**
+	 * Whether Gravity Forms strings are opted in to Polylang's String Translations.
+	 *
+	 * @return bool
+	 */
+	public static function is_enabled(): bool {
+		return (bool) get_option( self::OPTION_ENABLED, false );
+	}
+
+	/**
+	 * Sets the opt-in flag.
+	 *
+	 * @param bool $enabled Whether to expose Gravity Forms strings.
+	 * @return void
+	 */
+	public static function set_enabled( bool $enabled ): void {
+		update_option( self::OPTION_ENABLED, $enabled ? 1 : 0 );
 	}
 
 	/**
@@ -51,7 +80,7 @@ class Strings {
 	 * @return void
 	 */
 	public static function maybe_register_all(): void {
-		if ( ! Integrations::enabled( 'gravityforms' ) ) {
+		if ( ! Integrations::enabled( 'gravityforms' ) || ! self::is_enabled() ) {
 			return;
 		}
 		// Read-only page detection; no state change, so no nonce needed.
@@ -70,7 +99,7 @@ class Strings {
 	 * @return void
 	 */
 	public static function on_form_saved( $form, $is_new = false ): void {
-		if ( ! Integrations::enabled( 'gravityforms' ) || ! is_array( $form ) ) {
+		if ( ! Integrations::enabled( 'gravityforms' ) || ! self::is_enabled() || ! is_array( $form ) ) {
 			return;
 		}
 		self::register_form( $form );

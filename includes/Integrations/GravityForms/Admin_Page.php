@@ -37,6 +37,13 @@ class Admin_Page {
 	const TRANSLATE_ACTION = 'supertext_polylang_gf_translate';
 
 	/**
+	 * admin-post action: add/remove Gravity Forms strings from String Translations.
+	 *
+	 * @var string
+	 */
+	const REGISTER_ACTION = 'supertext_polylang_gf_register';
+
+	/**
 	 * Transient key for one-off notices.
 	 *
 	 * @var string
@@ -51,6 +58,7 @@ class Admin_Page {
 	public static function init(): void {
 		add_action( 'admin_menu', array( self::class, 'register_menu' ), 11 );
 		add_action( 'admin_post_' . self::TRANSLATE_ACTION, array( self::class, 'handle_translate' ) );
+		add_action( 'admin_post_' . self::REGISTER_ACTION, array( self::class, 'handle_register' ) );
 	}
 
 	/**
@@ -128,6 +136,8 @@ class Admin_Page {
 				?>
 			</p>
 
+			<?php self::register_box(); ?>
+
 			<?php if ( empty( $languages ) ) : ?>
 				<p><em><?php esc_html_e( 'Add at least one non-default language in Polylang to translate forms.', 'supertext-polylang' ); ?></em></p>
 			<?php elseif ( empty( $forms ) ) : ?>
@@ -149,11 +159,13 @@ class Admin_Page {
 								<td>
 									<strong><?php echo esc_html( (string) $form['title'] ); ?></strong>
 									<div style="color:#787c82;">#<?php echo (int) $form_id; ?></div>
-									<div>
-										<a href="<?php echo esc_url( add_query_arg( array( 'page' => String_Translations_Page::SLUG, 'st_group' => Strings::group_name( $form ) ), admin_url( 'admin.php' ) ) ); ?>">
-											<?php esc_html_e( 'Edit translations', 'supertext-polylang' ); ?>
-										</a>
-									</div>
+									<?php if ( Strings::is_enabled() ) : ?>
+										<div>
+											<a href="<?php echo esc_url( add_query_arg( array( 'page' => String_Translations_Page::SLUG, 'st_group' => Strings::group_name( $form ) ), admin_url( 'admin.php' ) ) ); ?>">
+												<?php esc_html_e( 'Edit translations', 'supertext-polylang' ); ?>
+											</a>
+										</div>
+									<?php endif; ?>
 								</td>
 								<?php foreach ( $languages as $lang ) : ?>
 									<?php $status = Strings::translation_status( $form, $lang['slug'] ); ?>
@@ -196,6 +208,70 @@ class Admin_Page {
 			<?php submit_button( __( 'Translate (AI)', 'supertext-polylang' ), 'small', 'submit', false ); ?>
 		</form>
 		<?php
+	}
+
+	/**
+	 * Renders the "Add / remove Gravity Forms strings from String Translations" box.
+	 *
+	 * Registering form strings with Polylang is per-request, so this stores a
+	 * persistent opt-in flag that the registration hooks honour — making the strings
+	 * appear (or disappear) in the String Translations list on demand.
+	 *
+	 * @return void
+	 */
+	private static function register_box(): void {
+		$enabled = Strings::is_enabled();
+		?>
+		<div class="st-inline-panel" style="max-width:720px;margin:8px 0 20px;padding:16px 18px;border:1px solid #e7e9ee;border-radius:14px;background:#fff;display:flex;align-items:center;gap:16px;flex-wrap:wrap;">
+			<div style="flex:1 1 320px;">
+				<?php if ( $enabled ) : ?>
+					<span class="st-inline-ok"><span class="dashicons dashicons-yes-alt"></span><?php esc_html_e( 'Form strings are in the String Translations list.', 'supertext-polylang' ); ?></span>
+					<p class="description" style="margin:8px 0 0;"><?php esc_html_e( 'Your Gravity Forms strings are listed under String Translations, ready to translate. Remove them to keep the list focused on other strings — existing translations are kept either way.', 'supertext-polylang' ); ?></p>
+				<?php else : ?>
+					<strong><?php esc_html_e( 'Add form strings to String Translations', 'supertext-polylang' ); ?></strong>
+					<p class="description" style="margin:8px 0 0;"><?php esc_html_e( 'Gravity Forms text is not in the String Translations list yet. Add it to translate your form fields, labels and buttons alongside your other strings.', 'supertext-polylang' ); ?></p>
+				<?php endif; ?>
+			</div>
+			<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" style="margin:0;">
+				<input type="hidden" name="action" value="<?php echo esc_attr( self::REGISTER_ACTION ); ?>" />
+				<input type="hidden" name="enable" value="<?php echo $enabled ? '0' : '1'; ?>" />
+				<?php wp_nonce_field( self::REGISTER_ACTION ); ?>
+				<?php
+				submit_button(
+					$enabled ? __( 'Remove from String Translations', 'supertext-polylang' ) : __( 'Add to String Translations', 'supertext-polylang' ),
+					$enabled ? 'secondary' : 'primary',
+					'submit',
+					false
+				);
+				?>
+			</form>
+		</div>
+		<?php
+	}
+
+	/**
+	 * Handles the add/remove request for exposing form strings in String Translations.
+	 *
+	 * @return void
+	 */
+	public static function handle_register(): void {
+		if ( ! current_user_can( 'manage_options' ) ) {
+			wp_die( esc_html__( 'You are not allowed to do this.', 'supertext-polylang' ) );
+		}
+		check_admin_referer( self::REGISTER_ACTION );
+
+		$enable = ! empty( $_POST['enable'] );
+		Strings::set_enabled( $enable );
+
+		self::notice(
+			'success',
+			$enable
+				? __( 'Gravity Forms strings added to String Translations.', 'supertext-polylang' )
+				: __( 'Gravity Forms strings removed from String Translations.', 'supertext-polylang' )
+		);
+
+		wp_safe_redirect( admin_url( 'admin.php?page=' . self::SLUG ) );
+		exit;
 	}
 
 	/**
