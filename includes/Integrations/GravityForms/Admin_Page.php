@@ -118,11 +118,11 @@ class Admin_Page {
 				if ( '' !== $default ) {
 					printf(
 						/* translators: %s is the default language name. */
-						esc_html__( 'Forms are authored in your default language (%s). Translate each form into the other languages with Supertext AI; the translation is shown automatically on the front end for that language.', 'supertext-polylang' ),
+						esc_html__( 'Forms are authored in your default language (%s). Translate each form into the other languages manually or with Supertext; the translation is shown automatically on the front end for that language.', 'supertext-polylang' ),
 						esc_html( $default )
 					);
 				} else {
-					esc_html_e( 'Translate each form into your other languages with Supertext AI.', 'supertext-polylang' );
+					esc_html_e( 'Translate each form into your other languages manually or with Supertext.', 'supertext-polylang' );
 				}
 				?>
 			</p>
