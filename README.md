@@ -136,7 +136,8 @@ Without this patch the plugin loads but stays inert, and shows an admin notice s
 
 1. Apply the patch above and activate this plugin.
 2. *Languages → Settings → Machine Translation* → enable machine translation.
-3. Choose **Supertext**, enter the API key, and map each Polylang language to its Supertext
+3. Choose **Supertext**, enter the API key (from
+   *[Supertext → Integrations → API](https://www.supertext.com/en/integrations/api)*), and map each Polylang language to its Supertext
    code (the fields are pre-filled with BCP-47 suggestions; adjust where Supertext differs).
    Save.
 4. `is_active()` becomes true once a key is stored; Supertext is then used for AI
