@@ -88,7 +88,7 @@ class String_Table {
 		?>
 		<div class="st-panel st-toolbar">
 			<?php if ( '' !== $intro ) : ?>
-				<p class="st-toolbar__intro"><?php echo esc_html( $intro ); ?></p>
+				<p class="st-toolbar__intro"><?php echo wp_kses( $intro, array( 'a' => array( 'href' => array() ) ) ); ?></p>
 			<?php endif; ?>
 
 			<?php

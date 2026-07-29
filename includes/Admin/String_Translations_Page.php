@@ -232,7 +232,11 @@ class String_Translations_Page {
 					'human_services'  => Bulk_Actions::HUMAN_SERVICES,
 					'express_options' => Bulk_Actions::EXPRESS_OPTIONS,
 					'filter_html'     => $filter_html,
-					'intro'           => __( 'All translatable strings registered with Polylang. Tick the rows you want, then translate them with Supertext AI or order human translation — or edit a translation directly and Save. These are the same translations as Languages → String translations.', 'supertext-polylang' ),
+					'intro'           => sprintf(
+						/* translators: %s is a link to Polylang's String translations screen. */
+						__( 'All translatable strings registered with Polylang. Tick the rows you want, then translate them with Supertext AI or order human translation — or edit a translation directly and Save. These are the same translations as %s.', 'supertext-polylang' ),
+						'<a href="' . esc_url( admin_url( 'admin.php?page=mlang_strings' ) ) . '">' . esc_html__( 'Languages → String translations', 'supertext-polylang' ) . '</a>'
+					),
 				)
 			);
 			?>
