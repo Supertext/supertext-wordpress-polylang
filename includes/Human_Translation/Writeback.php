@@ -168,6 +168,12 @@ class Writeback {
 				)
 			)
 		);
+
+		// Delivery is done: drop the open-order lock so this page + language can be
+		// ordered again without a manual Reset on the Orders page. The
+		// `_supertext_order_completed_<lang>` marker set above still guards against a
+		// re-sent callback for THIS order overwriting the result.
+		delete_post_meta( (int) $post_id, '_supertext_order_' . $lang );
 	}
 
 	/**
