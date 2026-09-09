@@ -35,6 +35,7 @@ translation** service in **Polylang Pro**.
   - [Page screenshots (VibeBoost)](#page-screenshots-vibeboost-screenshots)
 - [Compatibility](#compatibility)
 - [How it works](#how-it-works)
+- [FAQ](#faq)
 - [Troubleshooting](#troubleshooting)
 - [Developer reference (filters)](#developer-reference-filters)
 
@@ -327,6 +328,47 @@ it.** There is no separate, parallel content parser to keep in sync.
 
 Both paths share the same field extraction, so page‑builder (YOOtheme) and ACF content are
 handled the same way.
+
+---
+
+## FAQ
+
+**A page says “this page has a human translation order in progress, so it can’t be
+deleted” — but I already reset/cancelled the order (and deleted the translation). How do
+I clear it?**
+
+The delete block is driven by the plugin’s **order registry** (the
+`supertext_polylang_orders` WordPress option) — *not* by the translation page or the
+trash. A source page stays locked while **any** order for it is still “open”, meaning **not
+completed and not `Cancelled`**. So deleting the translated page or emptying the trash does
+not lift it.
+
+To clear it:
+
+1. Go to **Supertext → Orders**, switch the filter to **All**, and click **Reset** on
+   **every** row that belongs to that page. A page can have more than one order (e.g. one
+   per target language, or one left at status `Delivered`/`Unknown`), and each **Reset**
+   only cancels a single order — so reset them all.
+2. If a row still won’t clear, everything lives in that one option. With **WP‑CLI**:
+   ```bash
+   wp option get supertext_polylang_orders --format=json      # inspect
+   wp option delete supertext_polylang_orders                 # wipe (history only — safe)
+   ```
+   `delete` only clears the Orders‑page list; it touches nothing translation‑related and
+   won’t come back on its own. To remove just one order instead of all, set its `status`
+   to `Cancelled` in that option. Optionally tidy leftover `_supertext_order_<lang>` meta
+   on the source page. The same edits are possible via **phpMyAdmin** (`wp_options`).
+
+The lock disappears the moment no open order references the page — no re‑save needed.
+
+**Can I order human translation for a page that’s already translated?**
+
+Yes — but **Reset** the previous order first (**Supertext → Orders**), otherwise you’ll get
+*“An order already exists.”* A re‑order re‑translates the whole source. Whether the
+delivered result overwrites the existing translation depends on the **“Allow multiple
+write‑backs”** setting: **off** (default) keeps the first result and your manual edits;
+**on** overwrites. Once a translation is delivered, its order lock is cleared
+automatically, so you don’t need a manual Reset for the next round.
 
 ---
 
