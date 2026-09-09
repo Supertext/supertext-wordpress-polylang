@@ -1,0 +1,70 @@
+name: Release on minor version bump
+
+# Cuts a GitHub release + installable plugin zip, but ONLY when the major (X) or
+# minor (Y) of the X.Y.Z version changes — patch (Z) bumps do not release.
+#
+# How the gate works: the release is keyed on the "vX.Y." tag line. If any tag for
+# the current X.Y line already exists, this run is a no-op. So the first push that
+# introduces a new minor (e.g. 0.9.x -> 0.10.0) publishes a release; every later
+# patch within that minor is skipped. The existing v0.9.39 release already marks the
+# 0.9 line as released.
+
+on:
+  push:
+    branches: [ main ]
+    paths: [ 'supertext-polylang.php' ]   # version lives here
+  workflow_dispatch:                        # allow manual runs too
+
+permissions:
+  contents: write   # create tags + releases via GITHUB_TOKEN
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0   # need existing tags for the gate
+
+      - name: Read version and decide whether to release
+        id: check
+        run: |
+          set -euo pipefail
+          VERSION=$(grep -oP "SUPERTEXT_POLYLANG_VERSION',\s*'\K[0-9]+\.[0-9]+\.[0-9]+" supertext-polylang.php | head -1 || true)
+          if [ -z "${VERSION:-}" ]; then
+            echo "::error::Could not read SUPERTEXT_POLYLANG_VERSION from supertext-polylang.php"
+            exit 1
+          fi
+          MAJOR=${VERSION%%.*}
+          REST=${VERSION#*.}
+          MINOR=${REST%%.*}
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          if [ -n "$(git tag -l "v${MAJOR}.${MINOR}.*")" ]; then
+            echo "release=false" >> "$GITHUB_OUTPUT"
+            echo "A release already exists for the ${MAJOR}.${MINOR} line — nothing to do (v$VERSION)."
+          else
+            echo "release=true" >> "$GITHUB_OUTPUT"
+            echo "New ${MAJOR}.${MINOR} line — will publish v$VERSION."
+          fi
+
+      - name: Build installable plugin zip
+        if: steps.check.outputs.release == 'true'
+        run: |
+          set -euo pipefail
+          VERSION="${{ steps.check.outputs.version }}"
+          mkdir -p build/supertext-polylang
+          cp supertext-polylang.php README.md build/supertext-polylang/
+          cp -r includes assets build/supertext-polylang/
+          ( cd build && zip -qr "../supertext-polylang-${VERSION}.zip" supertext-polylang )
+          ls -l "supertext-polylang-${VERSION}.zip"
+
+      - name: Publish GitHub release
+        if: steps.check.outputs.release == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          VERSION="${{ steps.check.outputs.version }}"
+          gh release create "v${VERSION}" "supertext-polylang-${VERSION}.zip" \
+            --title "v${VERSION}" \
+            --generate-notes
