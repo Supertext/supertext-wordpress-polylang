@@ -534,6 +534,29 @@ class Bulk_Actions {
 	}
 
 	/**
+	 * Whether an order for this post + language is still open — recorded in the
+	 * registry, not completed and not cancelled. Distinguishes a genuine in-progress
+	 * order from a stale `_supertext_order_<lang>` lock left behind after cleanup.
+	 *
+	 * @param int    $post_id Source post id.
+	 * @param string $lang    Target language slug.
+	 * @return bool
+	 */
+	private static function has_open_order( int $post_id, string $lang ): bool {
+		foreach ( Human_Orders::all() as $order ) {
+			if ( (int) ( $order['post_id'] ?? 0 ) !== $post_id || (string) ( $order['lang'] ?? '' ) !== $lang ) {
+				continue;
+			}
+			$completed = ! empty( $order['completed_at'] );
+			$cancelled = 'Cancelled' === ( $order['status'] ?? '' );
+			if ( ! $completed && ! $cancelled ) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	/**
 	 * Places a human-translation order with Supertext: builds the content HTML,
 	 * uploads it, and creates the order. The completion callback writes it back.
 	 *
@@ -544,17 +567,24 @@ class Bulk_Actions {
 	 * @return int[]|WP_Error Order id(s) on success.
 	 */
 	private static function submit_human_order( int $post_id, string $target_lang, int $service_id, string $express ) {
-		// Avoid placing a duplicate (paid) order for the same target language.
+		// Avoid placing a duplicate (paid) order for the same target language — but only
+		// when a matching order is actually still open in the registry. A leftover lock
+		// meta with no open order behind it (e.g. the order registry was cleared, or an
+		// order was cancelled outside the plugin) must not block re-ordering forever, so
+		// treat such a lock as stale: clear it and continue.
 		if ( get_post_meta( $post_id, '_supertext_order_' . $target_lang, true ) ) {
-			return new WP_Error(
-				'supertext_already_ordered',
-				sprintf(
-					/* translators: 1: post title, 2: language slug. */
-					__( 'An order already exists for "%1$s" (%2$s).', 'supertext-polylang' ),
-					get_the_title( $post_id ),
-					$target_lang
-				)
-			);
+			if ( self::has_open_order( $post_id, $target_lang ) ) {
+				return new WP_Error(
+					'supertext_already_ordered',
+					sprintf(
+						/* translators: 1: post title, 2: language slug. */
+						__( 'An order already exists for "%1$s" (%2$s).', 'supertext-polylang' ),
+						get_the_title( $post_id ),
+						$target_lang
+					)
+				);
+			}
+			delete_post_meta( $post_id, '_supertext_order_' . $target_lang );
 		}
 
 		$client   = new Human_Client();
