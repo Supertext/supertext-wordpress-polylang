@@ -45,7 +45,7 @@ translation** service in **Polylang Pro**.
 
 - **WordPress** 6.0+ and **PHP** 8.1+
 - **Polylang Pro** with the **Machine Translation** module
-- A **Supertext** account
+- A **Supertext** account — [create one (or log in)](https://www.supertext.com/person/en/account/signin)
   - an **AI translation API key** (for AI), and/or
   - an **account email + Order API Key** (for human translation orders)
 
@@ -87,7 +87,8 @@ AI translation is configured in Polylang's own Machine Translation settings.
 1. Go to **Languages → Settings → Machine Translation** (the **Settings** page has a
    button that links straight there), enable **Machine Translation**, and choose
    **Supertext**.
-2. Enter your **API key**. You can generate it at
+2. Enter your **API key**. No Supertext account yet? [Create one at supertext.com](https://www.supertext.com/person/en/account/signin).
+   You can generate the key at
    **[supertext.com → Integrations → API](https://www.supertext.com/en/integrations/api)** (requires the *Admin* role) — the field links to
    it directly.
 3. Pick the **Environment** (Live / Staging / Testing).
@@ -108,7 +109,8 @@ plugin's own settings page.
 1. Go to **Supertext → Settings → Translation Services (human)**.
 2. Choose the **Environment** (Live / Staging / Testing).
 3. Enter your **Account email** and **Order API Key** — find the Order API Key in your
-   **[Supertext account settings](https://www.supertext.com/services/customer/accountsettings)** (the field links to it).
+   **[Supertext account settings](https://www.supertext.com/services/customer/accountsettings)** (the field links to it). No Supertext account yet?
+   [Create one at supertext.com](https://www.supertext.com/person/en/account/signin).
 4. Choose the **Write‑back** behaviour:
    - **Allow multiple write‑backs** — re‑apply the translation on every completed‑order
      callback (off by default, so the first result wins and your manual edits are kept).

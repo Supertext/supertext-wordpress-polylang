@@ -407,6 +407,24 @@ class Page {
 					<div class="st-step__body">
 						<div class="st-step__title"><?php esc_html_e( 'Configure the AI service', 'supertext-polylang' ); ?></div>
 						<p><?php esc_html_e( 'Enable Machine Translation, choose Supertext, enter your API key, and map your languages in the Polylang settings.', 'supertext-polylang' ); ?></p>
+						<p>
+							<?php
+							printf(
+								/* translators: 1: link to create a Supertext account (or log in), 2: link to the Supertext API integrations page. */
+								esc_html__( 'No Supertext account yet? Create one at %1$s. Generate your API key at %2$s (requires the Admin role).', 'supertext-polylang' ),
+								sprintf(
+									'<a href="%s" target="_blank" rel="noopener">%s</a>',
+									esc_url( 'https://www.supertext.com/person/en/account/signin' ),
+									esc_html__( 'supertext.com', 'supertext-polylang' )
+								),
+								sprintf(
+									'<a href="%s" target="_blank" rel="noopener">%s</a>',
+									esc_url( 'https://www.supertext.com/en/integrations/api' ),
+									esc_html__( 'supertext.com → Integrations → API', 'supertext-polylang' )
+								)
+							); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- link built from escaped parts.
+							?>
+						</p>
 						<a class="button button-primary st-cta-wide st-btn-plainfont" href="<?php echo esc_url( self::polylang_settings_url() ); ?>">
 							<?php esc_html_e( 'Open Polylang → Languages → Settings → Machine Translation → Supertext', 'supertext-polylang' ); ?>
 						</a>

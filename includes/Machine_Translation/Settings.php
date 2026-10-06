@@ -151,8 +151,13 @@ class Settings implements Settings_Interface {
 				<p class="description">
 					<?php
 					printf(
-						/* translators: %s is a link to the Supertext API integrations page. */
-						esc_html__( 'Your Supertext API key. The service becomes active once a key is saved. Generate it on %s (requires the Admin role).', 'supertext-polylang' ),
+						/* translators: 1: link to create a Supertext account (or log in), 2: link to the Supertext API integrations page. */
+						esc_html__( 'Your Supertext API key. The service becomes active once a key is saved. No Supertext account yet? Create one at %1$s. Generate your API key at %2$s (requires the Admin role).', 'supertext-polylang' ),
+						sprintf(
+							'<a href="%s" target="_blank" rel="noopener">%s</a>',
+							esc_url( 'https://www.supertext.com/person/en/account/signin' ),
+							esc_html__( 'supertext.com', 'supertext-polylang' )
+						),
 						sprintf(
 							'<a href="%s" target="_blank" rel="noopener">%s</a>',
 							esc_url( 'https://www.supertext.com/en/integrations/api' ),

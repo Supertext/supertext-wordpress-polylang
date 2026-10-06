@@ -306,12 +306,17 @@ class Settings {
 						<p class="description">
 							<?php
 							printf(
-								/* translators: %s is a link to the Supertext account settings page. */
-								esc_html__( 'Your Supertext "Order API Key" (used with the account email, via HTTP Basic auth, for order requests). Find it in your %s.', 'supertext-polylang' ),
+								/* translators: 1: link to the Supertext account settings page, 2: link to create a Supertext account (or log in). */
+								esc_html__( 'Your Supertext "Order API Key" (used with the account email, via HTTP Basic auth, for order requests). Find it in your %1$s. No Supertext account yet? Create one at %2$s.', 'supertext-polylang' ),
 								sprintf(
 									'<a href="%s" target="_blank" rel="noopener">%s</a>',
 									esc_url( self::base_url() . 'services/customer/accountsettings' ),
 									esc_html__( 'Supertext account settings', 'supertext-polylang' )
+								),
+								sprintf(
+									'<a href="%s" target="_blank" rel="noopener">%s</a>',
+									esc_url( 'https://www.supertext.com/person/en/account/signin' ),
+									esc_html__( 'supertext.com', 'supertext-polylang' )
 								)
 							); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- link built from escaped parts.
 							?>
