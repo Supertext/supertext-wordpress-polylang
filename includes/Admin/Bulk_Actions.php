@@ -171,9 +171,9 @@ class Bulk_Actions {
 				<option value=""><?php esc_html_e( 'Translation type', 'supertext-polylang' ); ?></option>
 				<?php foreach ( self::HUMAN_SERVICES as $id => $service ) : ?>
 					<option
-						value="<?php echo esc_attr( $id ); ?>"
-						data-order-type-configuration-id="<?php echo esc_attr( $id ); ?>"
-						data-order-type-id="<?php echo esc_attr( $service['order_type_id'] ); ?>"
+						value="<?php echo esc_attr( (string) $id ); ?>"
+						data-order-type-configuration-id="<?php echo esc_attr( (string) $id ); ?>"
+						data-order-type-id="<?php echo esc_attr( (string) $service['order_type_id'] ); ?>"
 						<?php selected( $sel_service, $id ); ?>
 					><?php echo esc_html( $service['label'] ); ?></option>
 				<?php endforeach; ?>

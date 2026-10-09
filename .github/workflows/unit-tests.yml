@@ -5,6 +5,9 @@ on:
   pull_request:
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 jobs:
   phpunit:
     runs-on: ubuntu-latest
@@ -12,10 +15,12 @@ jobs:
       contents: read
       checks: write       # dorny/test-reporter publishes a check run with per-test results
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
 
       - name: Set up PHP
-        uses: shivammathur/setup-php@v2
+        uses: shivammathur/setup-php@eb7c497e18156a6bbabfef1d3a82760b9eda3962 # 2.40.0
         with:
           php-version: '8.1'
           extensions: dom, mbstring, libxml
@@ -35,10 +40,33 @@ jobs:
           echo '```' >> "$GITHUB_STEP_SUMMARY"
 
       - name: Publish test report
-        uses: mikepenz/action-junit-report@v6
+        uses: mikepenz/action-junit-report@6ef3fdcfcd5f0b5d14df3e659ef19b8c6820f93d # v6.6.1
         if: success() || failure()   # report even when tests fail (but not on cancel)
         with:
           report_paths: tests/unit/junit.xml
           check_name: PHPUnit results
           detailed_summary: true     # list every test suite/case, not just failures
           include_passed: true
+
+  phpstan:
+    name: PHPStan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@eb7c497e18156a6bbabfef1d3a82760b9eda3962 # 2.40.0
+        with:
+          php-version: '8.1'
+          extensions: dom, mbstring, libxml
+          coverage: none
+          tools: composer
+
+      - name: Install dependencies (PHPStan and the WordPress, Polylang and Gravity Forms stubs)
+        working-directory: tests/unit
+        run: composer install --no-interaction --prefer-dist --no-progress
+
+      - name: Run PHPStan
+        run: tests/unit/vendor/bin/phpstan analyse --no-progress --memory-limit=1G --error-format=github

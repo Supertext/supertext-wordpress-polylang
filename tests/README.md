@@ -13,6 +13,7 @@ Requirements: PHP 8.1+ with `dom`, `mbstring`, `libxml`, and Composer.
 cd tests/unit
 composer install
 composer test        # vendor/bin/phpunit
+composer phpstan     # static analysis, see README.md → Code quality and security checks
 ```
 
 Covers: human-order `Client` (request shaping + response parsing, mocked HTTP,

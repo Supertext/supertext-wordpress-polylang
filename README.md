@@ -182,6 +182,15 @@ Without this patch the plugin loads but stays inert, and shows an admin notice s
 `.../plugins/supertext-polylang` folder. `README.md`, `.git`, and the deploy scripts are
 excluded from the sync. The **Polylang patch must be applied on the server too.**
 
+## Code quality and security checks
+
+- **Checks** (`.github/workflows/checks.yml`): on every push and pull request, [actionlint](https://github.com/rhysd/actionlint) and [zizmor](https://docs.zizmor.sh) lint the workflows. On pull requests, dependency review fails a PR that adds a package with a known vulnerability (moderate or worse). Third-party actions are pinned to commit SHAs (Dependabot keeps them current); checkouts don't keep credentials (`persist-credentials: false`), and workflows get `contents: read` unless a job needs more (the release job: `contents: write`; the unit-test job: `checks: write` for its test report).
+- **Links** (`.github/workflows/links.yml`): [lychee](https://lychee.cli.rs) checks the links in all Markdown files weekly and whenever docs change on `main`. Broken links open or update the issue "Broken links in the docs" (a docs push that breaks links also fails). Links that can't work from CI go in `.lycheeignore` (one regex per line).
+- **PHPStan** (job `phpstan` in `unit-tests.yml`, config `phpstan.neon`): level 5 on the plugin's own code (`supertext-polylang.php`, `includes/`), not the tests. PHPStan and the stubs it needs (WordPress via [szepeviktor/phpstan-wordpress](https://github.com/szepeviktor/phpstan-wordpress), Polylang via `wpsyntex/polylang-stubs`, Gravity Forms via `php-stubs/gravity-forms-stubs`) are dev dependencies in `tests/unit/composer.json`. Polylang Pro and YOOtheme have no public stubs, so the findings about their classes (`WP_Syntex\Polylang_Pro\…`, `PLL_Base::$curlang`) are in the baseline. Locally: `cd tests/unit && composer install && composer phpstan` (or `tests/unit/vendor/bin/phpstan analyse` from the repository root). Existing findings that aren't simple to fix are listed in `phpstan-baseline.neon` (regenerate with `tests/unit/vendor/bin/phpstan analyse --generate-baseline` after fixing one). New code must not add findings.
+- **GitHub settings** (set by Remy's setup script, not in the repo): secret scanning with push protection (a push containing a known token format is rejected; findings under *Security → Secret scanning*) and CodeQL default setup (findings under *Security → Code scanning* and as PR comments). CodeQL doesn't cover PHP, which is why this repo runs PHPStan.
+
+Before starting work in this repo, look at its open findings: code scanning alerts, secret scanning alerts, Dependabot PRs and the "Broken links in the docs" issue.
+
 <!-- supertext-plugins:start (shared list, keep identical in every Supertext plugin repo) -->
 ## Supertext plugins for other systems
 

@@ -1,0 +1,157 @@
+parameters:
+	ignoreErrors:
+		-
+			message: '#^Access to an undefined property PLL_Base\:\:\$curlang\.$#'
+			identifier: property.notFound
+			count: 2
+			path: includes/Admin/Bulk_Actions.php
+
+		-
+			message: '#^Call to function is_array\(\) with array will always evaluate to true\.$#'
+			identifier: function.alreadyNarrowedType
+			count: 1
+			path: includes/Admin/Bulk_Actions.php
+
+		-
+			message: '#^Call to method get_client\(\) on an unknown class WP_Syntex\\Polylang_Pro\\Modules\\Machine_Translation\\Service_Interface\.$#'
+			identifier: class.notFound
+			count: 1
+			path: includes/Admin/Bulk_Actions.php
+
+		-
+			message: '#^Comparison operation "\>" between 0 and 0 is always false\.$#'
+			identifier: greater.alwaysFalse
+			count: 1
+			path: includes/Admin/Bulk_Actions.php
+
+		-
+			message: '#^Strict comparison using \=\=\= between '''' and non\-empty\-string will always evaluate to false\.$#'
+			identifier: identical.alwaysFalse
+			count: 1
+			path: includes/Admin/Patch.php
+
+		-
+			message: '#^Call to function is_array\(\) with array\<int, string\> will always evaluate to true\.$#'
+			identifier: function.alreadyNarrowedType
+			count: 1
+			path: includes/Admin/String_Table.php
+
+		-
+			message: '#^Access to property \$entries on an unknown class WP_Syntex\\Polylang_Pro\\Modules\\Machine_Translation\\Translations\.$#'
+			identifier: class.notFound
+			count: 1
+			path: includes/Human_Translation/Content.php
+
+		-
+			message: '#^Call to function is_array\(\) with array will always evaluate to true\.$#'
+			identifier: function.alreadyNarrowedType
+			count: 1
+			path: includes/Human_Translation/Human_Strings.php
+
+		-
+			message: '#^Instanceof between WP_Post and WP_Post will always evaluate to true\.$#'
+			identifier: instanceof.alwaysTrue
+			count: 2
+			path: includes/Human_Translation/Source_Lock.php
+
+		-
+			message: '#^Access to an undefined property PLL_Base\:\:\$curlang\.$#'
+			identifier: property.notFound
+			count: 1
+			path: includes/Human_Translation/Writeback.php
+
+		-
+			message: '#^Access to property \$entries on an unknown class WP_Syntex\\Polylang_Pro\\Modules\\Machine_Translation\\Translations\.$#'
+			identifier: class.notFound
+			count: 1
+			path: includes/Human_Translation/Writeback.php
+
+		-
+			message: '#^Call to function is_wp_error\(\) with WP_Error will always evaluate to true\.$#'
+			identifier: function.alreadyNarrowedType
+			count: 1
+			path: includes/Human_Translation/Writeback.php
+
+		-
+			message: '#^Call to method get_client\(\) on an unknown class WP_Syntex\\Polylang_Pro\\Modules\\Machine_Translation\\Service_Interface\.$#'
+			identifier: class.notFound
+			count: 1
+			path: includes/Integrations/GravityForms/Admin_Page.php
+
+		-
+			message: '#^Call to function is_string\(\) with string will always evaluate to true\.$#'
+			identifier: function.alreadyNarrowedType
+			count: 1
+			path: includes/Integrations/GravityForms/Integration.php
+
+		-
+			message: '#^Call to function is_array\(\) with array will always evaluate to true\.$#'
+			identifier: function.alreadyNarrowedType
+			count: 1
+			path: includes/Integrations/GravityForms/Strings.php
+
+		-
+			message: '#^Call to function is_array\(\) with array\<string\> will always evaluate to true\.$#'
+			identifier: function.alreadyNarrowedType
+			count: 1
+			path: includes/Integrations/YooTheme/Integration.php
+
+		-
+			message: '#^Instanceof between PLL_Export_Data and PLL_Export_Data will always evaluate to true\.$#'
+			identifier: instanceof.alwaysTrue
+			count: 1
+			path: includes/Integrations/YooTheme/Integration.php
+
+		-
+			message: '#^Instanceof between Translations and Translations will always evaluate to true\.$#'
+			identifier: instanceof.alwaysTrue
+			count: 1
+			path: includes/Integrations/YooTheme/Integration.php
+
+		-
+			message: '#^Instanceof between WP_Post and WP_Post will always evaluate to true\.$#'
+			identifier: instanceof.alwaysTrue
+			count: 2
+			path: includes/Integrations/YooTheme/Integration.php
+
+		-
+			message: '#^Result of \|\| is always false\.$#'
+			identifier: booleanOr.alwaysFalse
+			count: 2
+			path: includes/Integrations/YooTheme/Integration.php
+
+		-
+			message: '#^Call to function is_object\(\) with Translation_Entry will always evaluate to true\.$#'
+			identifier: function.alreadyNarrowedType
+			count: 1
+			path: includes/Polylang/String_Store.php
+
+		-
+			message: '#^Call to method get_client\(\) on an unknown class WP_Syntex\\Polylang_Pro\\Modules\\Machine_Translation\\Service_Interface\.$#'
+			identifier: class.notFound
+			count: 1
+			path: includes/Polylang/String_Store.php
+
+		-
+			message: '#^Property Translations\:\:\$entries \(array\<Translation_Entry\>\) in isset\(\) is not nullable\.$#'
+			identifier: isset.property
+			count: 1
+			path: includes/Polylang/String_Store.php
+
+		-
+			message: '#^Right side of && is always true\.$#'
+			identifier: booleanAnd.rightAlwaysTrue
+			count: 1
+			path: includes/Polylang/String_Store.php
+
+		-
+			message: '#^Instanceof between WP_Query and WP_Query will always evaluate to true\.$#'
+			identifier: instanceof.alwaysTrue
+			count: 1
+			path: includes/Preview/Draft_Preview.php
+
+		-
+			message: '#^Property WP_Post\:\:\$ID \(int\<0, max\>\) in isset\(\) is not nullable\.$#'
+			identifier: isset.property
+			count: 1
+			path: includes/Preview/Draft_Preview.php

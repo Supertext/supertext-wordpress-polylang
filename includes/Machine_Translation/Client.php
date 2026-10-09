@@ -564,7 +564,12 @@ class Client implements Client_Interface {
 			'Accept'        => 'application/json',
 		);
 
-		/** @var array<string, string> $headers */
+		/**
+		 * Filters the authentication headers sent to Supertext.
+		 *
+		 * @param array<string, string> $headers Request headers.
+		 * @param string                $api_key The API key.
+		 */
 		return apply_filters( 'supertext_polylang_auth_headers', $headers, $this->api_key );
 	}
 

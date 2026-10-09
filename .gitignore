@@ -38,3 +38,4 @@ tests/unit/.phpunit.result.cache
 
 # local scratch
 apidoc.html
+/.phpstan-cache/
