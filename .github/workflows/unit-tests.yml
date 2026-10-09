@@ -12,7 +12,7 @@ jobs:
       contents: read
       checks: write       # dorny/test-reporter publishes a check run with per-test results
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Set up PHP
         uses: shivammathur/setup-php@v2
@@ -35,7 +35,7 @@ jobs:
           echo '```' >> "$GITHUB_STEP_SUMMARY"
 
       - name: Publish test report
-        uses: mikepenz/action-junit-report@v5
+        uses: mikepenz/action-junit-report@v6
         if: success() || failure()   # report even when tests fail (but not on cancel)
         with:
           report_paths: tests/unit/junit.xml
