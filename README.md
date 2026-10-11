@@ -56,12 +56,39 @@ is a small number of file calls, comfortably under the file endpoint's 1-req-per
 | `supertext_polylang_endpoint` | `https://api.supertext.com/v1/` | API base URL (also settable in the UI) |
 | `supertext_polylang_auth_headers` | `Authorization: Supertext-Auth-Key {key}` | Auth header(s) |
 | `supertext_polylang_file_fields` | `target_lang` (+ `source_lang`, `politeness`) | Adjust the multipart form fields |
-| `supertext_polylang_language_code` | `PLL_Language::$w3c` (BCP-47) | Default/suggested code when a language is left unmapped |
+| `supertext_polylang_language_code` | `PLL_Language::$w3c` (BCP-47) with a region (`fi` → `fi-FI`) | Default/suggested code when a language is left unmapped |
 | `supertext_polylang_poll_interval` | `2` (seconds) | Status poll interval |
 | `supertext_polylang_poll_timeout` | `180` (seconds) | Max time to wait for `done` |
 | `supertext_polylang_screenshot_endpoint` | `https://vibeboost.me/api/screenshot` | [VibeBoost Screenshots](https://vibeboost.me) capture endpoint used to attach a page screenshot (DocumentTypeId 3) to human orders |
 
 Politeness is derived from the locale: `*_formal` → `more`, `*_informal` → `less`.
+
+#### Language codes
+
+Supertext wants the **source as a bare language** (`en`, `de`, `fr`) and the **target as a
+regional code** (`de-DE`, `fr-CH`, `en-US`). A bare target such as `de`, or a regional
+source such as `en-US`, is rejected with `INVALID_LANGUAGE_PAIR`. Translating within one
+language (`en` → `en-GB`) is allowed.
+
+`includes/Machine_Translation/Language_Codes.php` (no WordPress dependency,
+`tests/unit/cases/LanguageCodesTest.php`) turns Polylang languages into the codes sent:
+
+- **Target:** the language's code in the settings mapping if set, else the Polylang
+  `w3c` tag (or the locale). Either way a code with a region keeps it, normalized
+  (`de_CH`/`de-ch` → `de-CH`; scripts and numeric regions such as `zh-Hant`, `es-419`
+  keep their form), and WordPress variants are dropped (`de_DE_formal` → `de-DE`,
+  `pt_PT_ao90` → `pt-PT`). A bare language — Polylang has several, e.g. `fi`, `ja`, `el`,
+  `et`, `hr`, `lv`, `th`, `uk`, `vi`, `ar` — gets its default region: ar→ar-SA, bg→bg-BG,
+  cs→cs-CZ, da→da-DK, de→de-DE, el→el-GR, en→en-US, es→es-ES, et→et-EE, fi→fi-FI,
+  fr→fr-FR, hr→hr-HR, hu→hu-HU, it→it-IT, ja→ja-JP, ko→ko-KR, lt→lt-LT, lv→lv-LV,
+  nb→nb-NO, nl→nl-NL, pl→pl-PL, pt→pt-PT, ro→ro-RO, ru→ru-RU, sk→sk-SK, sl→sl-SI,
+  sr→sr-RS, sv→sv-SE, th→th-TH, tr→tr-TR, uk→uk-UA, vi→vi-VN, zh→zh-CN (same table as the
+  other Supertext plugins). Unknown bare codes are sent unchanged, so Supertext's error
+  names them.
+- **Source:** the bare language of the same code (`de-CH` → `de`).
+
+`Service::get_default_code()` (the placeholder in the mapping table) already applies the
+target rule, so the suggested codes are the ones that are sent.
 
 ## YOOtheme Pro page-builder integration
 

@@ -190,8 +190,9 @@ class Service implements Service_Interface {
 	 * Returns the suggested default Supertext code for a language.
 	 *
 	 * Used to pre-fill the language-mapping settings. Supertext uses BCP-47 codes
-	 * (e.g. `de-CH`, `en-US`, `fr`), which matches Polylang's `PLL_Language::$w3c`
-	 * tag. The authoritative value at translation time is the admin's explicit
+	 * with a region for the target (e.g. `de-CH`, `en-US`): Polylang's
+	 * `PLL_Language::$w3c` tag, with the default region added when it has none
+	 * (`fi` → `fi-FI`, see {@see Language_Codes}). The authoritative value at translation time is the admin's explicit
 	 * mapping (see {@see \Supertext\Polylang\Machine_Translation\Client}); this is
 	 * only the fallback/suggestion.
 	 *
@@ -199,7 +200,8 @@ class Service implements Service_Interface {
 	 * @return string BCP-47 language code, empty if it cannot be determined.
 	 */
 	public static function get_default_code( PLL_Language $language ): string {
-		$code = ! empty( $language->w3c ) ? $language->w3c : str_replace( '_', '-', $language->locale );
+		// Always with a region: Supertext rejects bare target languages ("fi" → "fi-FI").
+		$code = Language_Codes::target( ! empty( $language->w3c ) ? $language->w3c : $language->locale );
 
 		/** @var string $code */
 		$code = apply_filters( 'supertext_polylang_language_code', $code, $language );

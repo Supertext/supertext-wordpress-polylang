@@ -96,17 +96,17 @@ class Client implements Client_Interface {
 	 * Resolves the Supertext language code for a Polylang language.
 	 *
 	 * Uses the admin's explicit mapping first, falling back to the default
-	 * (BCP-47 / `w3c`) suggestion.
+	 * (BCP-47 / `w3c`) suggestion. Either way the code carries a region
+	 * (`de` → `de-DE`, see Language_Codes): this is the target code; the
+	 * source is sent as its bare language.
 	 *
 	 * @param PLL_Language $language The language.
 	 * @return string Supertext language code, empty if none can be determined.
 	 */
 	private function resolve_code( PLL_Language $language ): string {
-		if ( ! empty( $this->languages[ $language->slug ] ) ) {
-			return (string) $this->languages[ $language->slug ];
-		}
+		$override = ! empty( $this->languages[ $language->slug ] ) ? (string) $this->languages[ $language->slug ] : '';
 
-		return Service::get_default_code( $language );
+		return Language_Codes::target( Service::get_default_code( $language ), $override );
 	}
 
 	/**
@@ -143,13 +143,10 @@ class Client implements Client_Interface {
 			);
 		}
 
-		// Supertext expects the source language as a primary (2-letter) subtag,
-		// e.g. "de" — not a regional code like "de-CH" — otherwise the language pair
-		// is rejected (INVALID_LANGUAGE_PAIR). The target keeps its regional code.
-		$source_code = $source_language instanceof PLL_Language ? $this->resolve_code( $source_language ) : '';
-		if ( '' !== $source_code ) {
-			$source_code = (string) strtok( $source_code, '-' );
-		}
+		// Supertext expects the source language as a bare language, e.g. "de" — not
+		// a regional code like "de-CH" — and the target with a region, e.g. "de-CH" or
+		// "de-DE", otherwise the language pair is rejected (INVALID_LANGUAGE_PAIR).
+		$source_code = $source_language instanceof PLL_Language ? Language_Codes::source( $this->resolve_code( $source_language ) ) : '';
 
 		// 1. Submit the whole entity as a single HTML file.
 		$file_id = $this->submit_file(
@@ -225,10 +222,7 @@ class Client implements Client_Interface {
 			);
 		}
 
-		$source_code = $source_language instanceof PLL_Language ? $this->resolve_code( $source_language ) : '';
-		if ( '' !== $source_code ) {
-			$source_code = (string) strtok( $source_code, '-' );
-		}
+		$source_code = $source_language instanceof PLL_Language ? Language_Codes::source( $this->resolve_code( $source_language ) ) : '';
 
 		// Send an index-ordered document, but map the result back onto caller keys.
 		$keys   = array_keys( $sources );

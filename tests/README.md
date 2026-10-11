@@ -23,7 +23,7 @@ incl. `upload_file` with `DocumentTypeId 3` / `image/png` for screenshot referen
 (decode/collect/map/encode), the **VibeBoost** screenshot `Client` (URL encoding —
 the secret token must stay inside the `url` param — defaults, and error paths), the
 **Draft_Preview** token gate (`is_valid` match/wrong/disabled/expired + `preview_url`
-`p` vs `page_id`), and the **Settings** feature toggles (defaults / sanitize / getters).
+`p` vs `page_id`), the **Settings** feature toggles (defaults / sanitize / getters), and the AI **Language_Codes** rule (bare source, regional target with default region, WordPress variants dropped, mapping wins; see README.md → *Language codes*).
 
 ## End-to-end tests — `tests/e2e/` (Playwright)
 

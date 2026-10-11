@@ -93,7 +93,10 @@ AI translation is configured in Polylang's own Machine Translation settings.
    it directly.
 3. Pick the **Environment** (Live / Staging / Testing).
 4. Map each Polylang language to the matching **Supertext language code** (the fields are
-   pre‑filled with sensible BCP‑47 defaults — adjust where Supertext differs).
+   pre‑filled with sensible BCP‑47 defaults — adjust where Supertext differs). Supertext
+   needs the target language with a region: a language without one gets the usual region
+   (`fi` → `fi-FI`, `ja` → `ja-JP`, `de` → `de-DE`), also when you map it to a bare code.
+   The source language is always sent without region (`de-CH` → `de`).
 5. Save. The service becomes active once a key is stored.
 
 In Polylang's **Languages → Settings**, the **Machine Translation** module is where you

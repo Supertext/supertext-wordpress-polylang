@@ -75,5 +75,6 @@ require_once $root . '/includes/Human_Translation/Writeback.php';
 require_once $root . '/includes/Admin/Settings.php';
 require_once $root . '/includes/Preview/Draft_Preview.php';
 require_once $root . '/includes/Integrations/VibeBoost/Client.php';
+require_once $root . '/includes/Machine_Translation/Language_Codes.php';
 
 require_once __DIR__ . '/TestCase.php';
