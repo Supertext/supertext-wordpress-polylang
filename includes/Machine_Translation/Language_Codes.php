@@ -7,6 +7,8 @@ namespace Supertext\Polylang\Machine_Translation;
 
 defined( 'ABSPATH' ) || exit;
 
+use Supertext\Polylang\Sdk\LanguageCodes as SdkLanguageCodes;
+
 /**
  * Polylang locales → Supertext language codes.
  *
@@ -14,53 +16,20 @@ defined( 'ABSPATH' ) || exit;
  * region (`de-DE`, `en-US`); a bare target such as `de` is rejected with
  * INVALID_LANGUAGE_PAIR. Polylang has bare locales too (`fi`, `ja`, `el`, …),
  * and WordPress variants such as `de_DE_formal` or `pt_PT_ao90`. Locales
- * without a region get the default region below (same table as the other
- * Supertext plugins); unknown bare codes are sent unchanged, so Supertext's
- * error names them.
+ * without a region get the Supertext SDK's default region; unknown bare codes
+ * are sent unchanged, so Supertext's error names them. WordPress variants are
+ * dropped here (the SDK would keep `de-DE-formal`, which Supertext rejects).
  *
  * Has no WordPress dependency (unit-tested on its own).
  */
 class Language_Codes {
 	/**
-	 * The region Supertext uses when a locale has none.
+	 * The region Supertext uses when a locale has none (the Supertext SDK's table,
+	 * the same in every Supertext plugin).
 	 *
 	 * @var array<string, string>
 	 */
-	const DEFAULT_REGION = array(
-		'ar' => 'ar-SA',
-		'bg' => 'bg-BG',
-		'cs' => 'cs-CZ',
-		'da' => 'da-DK',
-		'de' => 'de-DE',
-		'el' => 'el-GR',
-		'en' => 'en-US',
-		'es' => 'es-ES',
-		'et' => 'et-EE',
-		'fi' => 'fi-FI',
-		'fr' => 'fr-FR',
-		'hr' => 'hr-HR',
-		'hu' => 'hu-HU',
-		'it' => 'it-IT',
-		'ja' => 'ja-JP',
-		'ko' => 'ko-KR',
-		'lt' => 'lt-LT',
-		'lv' => 'lv-LV',
-		'nb' => 'nb-NO',
-		'nl' => 'nl-NL',
-		'pl' => 'pl-PL',
-		'pt' => 'pt-PT',
-		'ro' => 'ro-RO',
-		'ru' => 'ru-RU',
-		'sk' => 'sk-SK',
-		'sl' => 'sl-SI',
-		'sr' => 'sr-RS',
-		'sv' => 'sv-SE',
-		'th' => 'th-TH',
-		'tr' => 'tr-TR',
-		'uk' => 'uk-UA',
-		'vi' => 'vi-VN',
-		'zh' => 'zh-CN',
-	);
+	const DEFAULT_REGION = SdkLanguageCodes::DEFAULT_REGIONS;
 
 	/**
 	 * Normalizes a code: `de_ch` → `de-CH`, `DE` → `de`, `zh_hant` → `zh-Hant`,

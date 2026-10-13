@@ -7,8 +7,9 @@ namespace Supertext\Polylang\Machine_Translation;
 
 defined( 'ABSPATH' ) || exit;
 
-use DOMDocument;
-use DOMXPath;
+use Supertext\Polylang\Sdk\Client as SdkClient;
+use Supertext\Polylang\Sdk\Segment;
+use Supertext\Polylang\Sdk\SupertextException;
 use Translations;
 use PLL_Language;
 use WP_Error;
@@ -21,6 +22,10 @@ use WP_Syntex\Polylang_Pro\Modules\Machine_Translation\Clients\Client_Interface;
  * Translations object), but Supertext's file endpoint is asynchronous. We bridge
  * the two by submitting one HTML file per entity, polling until it is `done`, and
  * mapping the translated HTML back — all within a single (blocking) call.
+ *
+ * The protocol (upload, poll, download, delete, auth header, HTTP 429 retries,
+ * language codes, one `data-st-id` element per string) is the Supertext PHP SDK's,
+ * bundled in includes/Sdk; HTTP goes through WordPress (Wp_Http_Transport).
  *
  * File translation (not the text endpoint) is used deliberately: it accepts up to
  * 1,000,000 characters in a single request, so a whole post goes in one call
@@ -83,7 +88,7 @@ class Client implements Client_Interface {
 	 * }
 	 */
 	public function __construct( array $options ) {
-		$this->api_key   = $options['api_key'] ?? '';
+		$this->api_key   = (string) preg_replace( '/^\s*Supertext-Auth-Key\s+/i', '', trim( (string) ( $options['api_key'] ?? '' ) ) );
 		$this->languages = isset( $options['languages'] ) && is_array( $options['languages'] ) ? $options['languages'] : array();
 
 		$endpoint = ! empty( $options['endpoint'] ) ? $options['endpoint'] : self::DEFAULT_ROUTE;
@@ -148,39 +153,10 @@ class Client implements Client_Interface {
 		// "de-DE", otherwise the language pair is rejected (INVALID_LANGUAGE_PAIR).
 		$source_code = $source_language instanceof PLL_Language ? Language_Codes::source( $this->resolve_code( $source_language ) ) : '';
 
-		// 1. Submit the whole entity as a single HTML file.
-		$file_id = $this->submit_file(
-			$this->build_html( $sources ),
-			$target_code,
-			$source_code,
-			$this->get_politeness( $target_language )
-		);
-		if ( is_wp_error( $file_id ) ) {
-			return $file_id;
-		}
-
-		// 2. Poll until the translation is ready (blocking, bounded).
-		$ready = $this->wait_until_done( $file_id );
-		if ( is_wp_error( $ready ) ) {
-			$this->delete_file( $file_id );
-			return $ready;
-		}
-
-		// 3. Download the translated HTML.
-		$translated_html = $this->download( $file_id );
-
-		// 4. Best-effort cleanup (file auto-expires after 24h anyway).
-		$this->delete_file( $file_id );
-
-		if ( is_wp_error( $translated_html ) ) {
-			return $translated_html;
-		}
-
-		// 5. Map the translated strings back onto the entries, in order.
-		$translated = $this->parse_html( $translated_html );
-
-		if ( count( $translated ) !== count( $sources ) ) {
-			return new WP_Error( 'supertext_incomplete_response', __( 'The Supertext translation is incomplete.', 'supertext-polylang' ) );
+		// One document per entity (split by the SDK only above its size limit).
+		$translated = $this->translate_segments( $sources, $target_code, $source_code, $this->get_politeness( $target_language ) );
+		if ( is_wp_error( $translated ) ) {
+			return $translated;
 		}
 
 		foreach ( $entries as $i => $entry ) {
@@ -224,235 +200,141 @@ class Client implements Client_Interface {
 
 		$source_code = $source_language instanceof PLL_Language ? Language_Codes::source( $this->resolve_code( $source_language ) ) : '';
 
-		// Send an index-ordered document, but map the result back onto caller keys.
-		$keys   = array_keys( $sources );
-		$values = array_values( $sources );
-
-		$file_id = $this->submit_file( $this->build_html( $values ), $target_code, $source_code, $this->get_politeness( $target_language ) );
-		if ( is_wp_error( $file_id ) ) {
-			return $file_id;
-		}
-
-		$ready = $this->wait_until_done( $file_id );
-		if ( is_wp_error( $ready ) ) {
-			$this->delete_file( $file_id );
-			return $ready;
-		}
-
-		$html = $this->download( $file_id );
-		$this->delete_file( $file_id );
-		if ( is_wp_error( $html ) ) {
-			return $html;
-		}
-
-		$translated = $this->parse_html( $html );
-		if ( count( $translated ) !== count( $values ) ) {
-			return new WP_Error( 'supertext_incomplete_response', __( 'The Supertext translation is incomplete.', 'supertext-polylang' ) );
-		}
-
-		$out = array();
-		foreach ( $keys as $i => $key ) {
-			$out[ $key ] = (string) ( $translated[ $i ] ?? '' );
-		}
-
-		return $out;
+		return $this->translate_segments( $sources, $target_code, $source_code, $this->get_politeness( $target_language ) );
 	}
 
 	/**
-	 * Submits the HTML document to the AI file-translation endpoint.
+	 * Translates keyed strings (HTML) with the Supertext SDK and returns them under
+	 * the same keys.
 	 *
-	 * @param string $html        The HTML document to translate.
-	 * @param string $target_lang BCP-47 target language code.
-	 * @param string $source_lang BCP-47 source language code, empty for auto-detection.
-	 * @param string $politeness  `default`, `more`, or `less`.
-	 * @return string|WP_Error The file id on success.
+	 * @param array<int|string, string> $sources     Strings to translate.
+	 * @param string                    $target_lang Target code (regional).
+	 * @param string                    $source_lang Source code, empty for auto-detection.
+	 * @param string                    $politeness  `default`, `more`, or `less`.
+	 * @return array<int|string, string>|WP_Error
 	 */
-	private function submit_file( string $html, string $target_lang, string $source_lang, string $politeness ) {
-		$fields = array( 'target_lang' => $target_lang );
-		if ( '' !== $source_lang ) {
-			$fields['source_lang'] = $source_lang;
-		}
-		if ( 'default' !== $politeness ) {
-			$fields['politeness'] = $politeness;
+	private function translate_segments( array $sources, string $target_lang, string $source_lang, string $politeness ) {
+		$segments = array();
+		foreach ( $sources as $key => $source ) {
+			$segments[ $key ] = Segment::html( (string) $source );
 		}
 
-		/** @var array<string, string> $fields */
-		$fields = apply_filters( 'supertext_polylang_file_fields', $fields, $target_lang, $source_lang );
-
-		list( $boundary, $body ) = $this->build_multipart(
-			$fields,
-			array(
-				'name'     => 'file',
-				'filename' => 'content.html',
-				// Supertext matches the part's Content-Type against an allow-list verbatim,
-				// so it must be exactly "text/html" — a "; charset=..." suffix triggers
-				// 415 FILETYPE_NOT_ALLOWED. (The document itself declares UTF-8 via <meta>.)
-				'type'     => 'text/html',
-				'content'  => $html,
-			)
-		);
-
-		$response = $this->http(
-			'POST',
-			'translate/ai/file',
-			array(
-				'headers' => array( 'Content-Type' => 'multipart/form-data; boundary=' . $boundary ),
-				'body'    => $body,
-			)
-		);
-		if ( is_wp_error( $response ) ) {
-			return $response;
-		}
-
-		$data = json_decode( (string) wp_remote_retrieve_body( $response ), true );
-		if ( ! is_array( $data ) || empty( $data['file_id'] ) ) {
-			return new WP_Error( 'supertext_no_file_id', __( 'Supertext did not return a file id.', 'supertext-polylang' ) );
-		}
-
-		return (string) $data['file_id'];
-	}
-
-	/**
-	 * Polls the file-translation status until it is done, errors, or times out.
-	 *
-	 * Status values: `translating` (keep polling), `done`, `error`,
-	 * `limit_exceeded`, `deleted`.
-	 *
-	 * @param string $file_id The file id.
-	 * @return true|WP_Error
-	 */
-	private function wait_until_done( string $file_id ) {
-		/** @var int $interval */
-		$interval = max( 1, (int) apply_filters( 'supertext_polylang_poll_interval', 2 ) );
 		/** @var int $timeout */
-		$timeout = max( $interval, (int) apply_filters( 'supertext_polylang_poll_timeout', 180 ) );
+		$timeout = max( 1, (int) apply_filters( 'supertext_polylang_poll_timeout', 180 ) );
 
 		// Best-effort: give PHP enough time to finish the blocking poll.
 		if ( function_exists( 'set_time_limit' ) ) {
-			@set_time_limit( $timeout + 30 ); // phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged
+			@set_time_limit( $timeout + 60 ); // phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged
 		}
 
-		$deadline = time() + $timeout;
-
-		do {
-			$response = $this->http( 'GET', "translate/ai/file/{$file_id}/status" );
-			if ( is_wp_error( $response ) ) {
-				return $response;
-			}
-
-			$data   = json_decode( (string) wp_remote_retrieve_body( $response ), true );
-			$status = is_array( $data ) ? ( $data['status'] ?? '' ) : '';
-
-			switch ( $status ) {
-				case 'done':
-					return true;
-				case 'error':
-					return new WP_Error( 'supertext_translation_error', __( 'Supertext failed to translate the document.', 'supertext-polylang' ) );
-				case 'limit_exceeded':
-					return new WP_Error( 'supertext_quota_exceeded', __( 'Your Supertext translation limit is exceeded. Please upgrade your subscription.', 'supertext-polylang' ) );
-				case 'deleted':
-					return new WP_Error( 'supertext_file_deleted', __( 'The Supertext translation file was deleted before it could be downloaded.', 'supertext-polylang' ) );
-			}
-
-			// `translating` (or an unknown transient status): wait and retry.
-			if ( time() + $interval < $deadline ) {
-				sleep( $interval );
-			} else {
-				break;
-			}
-		} while ( time() < $deadline );
-
-		return new WP_Error( 'supertext_timeout', __( 'Timed out waiting for the Supertext translation to finish.', 'supertext-polylang' ) );
+		try {
+			return $this->sdk( $timeout )->translateTexts( $segments, $target_lang, '' !== $source_lang ? $source_lang : null, $politeness );
+		} catch ( SupertextException $e ) {
+			return self::to_wp_error( $e );
+		}
 	}
 
 	/**
-	 * Downloads the translated document.
+	 * The SDK client for one call.
 	 *
-	 * @param string $file_id The file id.
-	 * @return string|WP_Error The translated HTML on success.
+	 * @param int $timeout Seconds to wait for a translation.
+	 * @return SdkClient
 	 */
-	private function download( string $file_id ) {
-		$response = $this->http( 'GET', "translate/ai/file/{$file_id}/translation" );
-		if ( is_wp_error( $response ) ) {
-			return $response;
-		}
+	private function sdk( int $timeout = 180 ): SdkClient {
+		/** @var int $interval */
+		$interval = max( 1, (int) apply_filters( 'supertext_polylang_poll_interval', 2 ) );
 
-		$body = (string) wp_remote_retrieve_body( $response );
-		if ( '' === $body ) {
-			return new WP_Error( 'supertext_empty_download', __( 'The translated document was empty.', 'supertext-polylang' ) );
-		}
-
-		return $body;
-	}
-
-	/**
-	 * Deletes a translation file (best effort; ignores failures).
-	 *
-	 * @param string $file_id The file id.
-	 * @return void
-	 */
-	private function delete_file( string $file_id ): void {
-		$this->http( 'DELETE', "translate/ai/file/{$file_id}" );
-	}
-
-	/**
-	 * Wraps each source string in an identifiable block so the translated HTML can
-	 * be split back apart. Supertext preserves markup and attributes, translating
-	 * only the text nodes.
-	 *
-	 * @param string[] $sources Source strings keyed by sequential index.
-	 * @return string
-	 */
-	private function build_html( array $sources ): string {
-		$html = "<!DOCTYPE html>\n<html><head><meta charset=\"utf-8\"></head><body>\n";
-		foreach ( $sources as $i => $source ) {
-			$html .= '<div data-pll-id="' . (int) $i . '">' . $source . "</div>\n";
-		}
-		$html .= '</body></html>';
-
-		return $html;
-	}
-
-	/**
-	 * Splits the translated HTML back into per-entry strings keyed by index.
-	 *
-	 * @param string $html Translated HTML document.
-	 * @return array<int, string>
-	 */
-	private function parse_html( string $html ): array {
-		$dom = new DOMDocument();
-
-		$previous = libxml_use_internal_errors( true );
-		$dom->loadHTML(
-			'<?xml encoding="utf-8" ?>' . $html,
-			LIBXML_NOERROR | LIBXML_NOWARNING
+		return new SdkClient(
+			$this->api_key,
+			baseUrl: $this->route,
+			pollInterval: (float) $interval,
+			timeout: (float) max( $interval, $timeout ),
+			requestTimeout: 30.0,
+			userAgent: 'supertext-wordpress-polylang/' . ( defined( 'SUPERTEXT_POLYLANG_VERSION' ) ? SUPERTEXT_POLYLANG_VERSION : 'dev' ),
+			transport: new Wp_Http_Transport( $this->api_key ),
 		);
-		libxml_clear_errors();
-		libxml_use_internal_errors( $previous );
+	}
 
-		$xpath = new DOMXPath( $dom );
-		$nodes = $xpath->query( '//div[@data-pll-id]' );
-
-		$out = array();
-		if ( false === $nodes ) {
-			return $out;
+	/**
+	 * Turns an SDK error into the WP_Error this plugin has always returned
+	 * (`supertext_<code>`, a translatable message, the API's detail appended).
+	 *
+	 * @param SupertextException $e The SDK error.
+	 * @return WP_Error
+	 */
+	public static function to_wp_error( SupertextException $e ): WP_Error {
+		switch ( $e->errorCode ) {
+			case SupertextException::MISSING_API_KEY:
+			case SupertextException::AUTHENTICATION_FAILURE:
+				$errcode = 'supertext_authentication_failure';
+				$message = __( 'Authentication failure. Please check your Supertext API key.', 'supertext-polylang' );
+				break;
+			case SupertextException::INVALID_LANGUAGE_PAIR:
+				$errcode = 'supertext_invalid_language_pair';
+				$message = sprintf(
+					/* translators: %1$s is the source language code, %2$s the target language code. */
+					__( 'Supertext does not support this language pair (%1$s → %2$s). Check the Supertext language mapping in the settings.', 'supertext-polylang' ),
+					'' !== (string) $e->sourceLang ? (string) $e->sourceLang : '?',
+					'' !== (string) $e->targetLang ? (string) $e->targetLang : '?'
+				);
+				break;
+			case SupertextException::NOT_FOUND:
+				$errcode = 'supertext_not_found';
+				$message = __( 'The requested Supertext resource was not found.', 'supertext-polylang' );
+				break;
+			case SupertextException::PAYLOAD_TOO_LARGE:
+				$errcode = 'supertext_payload_too_large';
+				$message = __( 'The document is too large for Supertext to translate.', 'supertext-polylang' );
+				break;
+			case SupertextException::TOO_MANY_REQUESTS:
+				$errcode = 'supertext_too_many_requests';
+				$message = __( 'Too many requests to Supertext. Please try again shortly.', 'supertext-polylang' );
+				break;
+			case SupertextException::SERVICE_UNAVAILABLE:
+				$errcode = 'supertext_service_unavailable';
+				$message = __( 'Supertext service unavailable.', 'supertext-polylang' );
+				break;
+			case SupertextException::TRANSPORT_ERROR:
+				$errcode = 'supertext_transport_error';
+				$message = __( 'Could not reach Supertext.', 'supertext-polylang' );
+				break;
+			case SupertextException::NO_FILE_ID:
+				$errcode = 'supertext_no_file_id';
+				$message = __( 'Supertext did not return a file id.', 'supertext-polylang' );
+				break;
+			case SupertextException::TRANSLATION_ERROR:
+				$errcode = 'supertext_translation_error';
+				$message = __( 'Supertext failed to translate the document.', 'supertext-polylang' );
+				break;
+			case SupertextException::QUOTA_EXCEEDED:
+				$errcode = 'supertext_quota_exceeded';
+				$message = __( 'Your Supertext translation limit is exceeded. Please upgrade your subscription.', 'supertext-polylang' );
+				break;
+			case SupertextException::FILE_DELETED:
+				$errcode = 'supertext_file_deleted';
+				$message = __( 'The Supertext translation file was deleted before it could be downloaded.', 'supertext-polylang' );
+				break;
+			case SupertextException::TIMEOUT:
+				$errcode = 'supertext_timeout';
+				$message = __( 'Timed out waiting for the Supertext translation to finish.', 'supertext-polylang' );
+				break;
+			case SupertextException::INCOMPLETE_RESPONSE:
+				$errcode = 'supertext_incomplete_response';
+				$message = __( 'The Supertext translation is incomplete.', 'supertext-polylang' );
+				break;
+			default:
+				$errcode = 'supertext_unexpected_status_code';
+				/* translators: %d is an HTTP status code. */
+				$message = sprintf( __( 'Supertext sent an unexpected status code %d.', 'supertext-polylang' ), (int) $e->status );
 		}
 
-		foreach ( $nodes as $node ) {
-			if ( ! $node instanceof \DOMElement ) {
-				continue;
-			}
-			$index = (int) $node->getAttribute( 'data-pll-id' );
-
-			$inner = '';
-			foreach ( $node->childNodes as $child ) {
-				$inner .= (string) $dom->saveHTML( $child );
-			}
-
-			$out[ $index ] = trim( $inner );
+		// Surface the server's own message (helps diagnose 404s / bad requests).
+		$detail = (string) $e->detail;
+		if ( '' !== $detail ) {
+			$message .= ' — ' . $detail;
 		}
 
-		return $out;
+		return new WP_Error( $errcode, $message );
 	}
 
 	/**
@@ -473,172 +355,15 @@ class Client implements Client_Interface {
 	}
 
 	/**
-	 * Builds a multipart/form-data request body.
-	 *
-	 * @param array<string, string> $fields Simple form fields.
-	 * @param array                 $file   {
-	 *     The file part.
-	 *
-	 *     @type string $name     Field name.
-	 *     @type string $filename File name.
-	 *     @type string $type     MIME type.
-	 *     @type string $content  Raw file content.
-	 * }
-	 * @return array{0: string, 1: string} The boundary and the body.
-	 */
-	private function build_multipart( array $fields, array $file ): array {
-		$boundary = 'supertext-' . md5( uniqid( '', true ) );
-		$eol      = "\r\n";
-		$body     = '';
-
-		foreach ( $fields as $name => $value ) {
-			$body .= '--' . $boundary . $eol;
-			$body .= 'Content-Disposition: form-data; name="' . $name . '"' . $eol . $eol;
-			$body .= $value . $eol;
-		}
-
-		$body .= '--' . $boundary . $eol;
-		$body .= 'Content-Disposition: form-data; name="' . $file['name'] . '"; filename="' . $file['filename'] . '"' . $eol;
-		$body .= 'Content-Type: ' . $file['type'] . $eol . $eol;
-		$body .= $file['content'] . $eol;
-		$body .= '--' . $boundary . '--' . $eol;
-
-		return array( $boundary, $body );
-	}
-
-	/**
-	 * Performs an authenticated HTTP request against the Supertext API.
-	 *
-	 * @param string $method   HTTP method.
-	 * @param string $endpoint Endpoint relative to the base route.
-	 * @param array  $args     Request args (headers, body).
-	 * @return array|WP_Error
-	 */
-	private function http( string $method, string $endpoint, array $args = array() ) {
-		if ( empty( $this->api_key ) ) {
-			return $this->check_status_code( 403 );
-		}
-
-		$args = array_merge_recursive(
-			array(
-				'headers' => $this->get_auth_headers(),
-				'method'  => $method,
-				'timeout' => 30,
-			),
-			$args
-		);
-
-		$url      = $this->route . ltrim( $endpoint, '/' );
-		$response = wp_remote_request( $url, $args );
-		if ( is_wp_error( $response ) ) {
-			$this->debug_log( sprintf( '%s %s -> transport error: %s', $method, $url, $response->get_error_message() ) );
-			return $response;
-		}
-
-		$code = (int) wp_remote_retrieve_response_code( $response );
-		$body = (string) wp_remote_retrieve_body( $response );
-
-		$error = $this->check_status_code( $code, $body );
-		if ( $error->has_errors() ) {
-			$this->debug_log( sprintf( '%s %s -> HTTP %d | %s', $method, $url, $code, substr( $body, 0, 1000 ) ) );
-			return $error;
-		}
-
-		return $response;
-	}
-
-	/**
-	 * Returns the authentication headers.
-	 *
-	 * @return array<string, string>
-	 */
-	private function get_auth_headers(): array {
-		$headers = array(
-			'Authorization' => 'Supertext-Auth-Key ' . $this->api_key,
-			'Accept'        => 'application/json',
-		);
-
-		/**
-		 * Filters the authentication headers sent to Supertext.
-		 *
-		 * @param array<string, string> $headers Request headers.
-		 * @param string                $api_key The API key.
-		 */
-		return apply_filters( 'supertext_polylang_auth_headers', $headers, $this->api_key );
-	}
-
-	/**
-	 * Maps an HTTP status code to a WP_Error (empty WP_Error for 2xx).
-	 *
-	 * @param int    $code The HTTP response code.
-	 * @param string $body The response body.
-	 * @return WP_Error
-	 */
-	private function check_status_code( int $code, string $body = '' ): WP_Error {
-		if ( $code >= 200 && $code < 300 ) {
-			return new WP_Error();
-		}
-
-		switch ( $code ) {
-			case 401:
-			case 403:
-				$errcode = 'supertext_authentication_failure';
-				$message = __( 'Authentication failure. Please check your Supertext API key.', 'supertext-polylang' );
-				break;
-			case 404:
-				$errcode = 'supertext_not_found';
-				$message = __( 'The requested Supertext resource was not found.', 'supertext-polylang' );
-				break;
-			case 413:
-				$errcode = 'supertext_payload_too_large';
-				$message = __( 'The document is too large for Supertext to translate.', 'supertext-polylang' );
-				break;
-			case 429:
-				$errcode = 'supertext_too_many_requests';
-				$message = __( 'Too many requests to Supertext. Please try again shortly.', 'supertext-polylang' );
-				break;
-			case 500:
-			case 502:
-			case 503:
-				$errcode = 'supertext_service_unavailable';
-				$message = __( 'Supertext service unavailable.', 'supertext-polylang' );
-				break;
-			default:
-				$errcode = 'supertext_unexpected_status_code';
-				/* translators: %d is an HTTP status code. */
-				$message = sprintf( __( 'Supertext sent an unexpected status code %d.', 'supertext-polylang' ), $code );
-		}
-
-		// Surface the server's own message (helps diagnose 404s / bad requests).
-		$detail = wp_strip_all_tags( trim( $body ) );
-		if ( '' !== $detail ) {
-			$message .= ' — ' . mb_substr( $detail, 0, 200 );
-		}
-
-		return new WP_Error( $errcode, $message );
-	}
-
-	/**
-	 * Logs a diagnostic line when WP_DEBUG is on.
-	 *
-	 * @param string $message The message.
-	 * @return void
-	 */
-	private function debug_log( string $message ): void {
-		if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
-			error_log( '[supertext-polylang] ' . $message ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
-		}
-	}
-
-	/**
 	 * Tells whether the API key is valid by calling the (cost-free) features endpoint.
 	 *
 	 * @return WP_Error An empty WP_Error if valid, a filled WP_Error otherwise.
 	 */
 	public function is_api_key_valid(): WP_Error {
-		$response = $this->http( 'GET', 'features' );
-		if ( is_wp_error( $response ) ) {
-			return $response;
+		try {
+			$this->sdk()->validateApiKey();
+		} catch ( SupertextException $e ) {
+			return self::to_wp_error( $e );
 		}
 
 		return new WP_Error();

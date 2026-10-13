@@ -31,16 +31,30 @@ whole post (title + content + excerpt + metas) is sent as a *single* call — av
 text endpoint's 10k-char / 5-req-per-second limits.
 
 Because the file endpoint is **asynchronous**, `Client::translate()` performs the full
-round-trip synchronously within Polylang's MT contract:
+round-trip synchronously within Polylang's MT contract. The protocol is done by the
+official **Supertext PHP SDK** ([Supertext/Supertext-API-SDK-and-Guide](https://github.com/Supertext/Supertext-API-SDK-and-Guide)),
+shipped inside the plugin in `includes/Sdk/` (namespace `Supertext\Polylang\Sdk`, so it
+can't clash with another plugin that ships the SDK); HTTP goes through WordPress
+(`wp_remote_request()`, `Machine_Translation\Wp_Http_Transport`):
 
 1. Serialize the entity's strings into one HTML document, each wrapped in
-   `<div data-pll-id="N">…</div>` (Supertext preserves markup/attributes, translating only
-   text nodes).
+   `<div data-st-id="N">…</div>` (Supertext translates each such element on its own and
+   preserves markup/attributes).
 2. `POST /translate/ai/file` (multipart) → `file_id`.
 3. Poll `GET /translate/ai/file/{file_id}/status` every ~2s until `done`
    (handling `translating` / `error` / `limit_exceeded` / `deleted`).
 4. `GET /translate/ai/file/{file_id}/translation` → translated HTML.
-5. Split by `data-pll-id` and map back onto the entries; `DELETE` the file.
+5. Split by `data-st-id` and map back onto the entries; `DELETE` the file.
+
+HTTP 429 (Supertext's per-second rate limit) is retried up to 4 times (`Retry-After`, else
+1/2/4/8 s). A pasted `Supertext-Auth-Key ` prefix on the API key is stripped. Errors come
+back as `WP_Error` codes `supertext_<code>` (e.g. `supertext_invalid_language_pair`,
+`supertext_quota_exceeded`), as before.
+
+**Never edit `includes/Sdk/`**: fix the SDK in its own repository, then run
+`scripts/vendor-sdk.sh [ref]` (`SDK_DIR=/path/to/clone` uses a local clone);
+`includes/Sdk/COMMIT` names the revision. Human (professional) translation orders use a
+different Supertext API and keep their own client (`includes/Human_Translation/`).
 
 > ⚠️ This blocks the request while polling. AI file translation is usually quick, but for
 > very large content it can approach PHP execution limits. A future iteration could move
@@ -54,8 +68,7 @@ is a small number of file calls, comfortably under the file endpoint's 1-req-per
 | Filter | Default | Purpose |
 |--------|---------|---------|
 | `supertext_polylang_endpoint` | `https://api.supertext.com/v1/` | API base URL (also settable in the UI) |
-| `supertext_polylang_auth_headers` | `Authorization: Supertext-Auth-Key {key}` | Auth header(s) |
-| `supertext_polylang_file_fields` | `target_lang` (+ `source_lang`, `politeness`) | Adjust the multipart form fields |
+| `supertext_polylang_auth_headers` | `Authorization: Supertext-Auth-Key {key}`, `Accept`, `User-Agent` | Headers of every AI request |
 | `supertext_polylang_language_code` | `PLL_Language::$w3c` (BCP-47) with a region (`fi` → `fi-FI`) | Default/suggested code when a language is left unmapped |
 | `supertext_polylang_poll_interval` | `2` (seconds) | Status poll interval |
 | `supertext_polylang_poll_timeout` | `180` (seconds) | Max time to wait for `done` |

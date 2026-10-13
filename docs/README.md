@@ -384,6 +384,9 @@ automatically, so you don’t need a manual Reset for the next round.
 - **AI service shows inactive** — make sure Machine Translation is enabled in Polylang and
   a Supertext API key is saved. If a DeepL key is also set, DeepL (listed first) wins —
   clear it to use Supertext.
+- **“Supertext does not support this language pair (en → …)”** — Supertext doesn't offer that
+  language, or its code in the **language mapping** on **Supertext → Settings** is wrong. Use
+  a code such as `de-CH` or `fr`; the message shows the codes that were sent.
 - **“source and target language are the same”** — you can't translate a post into its own
   language; pick a different target.
 - **Human order placed but nothing comes back** — check **Supertext → Debug** for the most

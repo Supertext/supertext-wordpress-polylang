@@ -75,6 +75,18 @@ require_once $root . '/includes/Human_Translation/Writeback.php';
 require_once $root . '/includes/Admin/Settings.php';
 require_once $root . '/includes/Preview/Draft_Preview.php';
 require_once $root . '/includes/Integrations/VibeBoost/Client.php';
+// The bundled Supertext SDK (includes/Sdk, namespace Supertext\Polylang\Sdk).
+spl_autoload_register(
+	static function ( string $class ) use ( $root ): void {
+		$prefix = 'Supertext\\Polylang\\Sdk\\';
+		if ( 0 === strpos( $class, $prefix ) ) {
+			$file = $root . '/includes/Sdk/' . str_replace( '\\', '/', substr( $class, strlen( $prefix ) ) ) . '.php';
+			if ( is_file( $file ) ) {
+				require $file;
+			}
+		}
+	}
+);
 require_once $root . '/includes/Machine_Translation/Language_Codes.php';
 
 require_once __DIR__ . '/TestCase.php';
