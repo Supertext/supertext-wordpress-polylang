@@ -89,7 +89,7 @@ language (`en` → `en-GB`) is allowed.
 - **Target:** the language's code in the settings mapping if set, else the Polylang
   `w3c` tag (or the locale). Either way a code with a region keeps it, normalized
   (`de_CH`/`de-ch` → `de-CH`; scripts and numeric regions such as `zh-Hant`, `es-419`
-  keep their form), and WordPress variants are dropped (`de_DE_formal` → `de-DE`,
+  keep their form), and the SDK drops WordPress variants (`de_DE_formal` → `de-DE`,
   `pt_PT_ao90` → `pt-PT`). A bare language — Polylang has several, e.g. `fi`, `ja`, `el`,
   `et`, `hr`, `lv`, `th`, `uk`, `vi`, `ar` — gets its default region: ar→ar-SA, bg→bg-BG,
   cs→cs-CZ, da→da-DK, de→de-DE, el→el-GR, en→en-US, es→es-ES, et→et-EE, fi→fi-FI,
