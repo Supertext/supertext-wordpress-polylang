@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Supertext\Polylang\Sdk;
+namespace Supertext\Polylang\Sdk\V1;
 
 /**
  * One text to translate: plain text (escaped on the way out, line breaks kept) or an HTML fragment.

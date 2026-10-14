@@ -9,6 +9,7 @@ defined( 'ABSPATH' ) || exit;
 
 use PLL_Language;
 use PLL_Model;
+use Supertext\Polylang\Sdk\V1\SupertextException;
 use WP_Syntex\Polylang_Pro\Modules\Machine_Translation\Clients\Client_Interface;
 use WP_Syntex\Polylang_Pro\Modules\Machine_Translation\Services\Service_Interface;
 use WP_Syntex\Polylang_Pro\Modules\Machine_Translation\Settings\Settings_Interface;
@@ -49,9 +50,10 @@ class Service implements Service_Interface {
 	public function __construct( $options, PLL_Model $model ) {
 		$this->service_options = array_merge(
 			array(
-				'api_key'   => '',
-				'endpoint'  => '',
-				'languages' => array(),
+				'api_key'    => '',
+				'endpoint'   => '',
+				'languages'  => array(),
+				'politeness' => array(),
 			),
 			is_array( $options ) ? $options : array()
 		);
@@ -176,9 +178,16 @@ class Service implements Service_Interface {
 			'endpoint'  => array(
 				'type' => 'string',
 			),
-			'languages' => array(
+			'languages'  => array(
 				'type'                 => 'object',
-				// Map of Polylang language slug => Supertext language code.
+				// Map of Polylang language slug => Supertext language code ('' = exact match of the locale).
+				'additionalProperties' => array(
+					'type' => 'string',
+				),
+			),
+			'politeness' => array(
+				'type'                 => 'object',
+				// Map of Polylang language slug => `more` (formal), `less` (informal) or '' (automatic).
 				'additionalProperties' => array(
 					'type' => 'string',
 				),
@@ -187,25 +196,32 @@ class Service implements Service_Interface {
 	}
 
 	/**
-	 * Returns the suggested default Supertext code for a language.
+	 * The Supertext target code for a Polylang language, without guessing: the
+	 * settings' mapping (`$mapping[ slug ]`), else an exact match of the language's
+	 * locale (`de_CH` → `de-CH`; `de_DE_formal` or a bare `fi` have none), see
+	 * {@see Language_Codes}. The `supertext_polylang_language_code` filter can set
+	 * or change the code; '' means "not supported".
 	 *
-	 * Used to pre-fill the language-mapping settings. Supertext uses BCP-47 codes
-	 * with a region for the target (e.g. `de-CH`, `en-US`): Polylang's
-	 * `PLL_Language::$w3c` tag, with the default region added when it has none
-	 * (`fi` → `fi-FI`, see {@see Language_Codes}). The authoritative value at translation time is the admin's explicit
-	 * mapping (see {@see \Supertext\Polylang\Machine_Translation\Client}); this is
-	 * only the fallback/suggestion.
-	 *
-	 * @param PLL_Language $language Language to check.
-	 * @return string BCP-47 language code, empty if it cannot be determined.
+	 * @param PLL_Language          $language The language.
+	 * @param array<string, string> $mapping  The settings' mapping: Polylang slug => Supertext code.
+	 * @return string
+	 * @throws SupertextException `unsupported_language` (nothing is sent) when there is no code.
 	 */
-	public static function get_default_code( PLL_Language $language ): string {
-		// Always with a region: Supertext rejects bare target languages ("fi" → "fi-FI").
-		$code = Language_Codes::target( ! empty( $language->w3c ) ? $language->w3c : $language->locale );
+	public static function resolve_target( PLL_Language $language, array $mapping ): string {
+		$mapped = (string) ( $mapping[ $language->slug ] ?? '' );
+		$code   = Language_Codes::resolve( $language->locale, '' !== trim( $mapped ) ? array( $language->locale => $mapped ) : array() ) ?? '';
 
-		/** @var string $code */
-		$code = apply_filters( 'supertext_polylang_language_code', $code, $language );
+		/**
+		 * Filters the Supertext target code of a Polylang language.
+		 *
+		 * @param string       $code     The mapped or matching code, '' when the language has none.
+		 * @param PLL_Language $language The language.
+		 */
+		$code = trim( (string) apply_filters( 'supertext_polylang_language_code', $code, $language ) );
+		if ( '' === $code ) {
+			throw new SupertextException( SupertextException::UNSUPPORTED_LANGUAGE, targetLang: $language->locale );
+		}
 
-		return (string) $code;
+		return $code;
 	}
 }

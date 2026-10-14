@@ -65,6 +65,40 @@ add_filter(
 	}
 );
 
+/**
+ * Loads the plugin's own translations (languages/supertext-polylang-<locale>.mo:
+ * German, French, Italian). A regional locale without its own file uses its
+ * language's (de_CH, de_DE_formal → de_DE; fr_CH → fr_FR; it_CH → it_IT), so the
+ * interface follows each user's back-end language. A translation installed in
+ * wp-content/languages/plugins wins.
+ */
+add_action(
+	'init',
+	function (): void {
+		$locale = determine_locale();
+		$dir    = SUPERTEXT_POLYLANG_DIR . 'languages/';
+		$files  = array( $dir . 'supertext-polylang-' . $locale . '.mo' );
+		$base   = array(
+			'de' => 'de_DE',
+			'fr' => 'fr_FR',
+			'it' => 'it_IT',
+		);
+		$lang   = strtolower( substr( $locale, 0, 2 ) );
+		if ( isset( $base[ $lang ] ) ) {
+			$files[] = $dir . 'supertext-polylang-' . $base[ $lang ] . '.mo';
+		}
+		foreach ( $files as $file ) {
+			if ( is_readable( $file ) ) {
+				load_textdomain( 'supertext-polylang', $file, $locale );
+				return;
+			}
+		}
+	}
+);
+
+// Version reports, the automatic API key check and the public ping (Supertext Commando Center).
+\Supertext\Polylang\Reporting\Commando::init();
+
 // Register the "Supertext" admin page (status, Polylang settings link, Patch button).
 \Supertext\Polylang\Admin\Page::init();
 

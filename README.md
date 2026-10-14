@@ -18,7 +18,7 @@ all three:
 |------|-----------|------|
 | `includes/Machine_Translation/Service.php` | `Service_Interface` | Identity, icon, language-code mapping, wiring |
 | `includes/Machine_Translation/Client.php` | `Client_Interface` | The actual `translate()` / `get_usage()` / key check |
-| `includes/Machine_Translation/Settings.php` | `Settings_Interface` | The settings form (API key + optional endpoint) |
+| `includes/Machine_Translation/Settings.php` | `Settings_Interface` | The settings form (API key, endpoint, language mapping); its key check is the Commando Center's |
 
 The service is registered through the `pll_mt_services` filter (see the patch below).
 
@@ -49,7 +49,8 @@ can't clash with another plugin that ships the SDK); HTTP goes through WordPress
 HTTP 429 (Supertext's per-second rate limit) is retried up to 4 times (`Retry-After`, else
 1/2/4/8 s). A pasted `Supertext-Auth-Key ` prefix on the API key is stripped. Errors come
 back as `WP_Error` codes `supertext_<code>` (e.g. `supertext_invalid_language_pair`,
-`supertext_quota_exceeded`), as before.
+`supertext_quota_exceeded`, `supertext_unsupported_language`, `supertext_unsupported_feature`),
+as before; every SDK error code has its own translated message in `Client::to_wp_error()`.
 
 **Never edit `includes/Sdk/`**: fix the SDK in its own repository, then run
 `scripts/vendor-sdk.sh [ref]` (`SDK_DIR=/path/to/clone` uses a local clone);
@@ -69,39 +70,103 @@ is a small number of file calls, comfortably under the file endpoint's 1-req-per
 |--------|---------|---------|
 | `supertext_polylang_endpoint` | `https://api.supertext.com/v1/` | API base URL (also settable in the UI) |
 | `supertext_polylang_auth_headers` | `Authorization: Supertext-Auth-Key {key}`, `Accept`, `User-Agent` | Headers of every AI request |
-| `supertext_polylang_language_code` | `PLL_Language::$w3c` (BCP-47) with a region (`fi` → `fi-FI`) | Default/suggested code when a language is left unmapped |
+| `supertext_polylang_language_code` | The mapped code, else the exact match of the locale, else `''` | The Supertext target code of a Polylang language (`''` = not supported: `unsupported_language`) |
 | `supertext_polylang_poll_interval` | `2` (seconds) | Status poll interval |
 | `supertext_polylang_poll_timeout` | `180` (seconds) | Max time to wait for `done` |
 | `supertext_polylang_screenshot_endpoint` | `https://vibeboost.me/api/screenshot` | [VibeBoost Screenshots](https://vibeboost.me) capture endpoint used to attach a page screenshot (DocumentTypeId 3) to human orders |
 
-Politeness is derived from the locale: `*_formal` → `more`, `*_informal` → `less`.
+Politeness (formal/informal) is sent only for targets where `Languages::supportsPoliteness()` is
+true: the language's *Formality* in the mapping, else `*_formal` → `more`, `*_informal` → `less`,
+else Supertext decides.
 
 #### Language codes
 
-Supertext wants the **source as a bare language** (`en`, `de`, `fr`) and the **target as a
-regional code** (`de-DE`, `fr-CH`, `en-US`). A bare target such as `de`, or a regional
-source such as `en-US`, is rejected with `INVALID_LANGUAGE_PAIR`. Translating within one
-language (`en` → `en-GB`) is allowed.
+No guessing. Supertext accepts only the codes of its `GET features` list (the SDK's
+`Supertext\Polylang\Sdk\V1\Languages`, 28 sources and 37 targets): sources bare (`en`),
+targets regional only for de/en/fr/it/pt (`de-CH`, `en-US`, `pt-BR`), a script for zh/sr
+(`zh-Hans`, `sr-Latn`), `gsw-u-sd-chzh`/`gsw-u-sd-chbe`, and bare for all others (`es`, `nl`,
+`sl`, `fi`, `ja`). Anything else is rejected with `INVALID_LANGUAGE_PAIR`.
 
-`includes/Machine_Translation/Language_Codes.php` (no WordPress dependency,
-`tests/unit/cases/LanguageCodesTest.php`) turns Polylang languages into the codes sent:
+A Polylang language is resolved by its **locale** (`Service::resolve_target()`,
+`Machine_Translation\Language_Codes`, no WordPress dependency,
+`tests/unit/cases/LanguageCodesTest.php`):
 
-- **Target:** the language's code in the settings mapping if set, else the Polylang
-  `w3c` tag (or the locale). Either way a code with a region keeps it, normalized
-  (`de_CH`/`de-ch` → `de-CH`; scripts and numeric regions such as `zh-Hant`, `es-419`
-  keep their form), and the SDK drops WordPress variants (`de_DE_formal` → `de-DE`,
-  `pt_PT_ao90` → `pt-PT`). A bare language — Polylang has several, e.g. `fi`, `ja`, `el`,
-  `et`, `hr`, `lv`, `th`, `uk`, `vi`, `ar` — gets its default region: ar→ar-SA, bg→bg-BG,
-  cs→cs-CZ, da→da-DK, de→de-DE, el→el-GR, en→en-US, es→es-ES, et→et-EE, fi→fi-FI,
-  fr→fr-FR, hr→hr-HR, hu→hu-HU, it→it-IT, ja→ja-JP, ko→ko-KR, lt→lt-LT, lv→lv-LV,
-  nb→nb-NO, nl→nl-NL, pl→pl-PL, pt→pt-PT, ro→ro-RO, ru→ru-RU, sk→sk-SK, sl→sl-SI,
-  sr→sr-RS, sv→sv-SE, th→th-TH, tr→tr-TR, uk→uk-UA, vi→vi-VN, zh→zh-CN (same table as the
-  other Supertext plugins). Unknown bare codes are sent unchanged, so Supertext's error
-  names them.
-- **Source:** the bare language of the same code (`de-CH` → `de`).
+1. the administrator's mapping (*Language mapping* in the Supertext section of Polylang's
+   machine-translation settings, stored as `machine_translation_services.supertext.languages`
+   = Polylang slug → Supertext code; the value is sent as it is, even if the SDK doesn't
+   know it yet), then the `supertext_polylang_language_code` filter;
+2. else an exact match of the locale, apart from case and `_`/`-` (`de_CH` → `de-CH`);
+3. else the SDK error `unsupported_language`: nothing is sent, and the editor gets
+   `supertext_unsupported_language` naming the language and where to map it.
 
-`Service::get_default_code()` (the placeholder in the mapping table) already applies the
-target rule, so the suggested codes are the ones that are sent.
+There are no default regions: `de_DE_formal`, `de_CH_informal`, `ca_valencia`, `pt_PT_ao90`,
+`es_ES`, a bare `fi` or `de` must be mapped explicitly. One mapping serves both directions:
+the source is `Languages::source()` of the language's target code (`de-CH` → `de`), so a
+source language needs no separate setting. The mapping table shows each language's status,
+and the status panel on **Supertext → Settings** lists unmapped languages.
+
+Formality (`machine_translation_services.supertext.politeness` = slug → `more`/`less`/`''`)
+is offered and sent only where `Languages::supportsPoliteness()` is true; otherwise nothing
+is sent (Supertext would answer `unsupported_feature`).
+
+## Commando Center: version reports, API key check, ping
+
+Protocol: [Commando-Center-Supertext-Translation](https://github.com/Supertext/Commando-Center-Supertext-Translation)
+→ `docs/DEVELOPER.md` → *Report protocol*. The SDK's `InstallationReporter`, `checkApiKey()`,
+`reportsEnabled()` and `pingResponse()` implement it; `includes/Reporting/Reporting.php` (no
+WordPress functions) loads the state, runs one reporter action and stores the new state,
+never throwing; `includes/Reporting/Commando.php` gives it what WordPress knows and wires the
+hooks.
+
+- **Setting:** `version_reports` in the option `supertext_polylang_settings` (*Send version
+  information to Supertext*, on by default, on **Supertext → Settings**).
+  `SUPERTEXT_VERSION_REPORTS` (`0/false/off/no`, `1/true/on/yes`) on the server wins
+  (`reportsEnabled()`); the page says so. Off: no reports, ping 404. `SUPERTEXT_REPORT_URL`
+  sends reports elsewhere (tests: a fake or the SDK stand-in's `POST /report`).
+- **Report fields:** `site_url` = `home_url( '/' )`; plugin `supertext-wordpress-polylang`
+  with `SUPERTEXT_POLYLANG_VERSION` (the plugin header's version); system `WordPress` with
+  `get_bloginfo( 'version' )`; runtime PHP; `callback.url` = `rest_url( 'supertext/v1/ping' )`.
+  HTTP goes through `Wp_Http_Transport` (`wp_remote_request()`), with the SDK's timeouts
+  (3 s per report, 10 s for the key check). The key check uses the Supertext environment
+  chosen in the settings.
+- **When:**
+  - `afterSettingsSaved`: Polylang's machine-translation save calls
+    `Settings::is_api_key_valid()`, which runs it with the key and environment being saved
+    and returns the check's message as Polylang's notice; the `update_option_polylang` hook
+    runs it on `shutdown` when the Supertext options changed without that call. The save of
+    **Supertext → Settings** (`pre_update_option_supertext_polylang_settings`, options.php)
+    runs it with the new setting and shows the message as a settings notice. At most once per
+    request.
+  - `onRequest`: `admin_init` on the Supertext pages and Polylang's settings page, and every
+    AI translation (`Client::translate_segments()`). Runs once per request on `shutdown`,
+    after `fastcgi_finish_request()` where available. Never on front-end views.
+  - `authenticationFailed`: an AI translation failed with `authentication_failure`
+    (HTTP 401/403); replaces `onRequest` for that request.
+  - `testConnection`: **Test connection** in the status panel (admin-post action
+    `supertext_polylang_test_connection`; the result is shown once on the next page view).
+- **State:** the SDK's JSON in the option `supertext_polylang_reporter` (not autoloaded).
+  Unreadable state is treated as empty. The API key is never stored, sent or logged; only
+  the SDK's fingerprint is kept. Errors are logged only with `WP_DEBUG`.
+- **Ping:** REST route `GET /wp-json/supertext/v1/ping` (`permission_callback`
+  `__return_true`, no login or nonce) answers `pingResponse()`'s status, headers
+  (`Cache-Control: no-store`) and body.
+- **Messages:** `Commando::message()` has the center's five texts, with the account and API
+  key links (new tab) for `invalid` and `missing` (bare URLs where Polylang shows plain text).
+- **Tests:** `tests/unit/cases/ReportingTest.php` and `CommandoTest.php` use a fake transport
+  and `SUPERTEXT_REPORT_URL` pointing at `127.0.0.1`, so they never reach the live center.
+
+## Interface languages
+
+The plugin's strings use the text domain `supertext-polylang`. German, French and Italian
+are in `languages/supertext-polylang-{de_DE,fr_FR,it_IT}.po` (formal address: Sie, vous,
+Lei); the plugin loads the matching `.mo` on `init` for each user's back-end language, with
+regional locales falling back to their language (`de_CH`, `de_DE_formal` → `de_DE`). After
+changing a `.po`, run `php scripts/compile-translations.php` (no gettext tools needed);
+`tests/unit/cases/TranslationFilesTest.php` checks that the three files have the same
+strings, placeholders and URLs, that the `.mo` files are current, and that every string of
+the Supertext machine-translation settings, the AI error messages and the Commando Center
+is translated. New or changed strings get all three translations in the same commit. Older
+screens (orders, human translation, integrations) are still English only.
 
 ## YOOtheme Pro page-builder integration
 

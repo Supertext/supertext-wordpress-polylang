@@ -58,7 +58,7 @@ jobs:
           set -euo pipefail
           mkdir -p build/supertext-polylang
           cp supertext-polylang.php README.md build/supertext-polylang/
-          cp -r includes assets build/supertext-polylang/
+          cp -r includes assets languages build/supertext-polylang/
           ( cd build && zip -qr "../supertext-polylang-${VERSION}.zip" supertext-polylang )
           ls -l "supertext-polylang-${VERSION}.zip"
 

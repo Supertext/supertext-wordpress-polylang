@@ -7,52 +7,62 @@ namespace Supertext\Polylang\Tests\Cases;
 
 use PHPUnit\Framework\TestCase;
 use Supertext\Polylang\Machine_Translation\Language_Codes;
+use Supertext\Polylang\Sdk\V1\SupertextException;
 
+/**
+ * No guessing: the mapping, else an exact match of the locale, else unsupported_language.
+ */
 class LanguageCodesTest extends TestCase {
-	public function test_bare_source_is_sent_as_is(): void {
-		$this->assertSame( 'en', Language_Codes::source( 'en' ) );
-		$this->assertSame( 'de', Language_Codes::source( 'DE' ) );
+	public function test_target_exact_match_ignores_case_and_underscores(): void {
+		$this->assertSame( 'de-CH', Language_Codes::target( 'de_CH' ) );
+		$this->assertSame( 'en-US', Language_Codes::target( 'en_us' ) );
+		$this->assertSame( 'es', Language_Codes::target( 'es' ) );
+		$this->assertSame( 'zh-Hant', Language_Codes::target( 'zh_hant' ) );
 	}
 
-	public function test_regional_source_loses_its_region(): void {
-		$this->assertSame( 'en', Language_Codes::source( 'en-US' ) );
-		$this->assertSame( 'en', Language_Codes::source( 'en_GB' ) );
-		$this->assertSame( 'de', Language_Codes::source( 'de-CH' ) );
+	public function test_target_without_match_is_unsupported_and_names_the_locale(): void {
+		foreach ( array( 'de', 'de_DE_formal', 'ca_valencia', 'es_ES', 'fi_FI', 'pt_PT_ao90' ) as $locale ) {
+			try {
+				Language_Codes::target( $locale );
+				$this->fail( $locale . ' should not resolve without a mapping' );
+			} catch ( SupertextException $e ) {
+				$this->assertSame( SupertextException::UNSUPPORTED_LANGUAGE, $e->errorCode );
+				$this->assertSame( $locale, $e->targetLang );
+			}
+		}
+		$this->assertNull( Language_Codes::resolve( 'de_DE_formal' ) );
+	}
+
+	public function test_mapping_wins_and_is_sent_as_given(): void {
+		$this->assertSame( 'de-DE', Language_Codes::target( 'de_DE_formal', array( 'de_DE_formal' => 'de-DE' ) ) );
+		$this->assertSame( 'de-AT', Language_Codes::target( 'de_CH', array( 'de_CH' => ' de-AT ' ) ) );
+		$this->assertSame( 'xx-YY', Language_Codes::target( 'de_CH', array( 'de_CH' => 'xx-YY' ) ), 'a code Supertext adds later works before the SDK knows it' );
+		$this->assertSame( 'de-CH', Language_Codes::target( 'de_CH', array( 'de_CH' => '  ' ) ), 'a blank mapping means automatic' );
+	}
+
+	public function test_source_is_bare_and_one_mapping_serves_both_directions(): void {
+		$this->assertSame( 'en', Language_Codes::source( 'en_US' ) );
 		$this->assertSame( 'de', Language_Codes::source( 'de_DE_formal' ) );
+		$this->assertSame( 'de', Language_Codes::source( 'de_DE_formal', array( 'de_DE_formal' => 'de-CH' ) ) );
+		$this->assertSame( 'en', Language_Codes::source( 'en', array( 'en' => 'en-US' ) ) );
 		$this->assertSame( '', Language_Codes::source( '' ) );
 	}
 
-	public function test_bare_target_gets_the_default_region(): void {
-		$this->assertSame( 'de-DE', Language_Codes::target( 'de' ) );
-		$this->assertSame( 'en-US', Language_Codes::target( 'en' ) );
-		$this->assertSame( 'fi-FI', Language_Codes::target( 'fi' ) );
-		$this->assertSame( 'ja-JP', Language_Codes::target( 'ja' ) );
-		$this->assertSame( 'el-GR', Language_Codes::target( 'el' ) );
+	public function test_politeness_only_where_supported(): void {
+		$this->assertSame( 'more', Language_Codes::politeness( 'de-CH', '', 'de_CH_formal' ) );
+		$this->assertSame( 'less', Language_Codes::politeness( 'de-DE', '', 'de_DE_informal' ) );
+		$this->assertSame( 'less', Language_Codes::politeness( 'de-DE', 'less', 'de_DE_formal' ), 'the setting wins' );
+		$this->assertSame( 'default', Language_Codes::politeness( 'fr-CH', '', 'fr_CH' ) );
+		$this->assertSame( 'default', Language_Codes::politeness( 'en-US', 'more', 'en_US' ), 'English has no formal/informal' );
+		$this->assertSame( 'default', Language_Codes::politeness( 'xx-YY', 'more', 'xx_YY' ), 'unknown codes get none' );
+		$this->assertTrue( Language_Codes::supports_politeness( 'de-CH' ) );
+		$this->assertFalse( Language_Codes::supports_politeness( 'en-US' ) );
 	}
 
-	public function test_regional_target_is_kept_and_normalized(): void {
-		$this->assertSame( 'de-CH', Language_Codes::target( 'de_CH' ) );
-		$this->assertSame( 'de-CH', Language_Codes::target( 'de-ch' ) );
-		$this->assertSame( 'zh-Hant', Language_Codes::target( 'zh_hant' ) );
-		$this->assertSame( 'es-419', Language_Codes::target( 'es-419' ) );
-	}
-
-	public function test_wordpress_variants_are_dropped(): void {
-		$this->assertSame( 'de-DE', Language_Codes::target( 'de_DE_formal' ) );
-		$this->assertSame( 'de-CH', Language_Codes::target( 'de_CH_informal' ) );
-		$this->assertSame( 'pt-PT', Language_Codes::target( 'pt_PT_ao90' ) );
-	}
-
-	public function test_override_wins(): void {
-		$this->assertSame( 'de-AT', Language_Codes::target( 'de-DE', 'de_at' ) );
-		$this->assertSame( 'fr-CH', Language_Codes::target( 'fr-FR', ' fr-CH ' ) );
-		$this->assertSame( 'fr-FR', Language_Codes::target( 'fr-CH', 'fr' ), 'a bare override gets the default region' );
-		$this->assertSame( 'pt', Language_Codes::source( 'en-US', 'pt-BR' ) );
-		$this->assertSame( 'de-DE', Language_Codes::target( 'de', '  ' ) );
-	}
-
-	public function test_unknown_bare_code_is_sent_unchanged(): void {
-		$this->assertSame( 'xx', Language_Codes::target( 'xx' ) );
-		$this->assertSame( 'gsw', Language_Codes::target( 'gsw' ) );
+	public function test_targets_list_for_the_drop_down(): void {
+		$targets = Language_Codes::targets();
+		$this->assertArrayHasKey( 'de-CH', $targets );
+		$this->assertArrayHasKey( 'es', $targets );
+		$this->assertArrayNotHasKey( 'es-ES', $targets );
 	}
 }

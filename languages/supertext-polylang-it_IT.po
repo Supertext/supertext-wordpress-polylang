@@ -1,0 +1,182 @@
+# Italian translation of Supertext for Polylang.
+# Source: the plugin's PHP files (text domain supertext-polylang). After editing, run: php scripts/compile-translations.php
+msgid ""
+msgstr ""
+"Project-Id-Version: Supertext for Polylang\n"
+"Language: it_IT\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=n != 1;\n"
+"X-Domain: supertext-polylang\n"
+
+msgid "API key checked: the connection to Supertext works."
+msgstr "Chiave API verificata: la connessione a Supertext funziona."
+
+msgid "Supertext rejected the API key. Check that you copied the whole key, or generate a new one at %1$s (requires the Admin role). No Supertext account yet? Create one at %2$s."
+msgstr "Supertext ha rifiutato la chiave API. Verifichi di aver copiato l'intera chiave oppure ne generi una nuova su %1$s (richiede il ruolo Admin). Non ha ancora un account Supertext? Ne crei uno su %2$s."
+
+msgid "No API key is set yet. No Supertext account yet? Create one at %1$s. Generate your API key at %2$s (requires the Admin role)."
+msgstr "Non è ancora stata inserita alcuna chiave API. Non ha ancora un account Supertext? Ne crei uno su %1$s. Generi la Sua chiave API su %2$s (richiede il ruolo Admin)."
+
+msgid "The API key couldn't be checked because Supertext can't be reached. The settings are saved; check again later."
+msgstr "Non è stato possibile verificare la chiave API perché Supertext non è raggiungibile. Le impostazioni sono salvate; riprovi più tardi."
+
+msgid "The API key couldn't be checked: Supertext answered with an error ({status}). The settings are saved; check again later."
+msgstr "Non è stato possibile verificare la chiave API: Supertext ha risposto con un errore ({status}). Le impostazioni sono salvate; riprovi più tardi."
+
+msgid "Version information"
+msgstr "Informazioni sulla versione"
+
+msgid "Send version information to Supertext"
+msgstr "Inviare le informazioni sulla versione a Supertext"
+
+msgid "Sends the site URL and the versions of this plugin, WordPress and the runtime to Supertext when you save these settings and after an update, so Supertext support can see which version you run. No content, no API key and no personal data are sent."
+msgstr "Invia a Supertext l'URL del sito e le versioni di questo plugin, di WordPress e dell'ambiente di esecuzione quando salva queste impostazioni e dopo un aggiornamento. In questo modo l'assistenza Supertext vede quale versione utilizza. Non vengono trasmessi contenuti, chiavi API né dati personali."
+
+msgid "The environment variable SUPERTEXT_VERSION_REPORTS turns version information on for this server, whatever this setting says."
+msgstr "La variabile d'ambiente SUPERTEXT_VERSION_REPORTS attiva le informazioni sulla versione su questo server, indipendentemente da questa impostazione."
+
+msgid "The environment variable SUPERTEXT_VERSION_REPORTS turns version information off for this server, whatever this setting says."
+msgstr "La variabile d'ambiente SUPERTEXT_VERSION_REPORTS disattiva le informazioni sulla versione su questo server, indipendentemente da questa impostazione."
+
+msgid "Save settings"
+msgstr "Salva le impostazioni"
+
+msgid "You are not allowed to do this."
+msgstr "Non è autorizzato a eseguire questa operazione."
+
+msgid "API key check"
+msgstr "Verifica della chiave API"
+
+msgid "Not checked yet"
+msgstr "Non ancora verificata"
+
+msgid "Test connection"
+msgstr "Verifica connessione"
+
+msgid "checked %s"
+msgstr "verificata il %s"
+
+msgid "Languages (Supertext language mapping)"
+msgstr "Lingue (corrispondenza con le lingue Supertext)"
+
+msgid "Not mapped: choose its Supertext language in the Polylang settings"
+msgstr "Nessuna corrispondenza: scelga la lingua Supertext nelle impostazioni di Polylang"
+
+msgid "On"
+msgstr "Attivo"
+
+msgid "Off"
+msgstr "Disattivato"
+
+msgid "API key"
+msgstr "Chiave API"
+
+msgid "Environment"
+msgstr "Ambiente"
+
+msgid "Supertext environment for AI machine translation."
+msgstr "Ambiente Supertext per la traduzione automatica con IA."
+
+msgid "Your Supertext API key. The service becomes active once a key is saved. No Supertext account yet? Create one at %1$s. Generate your API key at %2$s (requires the Admin role)."
+msgstr "La Sua chiave API Supertext. Il servizio è attivo non appena viene salvata una chiave. Non ha ancora un account Supertext? Ne crei uno su %1$s. Generi la Sua chiave API su %2$s (richiede il ruolo Admin)."
+
+msgid "supertext.com"
+msgstr "supertext.com"
+
+msgid "supertext.com → Integrations → API"
+msgstr "supertext.com → Integrations → API"
+
+msgid "Language mapping"
+msgstr "Corrispondenza delle lingue"
+
+msgid "Choose the Supertext language for each Polylang language. \"Automatic\" uses the Supertext language whose code equals the locale (de_CH → de-CH). Locales without one, such as de_DE_formal or a bare fi, must be mapped here; until then, translations into or from them stop with an error and nothing is sent to Supertext."
+msgstr "Scelga la lingua Supertext per ogni lingua di Polylang. «Automatico» usa la lingua Supertext il cui codice corrisponde alla locale (de_CH → de-CH). Le locale senza corrispondenza, come de_DE_formal o un semplice fi, vanno associate qui; fino ad allora le traduzioni da o verso queste lingue si interrompono con un errore e a Supertext non viene inviato nulla."
+
+msgid "Polylang language"
+msgstr "Lingua Polylang"
+
+msgid "Supertext language"
+msgstr "Lingua Supertext"
+
+msgid "Formality"
+msgstr "Registro"
+
+msgid "Status"
+msgstr "Stato"
+
+msgid "Automatic (%s)"
+msgstr "Automatico (%s)"
+
+msgid "Automatic (no match: choose a language)"
+msgstr "Automatico (nessuna corrispondenza: scelga una lingua)"
+
+msgid "Automatic"
+msgstr "Automatico"
+
+msgid "Formal"
+msgstr "Formale (Lei)"
+
+msgid "Informal"
+msgstr "Informale (tu)"
+
+msgid "Not mapped: Supertext can't translate into or from this language yet"
+msgstr "Nessuna corrispondenza: Supertext non può ancora tradurre da o verso questa lingua"
+
+msgid "Formality is offered only for the languages where Supertext supports it. \"Automatic\" uses formal for locales ending in _formal, informal for _informal, and lets Supertext decide otherwise. Save once after changing a language to see the formality choice for it."
+msgstr "Il registro è disponibile solo per le lingue in cui Supertext lo supporta. «Automatico» usa il registro formale per le locale che terminano con _formal, informale per _informal, e altrimenti lascia decidere a Supertext. Dopo aver cambiato una lingua, salvi una volta per vedere la scelta del registro."
+
+msgid "No Supertext account yet? Create one at %1$s. Generate your API key at %2$s (supertext.com → Integrations → API; requires the Admin role)."
+msgstr "Non ha ancora un account Supertext? Ne crei uno su %1$s. Generi la Sua chiave API su %2$s (supertext.com → Integrations → API; richiede il ruolo Admin)."
+
+msgid "No Supertext API key is set. Enter it under Languages → Settings → Machine translation → Supertext."
+msgstr "Non è inserita alcuna chiave API Supertext. La inserisca in Lingue → Impostazioni → Traduzione automatica → Supertext."
+
+msgid "Authentication failure. Please check your Supertext API key."
+msgstr "Autenticazione non riuscita. Verifichi la Sua chiave API Supertext."
+
+msgid "%s has no Supertext language, so nothing was sent to Supertext. An administrator can choose its Supertext language under Languages → Settings → Machine translation → Supertext → Language mapping."
+msgstr "%s non ha una lingua Supertext, quindi a Supertext non è stato inviato nulla. Un amministratore può scegliere la lingua Supertext in Lingue → Impostazioni → Traduzione automatica → Supertext → Corrispondenza delle lingue."
+
+msgid "Supertext offers this language pair, but not with the option \"%s\". An administrator can reset the formality of this language under Languages → Settings → Machine translation → Supertext → Language mapping."
+msgstr "Supertext offre questa coppia di lingue, ma non con l'opzione «%s». Un amministratore può reimpostare il registro di questa lingua in Lingue → Impostazioni → Traduzione automatica → Supertext → Corrispondenza delle lingue."
+
+msgid "Supertext does not support this language pair (%1$s → %2$s). Check the Supertext language mapping in the settings."
+msgstr "Supertext non supporta questa coppia di lingue (%1$s → %2$s). Verifichi la corrispondenza delle lingue Supertext nelle impostazioni."
+
+msgid "The requested Supertext resource was not found."
+msgstr "La risorsa Supertext richiesta non è stata trovata."
+
+msgid "The document is too large for Supertext to translate."
+msgstr "Il documento è troppo grande per essere tradotto da Supertext."
+
+msgid "Too many requests to Supertext. Please try again shortly."
+msgstr "Troppe richieste a Supertext. Riprovi tra poco."
+
+msgid "Supertext service unavailable."
+msgstr "Il servizio Supertext non è disponibile."
+
+msgid "Could not reach Supertext."
+msgstr "Supertext non è raggiungibile."
+
+msgid "Supertext did not return a file id."
+msgstr "Supertext non ha restituito un ID file."
+
+msgid "Supertext failed to translate the document."
+msgstr "Supertext non è riuscito a tradurre il documento."
+
+msgid "Your Supertext translation limit is exceeded. Please upgrade your subscription."
+msgstr "Il Suo limite di traduzione Supertext è superato. Passi a un abbonamento superiore."
+
+msgid "The Supertext translation file was deleted before it could be downloaded."
+msgstr "Il file di traduzione Supertext è stato eliminato prima che potesse essere scaricato."
+
+msgid "Timed out waiting for the Supertext translation to finish."
+msgstr "Tempo scaduto in attesa del completamento della traduzione Supertext."
+
+msgid "The Supertext translation is incomplete."
+msgstr "La traduzione Supertext è incompleta."
+
+msgid "Supertext sent an unexpected status code %d."
+msgstr "Supertext ha restituito un codice di stato inatteso %d."

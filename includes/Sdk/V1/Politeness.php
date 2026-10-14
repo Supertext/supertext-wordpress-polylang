@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Supertext\Polylang\Sdk;
+namespace Supertext\Polylang\Sdk\V1;
 
 /**
  * Form of address in the translation, for languages that have one.

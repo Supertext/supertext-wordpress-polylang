@@ -1,0 +1,213 @@
+<?php
+/**
+ * @package Supertext_Polylang
+ */
+
+namespace Supertext\Polylang\Tests\Cases;
+
+use PHPUnit\Framework\TestCase;
+use Supertext\Polylang\Reporting\Reporting;
+use Supertext\Polylang\Sdk\Http\HttpRequest;
+use Supertext\Polylang\Sdk\Http\HttpResponse;
+use Supertext\Polylang\Sdk\Http\HttpTransport;
+use Supertext\Polylang\Sdk\Http\TransportException;
+use Supertext\Polylang\Sdk\V1\ApiKeyCheck;
+
+/**
+ * The Commando Center glue, with a fake transport: never reaches the live center.
+ */
+class ReportingTest extends TestCase {
+	const REPORT_URL = 'http://127.0.0.1:9/report';
+	const API        = 'https://api.example.test/v1/';
+	const KEY        = 'secret-key-123';
+
+	/** @var array<int, HttpRequest> */
+	private $requests = array();
+
+	/** @var int */
+	private $features_status = 200;
+
+	/** @var bool */
+	private $center_down = false;
+
+	/** @var string|null */
+	private $stored = null;
+
+	private function transport(): HttpTransport {
+		return new class( $this ) implements HttpTransport {
+			private $test;
+
+			public function __construct( $test ) {
+				$this->test = $test;
+			}
+
+			public function send( HttpRequest $request ): HttpResponse {
+				return $this->test->answer( $request );
+			}
+		};
+	}
+
+	/** @internal */
+	public function answer( HttpRequest $request ): HttpResponse {
+		$this->requests[] = $request;
+		if ( self::REPORT_URL === $request->url ) {
+			if ( $this->center_down ) {
+				throw new TransportException( 'connection refused' );
+			}
+			return new HttpResponse( 202, '{"ok":true}', array() );
+		}
+		if ( str_starts_with( $request->url, self::API . 'features' ) ) {
+			return new HttpResponse( $this->features_status, 401 === $this->features_status ? '{"error_code":"UNAUTHORIZED"}' : '[]', array() );
+		}
+		return new HttpResponse( 404, '', array() );
+	}
+
+	private function reporting( bool $enabled = true, string $version = '1.0.0', ?string $site = 'https://www.example.ch/' ): Reporting {
+		return new Reporting(
+			enabled: $enabled,
+			site_url: $site,
+			plugin_version: $version,
+			system_version: '6.9',
+			callback_url: null !== $site ? $site . 'wp-json/supertext/v1/ping' : null,
+			api_base_url: self::API,
+			transport: $this->transport(),
+			load: fn() => $this->stored,
+			save: function ( string $json ) {
+				$this->stored = $json;
+			},
+			report_url: self::REPORT_URL,
+			now: static fn() => 1791900000.0,
+		);
+	}
+
+	/** @return array<int, array<string, mixed>> */
+	private function reports(): array {
+		$out = array();
+		foreach ( $this->requests as $request ) {
+			if ( self::REPORT_URL === $request->url ) {
+				$out[] = json_decode( (string) $request->body, true );
+			}
+		}
+		return $out;
+	}
+
+	public function test_first_save_reports_installed_with_the_key_check_and_never_the_key(): void {
+		$result = $this->reporting()->after_settings_saved( self::KEY );
+
+		$this->assertNotNull( $result );
+		$this->assertSame( ApiKeyCheck::OK, $result->check->status );
+		$this->assertSame( 'installed', $result->event );
+		$this->assertTrue( $result->sent );
+
+		$report = $this->reports()[0];
+		$this->assertSame( 'supertext-wordpress-polylang', $report['plugin']['name'] );
+		$this->assertSame( '1.0.0', $report['plugin']['version'] );
+		$this->assertSame( array( 'name' => 'WordPress', 'version' => '6.9' ), $report['system'] );
+		$this->assertSame( 'https://www.example.ch/', $report['site_url'] );
+		$this->assertSame( 'https://www.example.ch/wp-json/supertext/v1/ping', $report['callback']['url'] );
+		$this->assertSame( 'ok', $report['api_key_check']['status'] );
+		$this->assertTrue( $report['api_key_configured'] );
+		foreach ( $this->requests as $request ) {
+			if ( self::REPORT_URL === $request->url ) {
+				$this->assertStringNotContainsString( self::KEY, (string) $request->body );
+			}
+		}
+		$this->assertStringNotContainsString( self::KEY, (string) $this->stored );
+	}
+
+	public function test_second_save_reports_settings_saved(): void {
+		$this->reporting()->after_settings_saved( self::KEY );
+		$result = $this->reporting()->after_settings_saved( self::KEY );
+
+		$this->assertSame( 'settings_saved', $result->event );
+	}
+
+	public function test_on_request_reports_only_upgrades(): void {
+		$this->reporting()->after_settings_saved( self::KEY );
+		$this->requests = array();
+
+		$this->assertNull( $this->reporting()->on_request( self::KEY )->event, 'nothing changed' );
+		$this->assertSame( array(), $this->requests, 'the same key is not checked again' );
+
+		$result = $this->reporting( true, '1.1.0' )->on_request( self::KEY );
+		$this->assertSame( 'upgraded', $result->event );
+	}
+
+	public function test_rejected_key_and_authentication_failure(): void {
+		$this->features_status = 401;
+		$result                = $this->reporting()->after_settings_saved( self::KEY );
+		$this->assertSame( ApiKeyCheck::INVALID, $result->check->status );
+
+		$this->features_status = 200;
+		$this->reporting()->test_connection( self::KEY );
+		$result = $this->reporting()->authentication_failed( self::KEY, 403 );
+		$this->assertSame( ApiKeyCheck::INVALID, $result->check->status );
+		$this->assertSame( 403, $result->check->httpStatus );
+		$this->assertSame( 'api_key_check', $result->event );
+	}
+
+	public function test_missing_key_is_checked_without_a_request_to_supertext(): void {
+		$result = $this->reporting()->after_settings_saved( '' );
+
+		$this->assertSame( ApiKeyCheck::MISSING, $result->check->status );
+		foreach ( $this->requests as $request ) {
+			$this->assertSame( self::REPORT_URL, $request->url );
+		}
+	}
+
+	public function test_off_means_no_report_but_the_key_check_still_runs(): void {
+		$result = $this->reporting( false )->after_settings_saved( self::KEY );
+
+		$this->assertSame( ApiKeyCheck::OK, $result->check->status );
+		$this->assertFalse( $result->sent );
+		$this->assertSame( array(), $this->reports() );
+	}
+
+	public function test_without_a_site_url_nothing_is_reported(): void {
+		$this->reporting( true, '1.0.0', null )->after_settings_saved( self::KEY );
+
+		$this->assertSame( array(), $this->reports() );
+	}
+
+	public function test_unreachable_center_never_throws_and_is_not_retried_within_the_hour(): void {
+		$this->center_down = true;
+		$result            = $this->reporting()->after_settings_saved( self::KEY );
+		$this->assertFalse( $result->sent );
+
+		$this->requests = array();
+		$this->reporting( true, '1.1.0' )->on_request( self::KEY );
+		$this->assertSame( array(), $this->reports(), 'no new attempt for an hour' );
+	}
+
+	public function test_unreadable_state_is_empty(): void {
+		$this->stored = '{not json';
+		$this->assertNull( $this->reporting()->last_check() );
+
+		$this->reporting()->after_settings_saved( self::KEY );
+		$this->assertSame( ApiKeyCheck::OK, $this->reporting()->last_check()->status );
+	}
+
+	public function test_ping(): void {
+		$ok = Reporting::ping( 'abcdefghijklmnop', true );
+		$this->assertSame( 200, $ok->status );
+		$this->assertSame( array( 'ok' => true, 'plugin' => 'supertext-wordpress-polylang', 'challenge' => 'abcdefghijklmnop' ), json_decode( $ok->body, true ) );
+		$this->assertSame( 'no-store', $ok->headers['Cache-Control'] );
+
+		$this->assertSame( 400, Reporting::ping( '<script>', true )->status );
+		$this->assertSame( 400, Reporting::ping( null, true )->status );
+		$this->assertSame( 404, Reporting::ping( 'abcdefghijklmnop', false )->status );
+	}
+
+	public function test_environment_wins_over_the_setting(): void {
+		putenv( 'SUPERTEXT_VERSION_REPORTS=0' );
+		try {
+			$this->assertFalse( Reporting::enabled( true ) );
+			$this->assertTrue( Reporting::forced_by_environment() );
+		} finally {
+			putenv( 'SUPERTEXT_VERSION_REPORTS' );
+		}
+		$this->assertTrue( Reporting::enabled( null ), 'on by default' );
+		$this->assertFalse( Reporting::enabled( false ) );
+		$this->assertFalse( Reporting::forced_by_environment() );
+	}
+}

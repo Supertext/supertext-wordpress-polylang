@@ -23,7 +23,7 @@ incl. `upload_file` with `DocumentTypeId 3` / `image/png` for screenshot referen
 (decode/collect/map/encode), the **VibeBoost** screenshot `Client` (URL encoding —
 the secret token must stay inside the `url` param — defaults, and error paths), the
 **Draft_Preview** token gate (`is_valid` match/wrong/disabled/expired + `preview_url`
-`p` vs `page_id`), the **Settings** feature toggles (defaults / sanitize / getters), and the AI **Language_Codes** rule (bare source, regional target with default region, WordPress variants dropped, mapping wins; see README.md → *Language codes*).
+`p` vs `page_id`), the **Settings** feature toggles (defaults / sanitize / getters), the AI **Language_Codes** rule (mapping, else exact match of the locale, else `unsupported_language`; formality only where Supertext offers it; see README.md → *Language codes*), the AI client refusing unmapped languages without a request, the **Commando Center** glue (`Reporting`, `Commando`: key check, reports, ping, messages; a fake transport and `SUPERTEXT_REPORT_URL` on `127.0.0.1`, so nothing reaches the live center), and the **translation files** (German, French, Italian complete, `.mo` current).
 
 ## End-to-end tests — `tests/e2e/` (Playwright)
 

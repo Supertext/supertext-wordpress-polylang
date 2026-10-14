@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Supertext\Polylang\Sdk;
+namespace Supertext\Polylang\Sdk\V1;
 
 /**
  * Small UTF-8 helpers, so the SDK doesn't need ext-mbstring.

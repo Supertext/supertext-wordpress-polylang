@@ -8,6 +8,9 @@ namespace Supertext\Polylang\Machine_Translation;
 defined( 'ABSPATH' ) || exit;
 
 use PLL_Model;
+use Supertext\Polylang\Reporting\Commando;
+use Supertext\Polylang\Sdk\V1\ApiKeyCheck;
+use Supertext\Polylang\Sdk\V1\SupertextException;
 use WP_Error;
 use WP_Syntex\Polylang_Pro\Modules\Machine_Translation\Settings\Settings_Interface;
 
@@ -78,36 +81,52 @@ class Settings implements Settings_Interface {
 	/**
 	 * Tells if the authentication key is valid by contacting the service.
 	 *
+	 * Polylang calls this when its settings are saved, so this is the plugin's
+	 * "settings saved" moment: the Commando Center's automatic key check runs
+	 * (cost-free `GET features`) and, unless switched off, the version report is
+	 * sent (see Reporting\Commando). The result is shown with the center's message.
+	 *
 	 * @param array $options Options for this service (already sanitized).
 	 * @return WP_Error Empty on success; otherwise carries a `field_id` for the faulty field.
 	 */
 	public function is_api_key_valid( array $options ): WP_Error {
-		if ( ! $this->has_api_key( $options ) ) {
-			$options['api_key'] = '';
-		}
+		$api_key = $this->has_api_key( $options ) ? (string) $options['api_key'] : '';
+		$check   = Commando::after_settings_saved( $api_key, (string) ( $options['endpoint'] ?? '' ) );
 
-		$client = ( new Service(
-			array(
-				'api_key'  => $options['api_key'],
-				'endpoint' => $options['endpoint'] ?? '',
-			),
-			$this->model
-		) )->get_client();
-
-		$error = $client->is_api_key_valid();
-
-		if ( ! $error->has_errors() ) {
+		if ( null === $check ) {
+			// Already checked in this request, or the SDK failed: the plain check.
+			$error = ( new Service(
+				array(
+					'api_key'  => $api_key,
+					'endpoint' => $options['endpoint'] ?? '',
+				),
+				$this->model
+			) )->get_client()->is_api_key_valid();
+			if ( $error->has_errors() ) {
+				$error->add_data(
+					array(
+						'type'     => 'supertext_authentication_failure' === $error->get_error_code() ? 'error' : 'warning',
+						'field_id' => 'pll-supertext-api-key',
+					)
+				);
+			}
 			return $error;
 		}
 
-		$error->add_data(
+		if ( ApiKeyCheck::OK === $check->status ) {
+			return new WP_Error();
+		}
+
+		$message = Commando::message( $check, false );
+
+		return new WP_Error(
+			'supertext_key_check_' . $check->status,
+			$message['text'],
 			array(
-				'type'     => 'supertext_authentication_failure' === $error->get_error_code() ? 'error' : 'warning',
+				'type'     => 'error' === $message['type'] ? 'error' : 'warning',
 				'field_id' => 'pll-supertext-api-key',
 			)
 		);
-
-		return $error;
 	}
 
 	/**
@@ -126,6 +145,32 @@ class Settings implements Settings_Interface {
 			$this->service->get_icon(), // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- safe markup built by the service.
 			esc_html( $this->service->get_name() )
 		);
+
+		$check = Commando::last_check();
+		if ( null !== $check ) {
+			$message = Commando::message( $check, true );
+			printf(
+				'<div class="notice notice-%s inline"><p>%s <small>(%s)</small></p></div>',
+				esc_attr( $message['type'] ),
+				wp_kses( $message['text'], array( 'a' => array( 'href' => array(), 'target' => array(), 'rel' => array() ) ) ),
+				esc_html( self::checked_at( $check ) )
+			);
+		}
+	}
+
+	/**
+	 * When a key check ran, in the site's date and time format.
+	 *
+	 * @param ApiKeyCheck $check The check.
+	 * @return string
+	 */
+	public static function checked_at( ApiKeyCheck $check ): string {
+		$time = strtotime( $check->checkedAt );
+		if ( false === $time ) {
+			return $check->checkedAt;
+		}
+		/* translators: %s: date and time of the last API key check. */
+		return sprintf( __( 'checked %s', 'supertext-polylang' ), wp_date( get_option( 'date_format' ) . ' ' . get_option( 'time_format' ), $time ) );
 	}
 
 	/**
@@ -187,36 +232,51 @@ class Settings implements Settings_Interface {
 	}
 
 	/**
-	 * Prints the Polylang language → Supertext code mapping table.
+	 * Prints the Polylang language → Supertext language mapping table.
 	 *
-	 * Each Polylang language gets one input. Leaving a field empty falls back to
-	 * the default (BCP-47) code at translation time.
+	 * Each Polylang language gets a drop-down of the languages Supertext offers.
+	 * "Automatic" uses the language whose code equals the locale (`de_CH` →
+	 * `de-CH`); locales without one (`de_DE_formal`, `ca_valencia`, a bare `fi`)
+	 * must be mapped, otherwise translations into or from them stop with
+	 * `unsupported_language`. The status column says which. Formal/informal is
+	 * offered only where Supertext supports it for the chosen language.
 	 *
 	 * @return void
 	 */
 	private function print_language_mapping() {
-		$mapping   = isset( $this->options['languages'] ) && is_array( $this->options['languages'] ) ? $this->options['languages'] : array();
-		$languages = $this->model->get_languages_list();
+		$mapping    = isset( $this->options['languages'] ) && is_array( $this->options['languages'] ) ? $this->options['languages'] : array();
+		$politeness = isset( $this->options['politeness'] ) && is_array( $this->options['politeness'] ) ? $this->options['politeness'] : array();
+		$languages  = $this->model->get_languages_list();
+		$targets    = Language_Codes::targets();
 		?>
 		<tr>
 			<th scope="row"><?php esc_html_e( 'Language mapping', 'supertext-polylang' ); ?></th>
 			<td>
 				<p class="description" style="margin-bottom:8px;">
-					<?php esc_html_e( 'Map each Polylang language to the code Supertext expects. Leave a field empty to use the suggested default.', 'supertext-polylang' ); ?>
+					<?php esc_html_e( 'Choose the Supertext language for each Polylang language. "Automatic" uses the Supertext language whose code equals the locale (de_CH → de-CH). Locales without one, such as de_DE_formal or a bare fi, must be mapped here; until then, translations into or from them stop with an error and nothing is sent to Supertext.', 'supertext-polylang' ); ?>
 				</p>
-				<table class="widefat striped" style="max-width:520px;">
+				<table class="widefat striped" style="max-width:760px;">
 					<thead>
 						<tr>
 							<th><?php esc_html_e( 'Polylang language', 'supertext-polylang' ); ?></th>
-							<th><?php esc_html_e( 'Supertext code', 'supertext-polylang' ); ?></th>
+							<th><?php esc_html_e( 'Supertext language', 'supertext-polylang' ); ?></th>
+							<th><?php esc_html_e( 'Formality', 'supertext-polylang' ); ?></th>
+							<th><?php esc_html_e( 'Status', 'supertext-polylang' ); ?></th>
 						</tr>
 					</thead>
 					<tbody>
 						<?php foreach ( $languages as $language ) : ?>
 							<?php
-							$slug    = $language->slug;
-							$value   = (string) ( $mapping[ $slug ] ?? '' );
-							$default = Service::get_default_code( $language );
+							$slug     = $language->slug;
+							$value    = trim( (string) ( $mapping[ $slug ] ?? '' ) );
+							$match    = Language_Codes::resolve( $language->locale );
+							try {
+								$resolved = Service::resolve_target( $language, $mapping );
+							} catch ( SupertextException $e ) {
+								$resolved = null;
+							}
+							$polite   = (string) ( $politeness[ $slug ] ?? '' );
+							$offer    = null !== $resolved && Language_Codes::supports_politeness( $resolved );
 							?>
 							<tr>
 								<td>
@@ -226,20 +286,54 @@ class Settings implements Settings_Interface {
 									</label>
 								</td>
 								<td>
-									<input
+									<select
 										name="<?php echo esc_attr( $this->input_base_name . '[languages][' . $slug . ']' ); ?>"
 										id="<?php echo esc_attr( 'pll-supertext-lang-' . $slug ); ?>"
-										type="text"
-										class="regular-text code"
-											style="width:8em"
-										value="<?php echo esc_attr( $value ); ?>"
-										placeholder="<?php echo esc_attr( $default ); ?>"
-									/>
+									>
+										<option value="" <?php selected( $value, '' ); ?>>
+											<?php
+											echo esc_html(
+												null !== $match
+													/* translators: %s: the Supertext language code that equals the locale, e.g. de-CH. */
+													? sprintf( __( 'Automatic (%s)', 'supertext-polylang' ), $match )
+													: __( 'Automatic (no match: choose a language)', 'supertext-polylang' )
+											);
+											?>
+										</option>
+										<?php if ( '' !== $value && ! isset( $targets[ $value ] ) ) : ?>
+											<option value="<?php echo esc_attr( $value ); ?>" selected="selected"><?php echo esc_html( $value ); ?></option>
+										<?php endif; ?>
+										<?php foreach ( $targets as $code => $name ) : ?>
+											<option value="<?php echo esc_attr( $code ); ?>" <?php selected( $value, $code ); ?>><?php echo esc_html( $code . ' – ' . $name ); ?></option>
+										<?php endforeach; ?>
+									</select>
+								</td>
+								<td>
+									<?php if ( $offer ) : ?>
+										<select name="<?php echo esc_attr( $this->input_base_name . '[politeness][' . $slug . ']' ); ?>" aria-label="<?php esc_attr_e( 'Formality', 'supertext-polylang' ); ?>">
+											<option value="" <?php selected( $polite, '' ); ?>><?php esc_html_e( 'Automatic', 'supertext-polylang' ); ?></option>
+											<option value="more" <?php selected( $polite, 'more' ); ?>><?php esc_html_e( 'Formal', 'supertext-polylang' ); ?></option>
+											<option value="less" <?php selected( $polite, 'less' ); ?>><?php esc_html_e( 'Informal', 'supertext-polylang' ); ?></option>
+										</select>
+									<?php else : ?>
+										<input type="hidden" name="<?php echo esc_attr( $this->input_base_name . '[politeness][' . $slug . ']' ); ?>" value="" />
+										<span class="description">&ndash;</span>
+									<?php endif; ?>
+								</td>
+								<td>
+									<?php if ( null !== $resolved ) : ?>
+										<span style="color:#008a20;">&#10003; <?php echo esc_html( $resolved ); ?></span>
+									<?php else : ?>
+										<strong style="color:#d63638;"><?php esc_html_e( 'Not mapped: Supertext can\'t translate into or from this language yet', 'supertext-polylang' ); ?></strong>
+									<?php endif; ?>
 								</td>
 							</tr>
 						<?php endforeach; ?>
 					</tbody>
 				</table>
+				<p class="description" style="margin-top:8px;">
+					<?php esc_html_e( 'Formality is offered only for the languages where Supertext supports it. "Automatic" uses formal for locales ending in _formal, informal for _informal, and lets Supertext decide otherwise. Save once after changing a language to see the formality choice for it.', 'supertext-polylang' ); ?>
+				</p>
 			</td>
 		</tr>
 		<?php

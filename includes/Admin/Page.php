@@ -9,6 +9,9 @@ defined( 'ABSPATH' ) || exit;
 
 use Supertext\Polylang\Human_Translation\Callback;
 use Supertext\Polylang\Machine_Translation\Service;
+use Supertext\Polylang\Machine_Translation\Settings as Mt_Settings;
+use Supertext\Polylang\Reporting\Commando;
+use Supertext\Polylang\Sdk\V1\SupertextException;
 
 /**
  * The "Supertext" admin pages: Settings (with the status panel merged in),
@@ -270,6 +273,16 @@ class Page {
 					$active ? __( 'Active', 'supertext-polylang' ) : __( 'Inactive (enter an API key in Polylang settings)', 'supertext-polylang' )
 				);
 
+				self::render_key_check_row();
+				self::render_language_rows();
+
+				$reports = Commando::enabled();
+				self::state_row(
+					__( 'Send version information to Supertext', 'supertext-polylang' ),
+					$reports ? 'ok' : 'off',
+					$reports ? __( 'On', 'supertext-polylang' ) : __( 'Off', 'supertext-polylang' )
+				);
+
 				// Optional features & third-party integrations (a disabled feature is a
 				// choice, not an error — shown neutral rather than red).
 				printf(
@@ -316,6 +329,61 @@ class Page {
 	}
 
 	/**
+	 * Prints the latest automatic API key check (with its message) and the
+	 * *Test connection* button.
+	 *
+	 * @return void
+	 */
+	private static function render_key_check_row(): void {
+		$check = Commando::last_check();
+		if ( null === $check ) {
+			self::state_row( __( 'API key check', 'supertext-polylang' ), 'off', __( 'Not checked yet', 'supertext-polylang' ) );
+		} else {
+			$message = Commando::message( $check, true );
+			$state   = 'success' === $message['type'] ? 'ok' : ( 'error' === $message['type'] ? 'bad' : 'warn' );
+			self::state_row( __( 'API key check', 'supertext-polylang' ), $state, Mt_Settings::checked_at( $check ) );
+			printf(
+				'<div class="st-row"><span class="st-row__label">%s</span></div>',
+				wp_kses( $message['text'], array( 'a' => array( 'href' => array(), 'target' => array(), 'rel' => array() ) ) )
+			);
+		}
+		?>
+		<div class="st-row">
+			<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
+				<input type="hidden" name="action" value="<?php echo esc_attr( Commando::TEST_ACTION ); ?>" />
+				<?php wp_nonce_field( Commando::TEST_ACTION ); ?>
+				<?php submit_button( __( 'Test connection', 'supertext-polylang' ), 'secondary', 'submit', false ); ?>
+			</form>
+		</div>
+		<?php
+	}
+
+	/**
+	 * Prints one row per Polylang language with its Supertext language, or that it
+	 * isn't mapped (translations into or from it stop with unsupported_language).
+	 *
+	 * @return void
+	 */
+	private static function render_language_rows(): void {
+		if ( ! function_exists( 'PLL' ) || ! isset( PLL()->model ) ) {
+			return;
+		}
+		$service = PLL()->options['machine_translation_services'][ Service::get_slug() ] ?? array();
+		$mapping = is_array( $service ) && isset( $service['languages'] ) && is_array( $service['languages'] ) ? $service['languages'] : array();
+
+		printf( '<div class="st-subhead">%s</div>', esc_html__( 'Languages (Supertext language mapping)', 'supertext-polylang' ) );
+		foreach ( PLL()->model->get_languages_list() as $language ) {
+			$label = $language->name . ' (' . $language->locale . ')';
+			try {
+				$code = Service::resolve_target( $language, $mapping );
+				self::state_row( $label, 'ok', $code );
+			} catch ( SupertextException $e ) {
+				self::state_row( $label, 'bad', __( 'Not mapped: choose its Supertext language in the Polylang settings', 'supertext-polylang' ) );
+			}
+		}
+	}
+
+	/**
 	 * Prints a tri-state status row (for optional features / integrations, where
 	 * "off" is a neutral choice rather than an error).
 	 *
@@ -329,6 +397,7 @@ class Page {
 			'ok'   => array( '', 'dashicons-yes' ),
 			'warn' => array( '--warn', 'dashicons-warning' ),
 			'off'  => array( '--off', 'dashicons-minus' ),
+			'bad'  => array( '--bad', 'dashicons-no-alt' ),
 		);
 		list( $modifier, $icon ) = $map[ $state ] ?? $map['off'];
 		printf(
@@ -357,6 +426,15 @@ class Page {
 		// One-off notice from the patch handler.
 		$notice_key = self::NOTICE_TRANSIENT . '_' . get_current_user_id();
 		$notice     = get_transient( $notice_key );
+		$tested     = Commando::take_test_result();
+		if ( null !== $tested ) {
+			$message = Commando::message( $tested, true );
+			printf(
+				'<div class="notice notice-%s is-dismissible"><p>%s</p></div>',
+				esc_attr( $message['type'] ),
+				wp_kses( $message['text'], array( 'a' => array( 'href' => array(), 'target' => array(), 'rel' => array() ) ) )
+			);
+		}
 		if ( is_array( $notice ) ) {
 			delete_transient( $notice_key );
 			printf(

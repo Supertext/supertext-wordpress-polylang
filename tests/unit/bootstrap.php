@@ -65,6 +65,24 @@ if ( ! class_exists( 'WP_Error' ) ) {
 	}
 }
 
+// Minimal WP_REST_Response stub (the ping handler only sets data, status and headers).
+if ( ! class_exists( 'WP_REST_Response' ) ) {
+	class WP_REST_Response {
+		public $data;
+		public $status;
+		public $headers = array();
+
+		public function __construct( $data = null, $status = 200 ) {
+			$this->data   = $data;
+			$this->status = $status;
+		}
+
+		public function header( $key, $value ) {
+			$this->headers[ $key ] = $value;
+		}
+	}
+}
+
 $root = dirname( __DIR__, 2 );
 
 require_once $root . '/includes/Integrations/YooTheme/Layout.php';
@@ -75,12 +93,12 @@ require_once $root . '/includes/Human_Translation/Writeback.php';
 require_once $root . '/includes/Admin/Settings.php';
 require_once $root . '/includes/Preview/Draft_Preview.php';
 require_once $root . '/includes/Integrations/VibeBoost/Client.php';
-// The bundled Supertext SDK (includes/Sdk, namespace Supertext\Polylang\Sdk).
+// The plugin's other classes and the bundled Supertext SDK (includes/Sdk, namespace Supertext\Polylang\Sdk).
 spl_autoload_register(
 	static function ( string $class ) use ( $root ): void {
-		$prefix = 'Supertext\\Polylang\\Sdk\\';
+		$prefix = 'Supertext\\Polylang\\';
 		if ( 0 === strpos( $class, $prefix ) ) {
-			$file = $root . '/includes/Sdk/' . str_replace( '\\', '/', substr( $class, strlen( $prefix ) ) ) . '.php';
+			$file = $root . '/includes/' . str_replace( '\\', '/', substr( $class, strlen( $prefix ) ) ) . '.php';
 			if ( is_file( $file ) ) {
 				require $file;
 			}

@@ -84,6 +84,7 @@ class Settings {
 			'preview_links_enabled'     => true,
 			'screenshots_enabled'       => true,
 			'screenshots_api_key'       => '',
+			'version_reports'           => true,
 		);
 	}
 
@@ -111,6 +112,7 @@ class Settings {
 		$out['preview_links_enabled'] = ! empty( $input['preview_links_enabled'] );
 		$out['screenshots_enabled']   = ! empty( $input['screenshots_enabled'] );
 		$out['screenshots_api_key']   = sanitize_text_field( (string) ( $input['screenshots_api_key'] ?? '' ) );
+		$out['version_reports']       = ! empty( $input['version_reports'] );
 
 		return $out;
 	}
@@ -236,6 +238,17 @@ class Settings {
 	 */
 	public static function screenshots_api_key(): string {
 		return (string) self::get()['screenshots_api_key'];
+	}
+
+	/**
+	 * The "Send version information to Supertext" setting (on by default). The
+	 * environment variable SUPERTEXT_VERSION_REPORTS wins over it, see
+	 * Reporting\Commando::enabled().
+	 *
+	 * @return bool
+	 */
+	public static function version_reports(): bool {
+		return (bool) self::get()['version_reports'];
 	}
 
 	/**
@@ -422,8 +435,39 @@ class Settings {
 						</p>
 					</td>
 				</tr>
+				<tr>
+					<th scope="row"><?php esc_html_e( 'Version information', 'supertext-polylang' ); ?></th>
+					<td>
+						<label for="supertext-version-reports">
+							<input
+								type="checkbox"
+								name="<?php echo esc_attr( self::OPTION . '[version_reports]' ); ?>"
+								id="supertext-version-reports"
+								value="1"
+								<?php checked( ! empty( $current['version_reports'] ) ); ?>
+							/>
+							<?php esc_html_e( 'Send version information to Supertext', 'supertext-polylang' ); ?>
+						</label>
+						<p class="description">
+							<?php esc_html_e( 'Sends the site URL and the versions of this plugin, WordPress and the runtime to Supertext when you save these settings and after an update, so Supertext support can see which version you run. No content, no API key and no personal data are sent.', 'supertext-polylang' ); ?>
+						</p>
+						<?php if ( \Supertext\Polylang\Reporting\Reporting::forced_by_environment() ) : ?>
+							<p class="description">
+								<strong>
+									<?php
+									echo esc_html(
+										\Supertext\Polylang\Reporting\Commando::enabled()
+											? __( 'The environment variable SUPERTEXT_VERSION_REPORTS turns version information on for this server, whatever this setting says.', 'supertext-polylang' )
+											: __( 'The environment variable SUPERTEXT_VERSION_REPORTS turns version information off for this server, whatever this setting says.', 'supertext-polylang' )
+									);
+									?>
+								</strong>
+							</p>
+						<?php endif; ?>
+					</td>
+				</tr>
 			</table>
-			<?php submit_button( __( 'Save human translation settings', 'supertext-polylang' ), 'primary st-btn-plainfont' ); ?>
+			<?php submit_button( __( 'Save settings', 'supertext-polylang' ), 'primary st-btn-plainfont' ); ?>
 		</form>
 		<?php
 	}

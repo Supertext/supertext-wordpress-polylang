@@ -24,6 +24,8 @@ translation** service in **Polylang Pro**.
 - [Configuration](#configuration)
   - [AI / Machine Translation](#ai--machine-translation)
   - [Human (professional) translation](#human-professional-translation)
+  - [Language mapping](#language-mapping)
+  - [Version information and the API key check](#version-information-and-the-api-key-check)
   - [Checking the status](#checking-the-status)
 - [Usage](#usage)
   - [Translate a single post (AI)](#translate-a-single-post-ai)
@@ -33,6 +35,7 @@ translation** service in **Polylang Pro**.
   - [YOOtheme pages](#yootheme-pages)
   - [Gravity Forms](#gravity-forms)
   - [Page screenshots (VibeBoost)](#page-screenshots-vibeboost-screenshots)
+  - [When a translation can't start](#when-a-translation-cant-start)
 - [Compatibility](#compatibility)
 - [How it works](#how-it-works)
 - [FAQ](#faq)
@@ -92,17 +95,95 @@ AI translation is configured in Polylang's own Machine Translation settings.
    **[supertext.com → Integrations → API](https://www.supertext.com/en/integrations/api)** (requires the *Admin* role) — the field links to
    it directly.
 3. Pick the **Environment** (Live / Staging / Testing).
-4. Map each Polylang language to the matching **Supertext language code** (the fields are
-   pre‑filled with sensible BCP‑47 defaults — adjust where Supertext differs). Supertext
-   needs the target language with a region: a language without one gets the usual region
-   (`fi` → `fi-FI`, `ja` → `ja-JP`, `de` → `de-DE`), also when you map it to a bare code.
-   The source language is always sent without region (`de-CH` → `de`).
-5. Save. The service becomes active once a key is stored.
+4. Under **Language mapping**, choose the **Supertext language** for each Polylang
+   language (see [Language mapping](#language-mapping) below).
+5. Save. The service becomes active once a key is stored. Saving checks the key at once
+   (a cost-free request to Supertext, nothing is translated or billed) and shows the result
+   with the Supertext section: *API key checked: the connection to Supertext works.*, or what
+   is wrong (see [API key check](#api-key-check)).
 
 In Polylang's **Languages → Settings**, the **Machine Translation** module is where you
 click **Settings** to choose Supertext and enter the key:
 
 ![Polylang Languages → Settings — Machine Translation module](images/machine-translation.png)
+
+### Language mapping
+
+Supertext accepts only the language codes it offers: German, English, French, Italian and
+Portuguese with a region (`de-CH`, `de-DE`, `en-US`, `fr-CH`, `pt-BR`), Chinese and Serbian
+with a script (`zh-Hans`, `sr-Latn`), Swiss German as `gsw-u-sd-chzh` / `gsw-u-sd-chbe`, and
+all other languages without a region (`es`, `nl`, `sl`, `fi`, `ja`). The plugin never
+guesses a region: whether your `de` means Germany or Switzerland is your decision.
+
+In **Languages → Settings → Machine Translation → Supertext → Language mapping**, each
+Polylang language has:
+
+- **Supertext language** — a drop-down of the languages Supertext offers. **Automatic** uses
+  the Supertext language whose code equals the locale, apart from case and `_`/`-`
+  (`de_CH` → `de-CH`, `en_US` → `en-US`, `es` → `es`); the option shows which one, or *no
+  match*. Locales without a match must be mapped: WordPress variants such as
+  `de_DE_formal`, `de_CH_informal`, `ca_valencia` or `pt_PT_ao90`, regional locales of
+  languages Supertext offers without region (`es_ES` → choose `es`, `nl_NL` → `nl`), and bare
+  locales of the regional languages (`de` → choose `de-DE` or `de-CH`).
+- **Formality** — *Automatic*, *Formal* or *Informal*, only for languages where Supertext
+  offers it (not for English, Swiss German, Romansh, Albanian or Serbian, for example).
+  *Automatic* uses formal for locales ending in `_formal`, informal for `_informal`, and lets
+  Supertext decide otherwise. The choice appears once the language's Supertext language is
+  saved.
+- **Status** — the code that is sent (`✓ de-CH`), or **Not mapped**: translations into or
+  from this language stop with an error and nothing is sent to Supertext.
+
+One mapping serves both directions: when the language is the source, its code is sent
+without region (`de-CH` → `de`). The status panel on **Supertext → Settings** lists the same
+languages with their codes.
+
+### Version information and the API key check
+
+**Supertext → Settings → Translation Services (human) → Version information → Send version information to Supertext**
+(on by default):
+
+> Sends the site URL and the versions of this plugin, WordPress and the runtime to
+> Supertext when you save these settings and after an update, so Supertext support can see
+> which version you run. No content, no API key and no personal data are sent.
+
+Exactly what is sent (as JSON to the Supertext Commando Center): the event (`installed`,
+`settings_saved`, `upgraded`, `api_key_check`), the site URL (`home_url()`), the plugin name
+(`supertext-wordpress-polylang`) and version, the WordPress version, the PHP version, the
+version of the bundled Supertext SDK, whether an API key is set, the result of the latest
+API key check (`ok`, `invalid`, `missing`, `unreachable` or `error`, when it ran, Supertext's
+HTTP status and error code) and the address of the plugin's ping endpoint (below). Reports
+are sent when you save the Supertext or Polylang settings, when the plugin, WordPress or PHP
+version changed (noticed on the Supertext pages, Polylang's settings page or a translation),
+and when the key check result changes. A failed report is tried again after an hour at the
+earliest and never affects a save or a translation.
+
+**Turn it off** by unticking the setting and saving, or on the server with the environment
+variable `SUPERTEXT_VERSION_REPORTS=0` (`false`, `off`, `no`; `1`/`true`/`on`/`yes` turns it
+on). The environment variable wins over the setting; the settings page says so when it is
+set. With version information off, nothing is sent and the ping answers 404.
+
+**Ping endpoint:** `https://<your site>/wp-json/supertext/v1/ping` (with plain permalinks
+`https://<your site>/?rest_route=/supertext/v1/ping`). Supertext calls it with
+`?challenge=…` to check that the site is reachable; it needs no login and answers only
+`{"ok":true,"plugin":"supertext-wordpress-polylang","challenge":"…"}`, with
+`Cache-Control: no-store`. Exclude it from page caches and firewalls that block the REST API
+if Supertext should see the site as reachable.
+
+#### API key check
+
+The API key is checked automatically when you save the settings, and again when the key
+changed. The result is kept and shown in the status panel of **Supertext → Settings** (with
+the time of the check) and in the Supertext section of Polylang's settings. **Test
+connection** in the status panel runs the check again. The check runs whether or not version
+information is on; only the report depends on the setting.
+
+| Result | Message |
+| --- | --- |
+| ok | API key checked: the connection to Supertext works. |
+| invalid | Supertext rejected the API key. Check that you copied the whole key, or generate a new one at supertext.com → Integrations → API (requires the Admin role). No Supertext account yet? Create one at supertext.com. |
+| missing | No API key is set yet. No Supertext account yet? Create one at supertext.com. Generate your API key at supertext.com → Integrations → API (requires the Admin role). |
+| unreachable | The API key couldn't be checked because Supertext can't be reached. The settings are saved; check again later. |
+| error | The API key couldn't be checked: Supertext answered with an error (HTTP status). The settings are saved; check again later. |
 
 ### Human (professional) translation
 
@@ -127,8 +208,10 @@ plugin's own settings page.
 ### Checking the status
 
 The **status panel** at the top of **Supertext → Settings** shows, at a glance, whether
-Polylang Pro is active, whether the patch is applied, and whether the Supertext service is
-configured and active. (It's the same page shown above.)
+Polylang Pro is active, whether the patch is applied, whether the Supertext service is
+configured and active, the latest **API key check** (with **Test connection**), each
+Polylang language with its Supertext language (or **Not mapped**), and whether version
+information is sent. (It's the same page shown above.)
 
 ---
 
@@ -279,6 +362,19 @@ order simply goes through **without** a screenshot.
 >   default expiry) so the page can be captured; you can turn it back off per page from the
 >   editor.
 
+### When a translation can't start
+
+If a language has no Supertext language yet, AI translation into or from it stops with:
+
+> *Deutsch (Sie) (de_DE_formal) has no Supertext language, so nothing was sent to
+> Supertext. An administrator can choose its Supertext language under Languages → Settings →
+> Machine translation → Supertext → Language mapping.*
+
+Nothing was sent or billed. Ask your administrator to map the language, then translate
+again. The message appears in German, French or Italian when your WordPress profile uses
+one of these languages (the Supertext screens and messages follow your back-end language;
+some older screens are still English only).
+
 ---
 
 ## Compatibility
@@ -384,9 +480,27 @@ automatically, so you don’t need a manual Reset for the next round.
 - **AI service shows inactive** — make sure Machine Translation is enabled in Polylang and
   a Supertext API key is saved. If a DeepL key is also set, DeepL (listed first) wins —
   clear it to use Supertext.
+- **“… has no Supertext language, so nothing was sent to Supertext”**
+  (`supertext_unsupported_language`) — the Polylang language named in the message (e.g.
+  *Deutsch (Sie) (de_DE_formal)*) has neither a Supertext language in the mapping nor a
+  locale that equals one. An administrator chooses it in **Languages → Settings → Machine
+  Translation → Supertext → Language mapping** (see [Language mapping](#language-mapping));
+  the status panel on **Supertext → Settings** lists the languages that aren't mapped.
+- **“Supertext offers this language pair, but not with the option "politeness"”**
+  (`supertext_unsupported_feature`) — formal/informal was sent for a language where Supertext
+  doesn't offer it. Set the language's **Formality** to *Automatic* in the language mapping.
 - **“Supertext does not support this language pair (en → …)”** — Supertext doesn't offer that
-  language, or its code in the **language mapping** on **Supertext → Settings** is wrong. Use
-  a code such as `de-CH` or `fr`; the message shows the codes that were sent.
+  pair, or the code chosen in the **language mapping** isn't one Supertext knows; the message
+  shows the codes that were sent.
+- **“Supertext rejected the API key …”** / **“Authentication failure …”** — copy the whole key
+  again or generate a new one at
+  [supertext.com → Integrations → API](https://www.supertext.com/en/integrations/api)
+  (requires the Admin role); no account yet?
+  [Create one at supertext.com](https://www.supertext.com/person/en/account/signin). Then click
+  **Test connection** on **Supertext → Settings**.
+- **“The API key couldn't be checked …”** — Supertext couldn't be reached (network, firewall,
+  proxy) or answered with an error (the HTTP status is in the message). The settings are
+  saved; click **Test connection** later.
 - **“source and target language are the same”** — you can't translate a post into its own
   language; pick a different target.
 - **Human order placed but nothing comes back** — check **Supertext → Debug** for the most

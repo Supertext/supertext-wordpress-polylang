@@ -7,9 +7,10 @@ namespace Supertext\Polylang\Machine_Translation;
 
 defined( 'ABSPATH' ) || exit;
 
-use Supertext\Polylang\Sdk\Client as SdkClient;
-use Supertext\Polylang\Sdk\Segment;
-use Supertext\Polylang\Sdk\SupertextException;
+use Supertext\Polylang\Reporting\Commando;
+use Supertext\Polylang\Sdk\V1\Client as SdkClient;
+use Supertext\Polylang\Sdk\V1\Segment;
+use Supertext\Polylang\Sdk\V1\SupertextException;
 use Translations;
 use PLL_Language;
 use WP_Error;
@@ -77,6 +78,13 @@ class Client implements Client_Interface {
 	private $languages;
 
 	/**
+	 * Map of Polylang language slug => politeness (`more`, `less`, '' = automatic).
+	 *
+	 * @var array<string, string>
+	 */
+	private $politeness;
+
+	/**
 	 * Constructor.
 	 *
 	 * @param array $options {
@@ -84,12 +92,14 @@ class Client implements Client_Interface {
 	 *
 	 *     @type string $api_key   The Supertext API key.
 	 *     @type string $endpoint  Optional. Base URL of the API. Defaults to Supertext.
-	 *     @type array  $languages Optional. Map of Polylang language slug => Supertext code.
+	 *     @type array  $languages  Optional. Map of Polylang language slug => Supertext code.
+	 *     @type array  $politeness Optional. Map of Polylang language slug => `more`, `less` or ''.
 	 * }
 	 */
 	public function __construct( array $options ) {
 		$this->api_key   = (string) preg_replace( '/^\s*Supertext-Auth-Key\s+/i', '', trim( (string) ( $options['api_key'] ?? '' ) ) );
-		$this->languages = isset( $options['languages'] ) && is_array( $options['languages'] ) ? $options['languages'] : array();
+		$this->languages  = isset( $options['languages'] ) && is_array( $options['languages'] ) ? $options['languages'] : array();
+		$this->politeness = isset( $options['politeness'] ) && is_array( $options['politeness'] ) ? $options['politeness'] : array();
 
 		$endpoint = ! empty( $options['endpoint'] ) ? $options['endpoint'] : self::DEFAULT_ROUTE;
 		/** @var string $endpoint */
@@ -98,20 +108,36 @@ class Client implements Client_Interface {
 	}
 
 	/**
-	 * Resolves the Supertext language code for a Polylang language.
-	 *
-	 * Uses the admin's explicit mapping first, falling back to the default
-	 * (BCP-47 / `w3c`) suggestion. Either way the code carries a region
-	 * (`de` → `de-DE`, see Language_Codes): this is the target code; the
-	 * source is sent as its bare language.
+	 * The target code for a Polylang language: the settings' mapping, else an exact
+	 * match of its locale (see Language_Codes; no default regions).
 	 *
 	 * @param PLL_Language $language The language.
-	 * @return string Supertext language code, empty if none can be determined.
+	 * @return string
+	 * @throws SupertextException `unsupported_language` when the language is neither mapped nor supported.
 	 */
-	private function resolve_code( PLL_Language $language ): string {
-		$override = ! empty( $this->languages[ $language->slug ] ) ? (string) $this->languages[ $language->slug ] : '';
+	private function target_code( PLL_Language $language ): string {
+		return Service::resolve_target( $language, $this->languages );
+	}
 
-		return Language_Codes::target( Service::get_default_code( $language ), $override );
+	/**
+	 * The source code for a Polylang language ('' for auto-detection).
+	 *
+	 * @param PLL_Language|null $language The language, null for auto-detection.
+	 * @return string
+	 * @throws SupertextException `unsupported_language`.
+	 */
+	private function source_code( $language ): string {
+		if ( ! $language instanceof PLL_Language ) {
+			return '';
+		}
+		// One mapping serves both directions: the language's target code in its source form (de-CH → de).
+		try {
+			$target = Service::resolve_target( $language, $this->languages );
+		} catch ( SupertextException $e ) {
+			return Language_Codes::source( $language->locale );
+		}
+
+		return Language_Codes::source( $language->locale, array( $language->locale => $target ) );
 	}
 
 	/**
@@ -124,8 +150,8 @@ class Client implements Client_Interface {
 	 */
 	public function translate( Translations $translations, PLL_Language $target_language, $source_language = null ) {
 		// Collect the source strings in a stable order.
-		$entries  = array_values( $translations->entries );
-		$sources  = array();
+		$entries = array_values( $translations->entries );
+		$sources = array();
 		foreach ( $entries as $i => $entry ) {
 			$sources[ $i ] = (string) $entry->singular;
 		}
@@ -134,27 +160,7 @@ class Client implements Client_Interface {
 			return $translations;
 		}
 
-		$target_code = $this->resolve_code( $target_language );
-		if ( empty( $target_code ) ) {
-			return new WP_Error(
-				'supertext_target_language_unavailable',
-				sprintf(
-					/* translators: %1$s is a language name, %2$s is a language locale. */
-					__( '%1$s (%2$s) has no Supertext language code. Set one in the Supertext settings language mapping.', 'supertext-polylang' ),
-					$target_language->name,
-					sprintf( '<code>%s</code>', $target_language->locale )
-				),
-				'warning'
-			);
-		}
-
-		// Supertext expects the source language as a bare language, e.g. "de" — not
-		// a regional code like "de-CH" — and the target with a region, e.g. "de-CH" or
-		// "de-DE", otherwise the language pair is rejected (INVALID_LANGUAGE_PAIR).
-		$source_code = $source_language instanceof PLL_Language ? Language_Codes::source( $this->resolve_code( $source_language ) ) : '';
-
-		// One document per entity (split by the SDK only above its size limit).
-		$translated = $this->translate_segments( $sources, $target_code, $source_code, $this->get_politeness( $target_language ) );
+		$translated = $this->translate_strings( $sources, $target_language, $source_language );
 		if ( is_wp_error( $translated ) ) {
 			return $translated;
 		}
@@ -185,22 +191,26 @@ class Client implements Client_Interface {
 			return array();
 		}
 
-		$target_code = $this->resolve_code( $target_language );
-		if ( '' === $target_code ) {
-			return new WP_Error(
-				'supertext_target_language_unavailable',
-				sprintf(
-					/* translators: %1$s is a language name, %2$s is a language locale. */
-					__( '%1$s (%2$s) has no Supertext language code. Set one in the Supertext settings language mapping.', 'supertext-polylang' ),
-					$target_language->name,
-					$target_language->locale
-				)
-			);
+		// Nothing is sent for a language without a Supertext code: the message names it
+		// and where to map it.
+		try {
+			$target_code = $this->target_code( $target_language );
+		} catch ( SupertextException $e ) {
+			return self::to_wp_error( $e, $target_language );
+		}
+		try {
+			$source_code = $this->source_code( $source_language );
+		} catch ( SupertextException $e ) {
+			return self::to_wp_error( $e, $source_language instanceof PLL_Language ? $source_language : null );
 		}
 
-		$source_code = $source_language instanceof PLL_Language ? Language_Codes::source( $this->resolve_code( $source_language ) ) : '';
+		$politeness = Language_Codes::politeness(
+			$target_code,
+			(string) ( $this->politeness[ $target_language->slug ] ?? '' ),
+			$target_language->locale
+		);
 
-		return $this->translate_segments( $sources, $target_code, $source_code, $this->get_politeness( $target_language ) );
+		return $this->translate_segments( $sources, $target_code, $source_code, $politeness );
 	}
 
 	/**
@@ -228,10 +238,19 @@ class Client implements Client_Interface {
 		}
 
 		try {
-			return $this->sdk( $timeout )->translateTexts( $segments, $target_lang, '' !== $source_lang ? $source_lang : null, $politeness );
+			$result = $this->sdk( $timeout )->translateTexts( $segments, $target_lang, '' !== $source_lang ? $source_lang : null, $politeness );
 		} catch ( SupertextException $e ) {
+			if ( SupertextException::AUTHENTICATION_FAILURE === $e->errorCode ) {
+				// Tell the Commando Center the key was rejected (once, when its status changes).
+				Commando::authentication_failed( in_array( (int) $e->status, array( 401, 403 ), true ) ? (int) $e->status : 401 );
+			} else {
+				Commando::on_request();
+			}
 			return self::to_wp_error( $e );
 		}
+		Commando::on_request();
+
+		return $result;
 	}
 
 	/**
@@ -258,16 +277,47 @@ class Client implements Client_Interface {
 	/**
 	 * Turns an SDK error into the WP_Error this plugin has always returned
 	 * (`supertext_<code>`, a translatable message, the API's detail appended).
+	 * Messages are plain text (editors see them in notices that escape HTML), so
+	 * links are bare URLs.
 	 *
-	 * @param SupertextException $e The SDK error.
+	 * @param SupertextException $e        The SDK error.
+	 * @param PLL_Language|null  $language The language an `unsupported_language` error is about, if known.
 	 * @return WP_Error
 	 */
-	public static function to_wp_error( SupertextException $e ): WP_Error {
+	public static function to_wp_error( SupertextException $e, $language = null ): WP_Error {
+		$key_links = ' ' . sprintf(
+			/* translators: 1: URL to create a Supertext account (or log in), 2: URL of the Supertext API integrations page. */
+			__( 'No Supertext account yet? Create one at %1$s. Generate your API key at %2$s (supertext.com → Integrations → API; requires the Admin role).', 'supertext-polylang' ),
+			'https://www.supertext.com/person/en/account/signin',
+			'https://www.supertext.com/en/integrations/api'
+		);
+
 		switch ( $e->errorCode ) {
 			case SupertextException::MISSING_API_KEY:
+				$errcode = 'supertext_authentication_failure';
+				$message = __( 'No Supertext API key is set. Enter it under Languages → Settings → Machine translation → Supertext.', 'supertext-polylang' ) . $key_links;
+				break;
 			case SupertextException::AUTHENTICATION_FAILURE:
 				$errcode = 'supertext_authentication_failure';
-				$message = __( 'Authentication failure. Please check your Supertext API key.', 'supertext-polylang' );
+				$message = __( 'Authentication failure. Please check your Supertext API key.', 'supertext-polylang' ) . $key_links;
+				break;
+			case SupertextException::UNSUPPORTED_LANGUAGE:
+				$errcode = 'supertext_unsupported_language';
+				$code    = (string) ( $e->targetLang ?? $e->sourceLang ?? '' );
+				$name    = $language instanceof PLL_Language ? $language->name . ' (' . $language->locale . ')' : ( '' !== $code ? $code : '?' );
+				$message = sprintf(
+					/* translators: %s is a language name and locale, e.g. "Deutsch (de_DE_formal)". */
+					__( '%s has no Supertext language, so nothing was sent to Supertext. An administrator can choose its Supertext language under Languages → Settings → Machine translation → Supertext → Language mapping.', 'supertext-polylang' ),
+					$name
+				);
+				break;
+			case SupertextException::UNSUPPORTED_FEATURE:
+				$errcode = 'supertext_unsupported_feature';
+				$message = sprintf(
+					/* translators: %s is the name of the option, e.g. "politeness". */
+					__( 'Supertext offers this language pair, but not with the option "%s". An administrator can reset the formality of this language under Languages → Settings → Machine translation → Supertext → Language mapping.', 'supertext-polylang' ),
+					'' !== (string) $e->feature ? (string) $e->feature : '?'
+				);
 				break;
 			case SupertextException::INVALID_LANGUAGE_PAIR:
 				$errcode = 'supertext_invalid_language_pair';
@@ -335,23 +385,6 @@ class Client implements Client_Interface {
 		}
 
 		return new WP_Error( $errcode, $message );
-	}
-
-	/**
-	 * Derives the politeness setting from the target locale's formality suffix.
-	 *
-	 * @param PLL_Language $language Target language.
-	 * @return string `default`, `more`, or `less`.
-	 */
-	private function get_politeness( PLL_Language $language ): string {
-		if ( str_ends_with( $language->locale, '_formal' ) ) {
-			return 'more';
-		}
-		if ( str_ends_with( $language->locale, '_informal' ) ) {
-			return 'less';
-		}
-
-		return 'default';
 	}
 
 	/**
