@@ -52,10 +52,12 @@ back as `WP_Error` codes `supertext_<code>` (e.g. `supertext_invalid_language_pa
 `supertext_quota_exceeded`, `supertext_unsupported_language`, `supertext_unsupported_feature`),
 as before; every SDK error code has its own translated message in `Client::to_wp_error()`.
 
-**Never edit `includes/Sdk/`**: fix the SDK in its own repository, then run
-`scripts/vendor-sdk.sh [ref]` (`SDK_DIR=/path/to/clone` uses a local clone);
-`includes/Sdk/COMMIT` names the revision. Human (professional) translation orders use a
-different Supertext API and keep their own client (`includes/Human_Translation/`).
+The SDK provides the translation client and the API key check (`Client::checkApiKey()`,
+`Protocol::apiKeyFingerprint()`, `Supertext::SDK_VERSION`); version reports are
+[Supertext Plugin Health](#supertext-plugin-health)'s. **Never edit `includes/Sdk/`**: fix the
+SDK in its own repository, then run `scripts/vendor-sdk.sh [ref]` (`SDK_DIR=/path/to/clone`
+uses a local clone); `includes/Sdk/COMMIT` names the revision. Human (professional) translation
+orders use a different Supertext API and keep their own client (`includes/Human_Translation/`).
 
 > ⚠️ This blocks the request while polling. AI file translation is usually quick, but for
 > very large content it can approach PHP execution limits. A future iteration could move
@@ -112,22 +114,24 @@ is sent (Supertext would answer `unsupported_feature`).
 ## Commando Center: version reports, API key check, ping
 
 Protocol: [Commando-Center-Supertext-Translation](https://github.com/Supertext/Commando-Center-Supertext-Translation)
-→ `docs/DEVELOPER.md` → *Report protocol*. The SDK's `InstallationReporter`, `checkApiKey()`,
-`reportsEnabled()` and `pingResponse()` implement it; `includes/Reporting/Reporting.php` (no
-WordPress functions) loads the state, runs one reporter action and stores the new state,
-never throwing; `includes/Reporting/Commando.php` gives it what WordPress knows and wires the
-hooks.
+→ `docs/DEVELOPER.md` → *Report protocol*. [Supertext Plugin Health](#supertext-plugin-health)'s
+`InstallationReporter`, `reportsEnabled()` and `pingResponse()` implement it, with the SDK's
+`checkApiKey()` and `apiKeyFingerprint()` as its key checker and `Supertext::SDK_VERSION` as
+`sdk_version`; `includes/Reporting/Reporting.php` (no WordPress functions) loads the state, runs
+one reporter action and stores the new state, never throwing; `includes/Reporting/Commando.php`
+gives it what WordPress knows and wires the hooks.
 
 - **Setting:** `version_reports` in the option `supertext_polylang_settings` (*Send version
   information to Supertext*, on by default, on **Supertext → Settings**).
   `SUPERTEXT_VERSION_REPORTS` (`0/false/off/no`, `1/true/on/yes`) on the server wins
   (`reportsEnabled()`); the page says so. Off: no reports, ping 404. `SUPERTEXT_REPORT_URL`
-  sends reports elsewhere (tests: a fake or the SDK stand-in's `POST /report`).
+  sends reports elsewhere (tests: a fake transport).
 - **Report fields:** `site_url` = `home_url( '/' )`; plugin `supertext-wordpress-polylang`
   with `SUPERTEXT_POLYLANG_VERSION` (the plugin header's version); system `WordPress` with
   `get_bloginfo( 'version' )`; runtime PHP; `callback.url` = `rest_url( 'supertext/v1/ping' )`.
-  HTTP goes through `Wp_Http_Transport` (`wp_remote_request()`), with the SDK's timeouts
-  (3 s per report, 10 s for the key check). The key check uses the Supertext environment
+  HTTP goes through `Wp_Http_Transport` (`wp_remote_request()`; Plugin Health's reports via
+  `Reporting\Report_Transport`, which only converts between the two libraries' HTTP classes),
+  with their timeouts (3 s per report, 10 s for the key check). The key check uses the Supertext environment
   chosen in the settings.
 - **When:**
   - `afterSettingsSaved`: Polylang's machine-translation save calls
@@ -144,8 +148,9 @@ hooks.
     (HTTP 401/403); replaces `onRequest` for that request.
   - `testConnection`: **Test connection** in the status panel (admin-post action
     `supertext_polylang_test_connection`; the result is shown once on the next page view).
-- **State:** the SDK's JSON in the option `supertext_polylang_reporter` (not autoloaded).
-  Unreadable state is treated as empty. The API key is never stored, sent or logged; only
+- **State:** Plugin Health's `ReporterState` JSON in the option `supertext_polylang_reporter`
+  (not autoloaded); the same JSON the Supertext SDK 0.1–0.2 reporter stored, so sites keep their
+  history (no new `installed` report). Unreadable state is treated as empty. The API key is never stored, sent or logged; only
   the SDK's fingerprint is kept. Errors are logged only with `WP_DEBUG`.
 - **Ping:** REST route `GET /wp-json/supertext/v1/ping` (`permission_callback`
   `__return_true`, no login or nonce) answers `pingResponse()`'s status, headers
@@ -154,6 +159,19 @@ hooks.
   key links (new tab) for `invalid` and `missing` (bare URLs where Polylang shows plain text).
 - **Tests:** `tests/unit/cases/ReportingTest.php` and `CommandoTest.php` use a fake transport
   and `SUPERTEXT_REPORT_URL` pointing at `127.0.0.1`, so they never reach the live center.
+
+### Supertext Plugin Health
+
+[Supertext Plugin Health](https://github.com/Supertext/Commando-Center-Supertext-Translation/tree/main/plugin-health)
+(in the Commando Center's repository, `plugin-health/`) is the dependency-free library every
+Supertext plugin uses for the version reports, the report of the API key check's result and the
+answer of the ping endpoint; the key check itself is the SDK's. The plugin ships its PHP part in
+`includes/PluginHealth/` (namespace `Supertext\Polylang\PluginHealth` instead of
+`Supertext\PluginHealth`, loaded by the plugin's own autoloader and checked by PHPStan like
+`includes/Sdk/`); `COMMIT` and `VERSION` there name the revision. **Never edit
+`includes/PluginHealth/`**: fix it in Commando-Center-Supertext-Translation/plugin-health, then
+run `scripts/vendor-plugin-health.sh <tag>` (e.g. `plugin-health-v0.1.0`; default `main`;
+`PLUGIN_HEALTH_DIR=/path/to/clone` uses a local clone as it is).
 
 ## Interface languages
 

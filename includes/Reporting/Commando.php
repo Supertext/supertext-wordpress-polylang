@@ -9,10 +9,10 @@ defined( 'ABSPATH' ) || exit;
 
 use Supertext\Polylang\Admin\Settings;
 use Supertext\Polylang\Machine_Translation\Wp_Http_Transport;
+use Supertext\Polylang\PluginHealth\KeyCheck;
+use Supertext\Polylang\PluginHealth\ReporterResult;
 use Supertext\Polylang\Sdk\Http\HttpTransport;
-use Supertext\Polylang\Sdk\V1\ApiKeyCheck;
 use Supertext\Polylang\Sdk\V1\Protocol;
-use Supertext\Polylang\Sdk\V1\ReporterResult;
 use WP_REST_Request;
 use WP_REST_Response;
 
@@ -198,9 +198,9 @@ class Commando {
 	 * @param string|null $api_key  The key being saved; null: the stored one.
 	 * @param string|null $endpoint The API base URL being saved; null: the stored one.
 	 * @param bool|null   $enabled  The version reports setting being saved; null: the stored one.
-	 * @return ApiKeyCheck|null The check (null if it already ran in this request or the SDK failed).
+	 * @return KeyCheck|null The check (null if it already ran in this request or the reporter failed).
 	 */
-	public static function after_settings_saved( ?string $api_key = null, ?string $endpoint = null, ?bool $enabled = null ): ?ApiKeyCheck {
+	public static function after_settings_saved( ?string $api_key = null, ?string $endpoint = null, ?bool $enabled = null ): ?KeyCheck {
 		if ( self::$saved ) {
 			return null;
 		}
@@ -241,9 +241,9 @@ class Commando {
 	/**
 	 * *Test connection*: the key check (and a report if its status changed).
 	 *
-	 * @return ApiKeyCheck
+	 * @return KeyCheck
 	 */
-	public static function test_connection(): ApiKeyCheck {
+	public static function test_connection(): KeyCheck {
 		try {
 			$result = self::reporting()->test_connection( self::api_key() );
 		} catch ( \Throwable $e ) {
@@ -252,15 +252,15 @@ class Commando {
 
 		return $result instanceof ReporterResult && null !== $result->check
 			? $result->check
-			: new ApiKeyCheck( ApiKeyCheck::ERROR, ApiKeyCheck::timestamp( microtime( true ) ) );
+			: new KeyCheck( KeyCheck::ERROR, KeyCheck::timestamp( microtime( true ) ) );
 	}
 
 	/**
 	 * The latest stored key check.
 	 *
-	 * @return ApiKeyCheck|null
+	 * @return KeyCheck|null
 	 */
-	public static function last_check(): ?ApiKeyCheck {
+	public static function last_check(): ?KeyCheck {
 		try {
 			return self::reporting()->last_check();
 		} catch ( \Throwable $e ) {
@@ -354,9 +354,9 @@ class Commando {
 	/**
 	 * The *Test connection* result kept for this user, once.
 	 *
-	 * @return ApiKeyCheck|null
+	 * @return KeyCheck|null
 	 */
-	public static function take_test_result(): ?ApiKeyCheck {
+	public static function take_test_result(): ?KeyCheck {
 		$key   = self::TEST_TRANSIENT . '_' . get_current_user_id();
 		$value = get_transient( $key );
 		if ( false === $value ) {
@@ -364,7 +364,7 @@ class Commando {
 		}
 		delete_transient( $key );
 
-		return ApiKeyCheck::fromArray( $value );
+		return KeyCheck::from( $value );
 	}
 
 	/**
@@ -385,7 +385,7 @@ class Commando {
 	}
 
 	/**
-	 * The ping: the SDK's answer, unchanged (200 with the challenge, 400 for a bad
+	 * The ping: Plugin Health's answer, unchanged (200 with the challenge, 400 for a bad
 	 * challenge, 404 while version reports are off), never cached.
 	 *
 	 * @param WP_REST_Request $request The request.
@@ -405,11 +405,11 @@ class Commando {
 	/**
 	 * The message for a key check (the Commando Center's five texts).
 	 *
-	 * @param ApiKeyCheck $check The check.
+	 * @param KeyCheck $check The check.
 	 * @param bool        $html  Links as `<a>` (new tab), else bare URLs in brackets.
 	 * @return array{type: string, text: string} `type`: success, error or warning (WordPress notice types).
 	 */
-	public static function message( ApiKeyCheck $check, bool $html ): array {
+	public static function message( KeyCheck $check, bool $html ): array {
 		$account = 'https://www.supertext.com/person/en/account/signin';
 		$api     = 'https://www.supertext.com/en/integrations/api';
 		$link    = static fn( string $url, string $text ): string => $html
@@ -419,12 +419,12 @@ class Commando {
 		$api_link     = $link( $api, 'supertext.com → Integrations → API' );
 
 		switch ( $check->status ) {
-			case ApiKeyCheck::OK:
+			case KeyCheck::OK:
 				return array(
 					'type' => 'success',
 					'text' => __( 'API key checked: the connection to Supertext works.', 'supertext-polylang' ),
 				);
-			case ApiKeyCheck::INVALID:
+			case KeyCheck::INVALID:
 				return array(
 					'type' => 'error',
 					'text' => sprintf(
@@ -434,7 +434,7 @@ class Commando {
 						$account_link
 					),
 				);
-			case ApiKeyCheck::MISSING:
+			case KeyCheck::MISSING:
 				return array(
 					'type' => 'error',
 					'text' => sprintf(
@@ -444,7 +444,7 @@ class Commando {
 						$api_link
 					),
 				);
-			case ApiKeyCheck::UNREACHABLE:
+			case KeyCheck::UNREACHABLE:
 				return array(
 					'type' => 'warning',
 					'text' => __( 'The API key couldn\'t be checked because Supertext can\'t be reached. The settings are saved; check again later.', 'supertext-polylang' ),

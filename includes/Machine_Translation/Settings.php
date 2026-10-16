@@ -8,8 +8,8 @@ namespace Supertext\Polylang\Machine_Translation;
 defined( 'ABSPATH' ) || exit;
 
 use PLL_Model;
+use Supertext\Polylang\PluginHealth\KeyCheck;
 use Supertext\Polylang\Reporting\Commando;
-use Supertext\Polylang\Sdk\V1\ApiKeyCheck;
 use Supertext\Polylang\Sdk\V1\SupertextException;
 use WP_Error;
 use WP_Syntex\Polylang_Pro\Modules\Machine_Translation\Settings\Settings_Interface;
@@ -94,7 +94,7 @@ class Settings implements Settings_Interface {
 		$check   = Commando::after_settings_saved( $api_key, (string) ( $options['endpoint'] ?? '' ) );
 
 		if ( null === $check ) {
-			// Already checked in this request, or the SDK failed: the plain check.
+			// Already checked in this request, or the reporter failed: the plain check.
 			$error = ( new Service(
 				array(
 					'api_key'  => $api_key,
@@ -113,7 +113,7 @@ class Settings implements Settings_Interface {
 			return $error;
 		}
 
-		if ( ApiKeyCheck::OK === $check->status ) {
+		if ( KeyCheck::OK === $check->status ) {
 			return new WP_Error();
 		}
 
@@ -161,10 +161,10 @@ class Settings implements Settings_Interface {
 	/**
 	 * When a key check ran, in the site's date and time format.
 	 *
-	 * @param ApiKeyCheck $check The check.
+	 * @param KeyCheck $check The check.
 	 * @return string
 	 */
-	public static function checked_at( ApiKeyCheck $check ): string {
+	public static function checked_at( KeyCheck $check ): string {
 		$time = strtotime( $check->checkedAt );
 		if ( false === $time ) {
 			return $check->checkedAt;

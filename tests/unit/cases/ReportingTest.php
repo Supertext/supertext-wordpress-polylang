@@ -6,12 +6,13 @@
 namespace Supertext\Polylang\Tests\Cases;
 
 use PHPUnit\Framework\TestCase;
+use Supertext\Polylang\PluginHealth\KeyCheck;
 use Supertext\Polylang\Reporting\Reporting;
 use Supertext\Polylang\Sdk\Http\HttpRequest;
 use Supertext\Polylang\Sdk\Http\HttpResponse;
 use Supertext\Polylang\Sdk\Http\HttpTransport;
 use Supertext\Polylang\Sdk\Http\TransportException;
-use Supertext\Polylang\Sdk\V1\ApiKeyCheck;
+use Supertext\Polylang\Sdk\Supertext;
 
 /**
  * The Commando Center glue, with a fake transport: never reaches the live center.
@@ -95,7 +96,7 @@ class ReportingTest extends TestCase {
 		$result = $this->reporting()->after_settings_saved( self::KEY );
 
 		$this->assertNotNull( $result );
-		$this->assertSame( ApiKeyCheck::OK, $result->check->status );
+		$this->assertSame( KeyCheck::OK, $result->check->status );
 		$this->assertSame( 'installed', $result->event );
 		$this->assertTrue( $result->sent );
 
@@ -107,12 +108,41 @@ class ReportingTest extends TestCase {
 		$this->assertSame( 'https://www.example.ch/wp-json/supertext/v1/ping', $report['callback']['url'] );
 		$this->assertSame( 'ok', $report['api_key_check']['status'] );
 		$this->assertTrue( $report['api_key_configured'] );
+		$this->assertSame( Supertext::SDK_VERSION, $report['sdk_version'] );
 		foreach ( $this->requests as $request ) {
 			if ( self::REPORT_URL === $request->url ) {
 				$this->assertStringNotContainsString( self::KEY, (string) $request->body );
 			}
 		}
 		$this->assertStringNotContainsString( self::KEY, (string) $this->stored );
+	}
+
+	public function test_the_key_check_is_the_sdks_against_the_chosen_environment(): void {
+		$this->reporting( false )->after_settings_saved( self::KEY );
+
+		$this->assertCount( 1, $this->requests );
+		$this->assertSame( 'GET', $this->requests[0]->method );
+		$this->assertStringStartsWith( self::API . 'features', $this->requests[0]->url );
+		$this->assertStringContainsString( 'supertext-wordpress-polylang/1.0.0', $this->requests[0]->headers['User-Agent'] ?? '' );
+	}
+
+	public function test_state_stored_by_the_sdk_0_2_reporter_is_kept(): void {
+		// What the Supertext SDK 0.2 reporter stored before the switch to Plugin Health.
+		$fingerprint  = hash( 'sha256', self::KEY );
+		$this->stored = '{"reportedVersions":"1.0.0|6.9|' . PHP_VERSION . '","reportedKeyStatus":"ok","lastFailureAt":null,'
+			. '"keyCheck":{"status":"ok","checkedAt":"2026-10-13T08:00:00Z","httpStatus":200,"errorCode":null,"fingerprint":"' . $fingerprint . '"}}';
+
+		$this->assertSame( '2026-10-13T08:00:00Z', $this->reporting()->last_check()->checkedAt );
+		$this->assertNull( $this->reporting()->on_request( self::KEY )->event, 'no new installed report after the update' );
+		$this->assertSame( array(), $this->requests );
+
+		$this->reporting()->after_settings_saved( self::KEY );
+		$this->assertSame( 'settings_saved', $this->reports()[0]['event'] );
+		$this->assertSame(
+			array( 'reportedVersions', 'reportedKeyStatus', 'lastFailureAt', 'keyCheck' ),
+			array_keys( json_decode( (string) $this->stored, true ) ),
+			'same stored format'
+		);
 	}
 
 	public function test_second_save_reports_settings_saved(): void {
@@ -136,12 +166,12 @@ class ReportingTest extends TestCase {
 	public function test_rejected_key_and_authentication_failure(): void {
 		$this->features_status = 401;
 		$result                = $this->reporting()->after_settings_saved( self::KEY );
-		$this->assertSame( ApiKeyCheck::INVALID, $result->check->status );
+		$this->assertSame( KeyCheck::INVALID, $result->check->status );
 
 		$this->features_status = 200;
 		$this->reporting()->test_connection( self::KEY );
 		$result = $this->reporting()->authentication_failed( self::KEY, 403 );
-		$this->assertSame( ApiKeyCheck::INVALID, $result->check->status );
+		$this->assertSame( KeyCheck::INVALID, $result->check->status );
 		$this->assertSame( 403, $result->check->httpStatus );
 		$this->assertSame( 'api_key_check', $result->event );
 	}
@@ -149,7 +179,7 @@ class ReportingTest extends TestCase {
 	public function test_missing_key_is_checked_without_a_request_to_supertext(): void {
 		$result = $this->reporting()->after_settings_saved( '' );
 
-		$this->assertSame( ApiKeyCheck::MISSING, $result->check->status );
+		$this->assertSame( KeyCheck::MISSING, $result->check->status );
 		foreach ( $this->requests as $request ) {
 			$this->assertSame( self::REPORT_URL, $request->url );
 		}
@@ -158,7 +188,7 @@ class ReportingTest extends TestCase {
 	public function test_off_means_no_report_but_the_key_check_still_runs(): void {
 		$result = $this->reporting( false )->after_settings_saved( self::KEY );
 
-		$this->assertSame( ApiKeyCheck::OK, $result->check->status );
+		$this->assertSame( KeyCheck::OK, $result->check->status );
 		$this->assertFalse( $result->sent );
 		$this->assertSame( array(), $this->reports() );
 	}
@@ -184,7 +214,7 @@ class ReportingTest extends TestCase {
 		$this->assertNull( $this->reporting()->last_check() );
 
 		$this->reporting()->after_settings_saved( self::KEY );
-		$this->assertSame( ApiKeyCheck::OK, $this->reporting()->last_check()->status );
+		$this->assertSame( KeyCheck::OK, $this->reporting()->last_check()->status );
 	}
 
 	public function test_ping(): void {

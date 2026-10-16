@@ -6,11 +6,11 @@
 namespace Supertext\Polylang\Tests\Cases;
 
 use Brain\Monkey\Functions;
+use Supertext\Polylang\PluginHealth\KeyCheck;
 use Supertext\Polylang\Reporting\Commando;
 use Supertext\Polylang\Sdk\Http\HttpRequest;
 use Supertext\Polylang\Sdk\Http\HttpResponse;
 use Supertext\Polylang\Sdk\Http\HttpTransport;
-use Supertext\Polylang\Sdk\V1\ApiKeyCheck;
 use Supertext\Polylang\Tests\TestCase;
 
 /**
@@ -76,12 +76,12 @@ class CommandoTest extends TestCase {
 	public function test_after_settings_saved_checks_the_stored_key_and_stores_the_state(): void {
 		$check = Commando::after_settings_saved();
 
-		$this->assertSame( ApiKeyCheck::OK, $check->status );
+		$this->assertSame( KeyCheck::OK, $check->status );
 		$this->assertStringStartsWith( 'https://api.supertext.com/v1/features', $this->requests[0]->url );
 		$this->assertSame( 'http://127.0.0.1:9/report', $this->requests[1]->url );
 		$this->assertIsString( $this->options[ Commando::STATE_OPTION ] );
 		$this->assertStringNotContainsString( 'the-key', $this->options[ Commando::STATE_OPTION ] );
-		$this->assertSame( ApiKeyCheck::OK, Commando::last_check()->status );
+		$this->assertSame( KeyCheck::OK, Commando::last_check()->status );
 
 		$this->assertNull( Commando::after_settings_saved(), 'once per request' );
 	}
@@ -118,18 +118,18 @@ class CommandoTest extends TestCase {
 	}
 
 	public function test_messages_carry_both_links_for_invalid_and_missing(): void {
-		foreach ( array( ApiKeyCheck::INVALID, ApiKeyCheck::MISSING ) as $status ) {
-			$html = Commando::message( new ApiKeyCheck( $status, '2026-10-14T08:00:00Z' ), true );
+		foreach ( array( KeyCheck::INVALID, KeyCheck::MISSING ) as $status ) {
+			$html = Commando::message( new KeyCheck( $status, '2026-10-14T08:00:00Z' ), true );
 			$this->assertSame( 'error', $html['type'] );
 			$this->assertStringContainsString( 'href="https://www.supertext.com/person/en/account/signin" target="_blank" rel="noopener"', $html['text'] );
 			$this->assertStringContainsString( 'href="https://www.supertext.com/en/integrations/api" target="_blank" rel="noopener"', $html['text'] );
 
-			$plain = Commando::message( new ApiKeyCheck( $status, '2026-10-14T08:00:00Z' ), false );
+			$plain = Commando::message( new KeyCheck( $status, '2026-10-14T08:00:00Z' ), false );
 			$this->assertStringNotContainsString( '<a', $plain['text'] );
 			$this->assertStringContainsString( 'https://www.supertext.com/en/integrations/api', $plain['text'] );
 		}
-		$this->assertSame( 'success', Commando::message( new ApiKeyCheck( ApiKeyCheck::OK, '2026-10-14T08:00:00Z' ), true )['type'] );
-		$error = Commando::message( new ApiKeyCheck( ApiKeyCheck::ERROR, '2026-10-14T08:00:00Z', 500 ), true );
+		$this->assertSame( 'success', Commando::message( new KeyCheck( KeyCheck::OK, '2026-10-14T08:00:00Z' ), true )['type'] );
+		$error = Commando::message( new KeyCheck( KeyCheck::ERROR, '2026-10-14T08:00:00Z', 500 ), true );
 		$this->assertStringContainsString( '(500)', $error['text'] );
 	}
 
@@ -153,7 +153,7 @@ class CommandoTest extends TestCase {
 		Commando::on_request();
 		Commando::run_deferred();
 
-		$this->assertSame( ApiKeyCheck::INVALID, Commando::last_check()->status );
+		$this->assertSame( KeyCheck::INVALID, Commando::last_check()->status );
 		$this->assertCount( 1, $this->requests, 'the api_key_check report, no request to Supertext' );
 	}
 }

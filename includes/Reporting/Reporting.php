@@ -7,18 +7,24 @@ namespace Supertext\Polylang\Reporting;
 
 defined( 'ABSPATH' ) || exit;
 
+use Supertext\Polylang\PluginHealth\CallableKeyChecker;
+use Supertext\Polylang\PluginHealth\InstallationReporter;
+use Supertext\Polylang\PluginHealth\KeyCheck;
+use Supertext\Polylang\PluginHealth\PingResponse;
+use Supertext\Polylang\PluginHealth\ReporterResult;
+use Supertext\Polylang\PluginHealth\ReporterState;
 use Supertext\Polylang\Sdk\Http\HttpTransport;
-use Supertext\Polylang\Sdk\V1\ApiKeyCheck;
-use Supertext\Polylang\Sdk\V1\InstallationReporter;
-use Supertext\Polylang\Sdk\V1\PingResponse;
-use Supertext\Polylang\Sdk\V1\ReporterResult;
-use Supertext\Polylang\Sdk\V1\ReporterState;
+use Supertext\Polylang\Sdk\Supertext;
+use Supertext\Polylang\Sdk\V1\Client;
+use Supertext\Polylang\Sdk\V1\Protocol;
 
 /**
  * Version reports to the Supertext Commando Center, the automatic API key check
  * and the ping (Commando-Center-Supertext-Translation → docs/DEVELOPER.md →
- * Report protocol). The protocol is the SDK's InstallationReporter; this class
- * only loads the reporter's state, runs one action and stores the new state.
+ * Report protocol). The protocol is Supertext Plugin Health's InstallationReporter
+ * (bundled in includes/PluginHealth), with the Supertext SDK's checkApiKey() as its
+ * key check; this class only loads the reporter's state, runs one action and
+ * stores the new state.
  * Nothing here ever throws: reporting must never break a save, a page or a
  * translation.
  *
@@ -72,10 +78,10 @@ final class Reporting {
 	 * @param string|null              $system_version The WordPress version.
 	 * @param string|null              $callback_url   The ping endpoint's absolute URL.
 	 * @param string                   $api_base_url   Supertext API base URL for the key check.
-	 * @param HttpTransport            $transport      HTTP for the key check and the report.
+	 * @param HttpTransport            $transport      HTTP for the key check and the report (the SDK's interface).
 	 * @param callable                 $load           Returns the stored state (JSON) or null.
 	 * @param callable                 $save           Stores the state (JSON).
-	 * @param string|null              $report_url     Tests: the center's URL (default: SUPERTEXT_REPORT_URL, else the SDK's).
+	 * @param string|null              $report_url     Tests: the center's URL (default: SUPERTEXT_REPORT_URL, else Plugin Health's).
 	 * @param (callable(): float)|null $now            Tests: wall-clock Unix seconds.
 	 */
 	public function __construct(
@@ -117,7 +123,7 @@ final class Reporting {
 	}
 
 	/**
-	 * The answer of the public ping endpoint (status, headers and body as the SDK returns them).
+	 * The answer of the public ping endpoint (status, headers and body as Plugin Health returns them).
 	 *
 	 * @param string|null $challenge The `challenge` query parameter.
 	 * @param bool        $enabled   Whether reports are on.
@@ -193,29 +199,39 @@ final class Reporting {
 	/**
 	 * The latest stored key check, for the settings page.
 	 *
-	 * @return ApiKeyCheck|null
+	 * @return KeyCheck|null
 	 */
-	public function last_check(): ?ApiKeyCheck {
+	public function last_check(): ?KeyCheck {
 		return $this->state()->keyCheck;
 	}
 
 	/**
-	 * The SDK's reporter with this installation's values.
+	 * Plugin Health's reporter with this installation's values; the key check is the
+	 * SDK's, against the Supertext environment chosen in the settings.
 	 *
 	 * @return InstallationReporter
 	 */
 	public function reporter(): InstallationReporter {
+		$transport = $this->transport;
+		$base_url  = $this->api_base_url;
+		$agent     = self::PLUGIN_NAME . '/' . $this->plugin_version;
+		$now       = $this->now;
+
 		return new InstallationReporter(
 			enabled: $this->enabled && null !== $this->site_url,
 			siteUrl: $this->site_url ?? '',
 			pluginName: self::PLUGIN_NAME,
 			pluginVersion: $this->plugin_version,
 			systemName: self::SYSTEM_NAME,
+			keyChecker: new CallableKeyChecker(
+				static fn( #[\SensitiveParameter] string $key ) => ( new Client( $key, baseUrl: $base_url, userAgent: $agent, transport: $transport, now: $now ) )->checkApiKey(),
+				array( Protocol::class, 'apiKeyFingerprint' )
+			),
 			systemVersion: $this->system_version,
+			sdkVersion: Supertext::SDK_VERSION,
 			callbackUrl: $this->callback_url,
 			reportUrl: $this->report_url,
-			transport: $this->transport,
-			apiBaseUrl: $this->api_base_url,
+			transport: new Report_Transport( $transport ),
 			now: $this->now,
 		);
 	}
@@ -224,7 +240,7 @@ final class Reporting {
 	 * Runs one reporter action on the stored state and stores the new state.
 	 *
 	 * @param \Closure(InstallationReporter, ReporterState): ReporterResult $action The action.
-	 * @return ReporterResult|null Null only if the SDK failed unexpectedly.
+	 * @return ReporterResult|null Null only if the reporter failed unexpectedly.
 	 */
 	private function run( \Closure $action ): ?ReporterResult {
 		try {
