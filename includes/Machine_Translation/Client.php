@@ -307,7 +307,7 @@ class Client implements Client_Interface {
 				$name    = $language instanceof PLL_Language ? $language->name . ' (' . $language->locale . ')' : ( '' !== $code ? $code : '?' );
 				$message = sprintf(
 					/* translators: %s is a language name and locale, e.g. "Deutsch (de_DE_formal)". */
-					__( '%s has no Supertext language, so nothing was sent to Supertext. An administrator can choose its Supertext language under Languages → Settings → Machine translation → Supertext → Language mapping.', 'supertext-polylang' ),
+					__( '%s has no Supertext language, so nothing was sent to Supertext. An administrator can choose it in the drop-down for this language under Languages → Settings → Machine translation → Supertext → Language mapping.', 'supertext-polylang' ),
 					$name
 				);
 				break;

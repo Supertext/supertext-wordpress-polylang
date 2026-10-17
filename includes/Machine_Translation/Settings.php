@@ -234,12 +234,14 @@ class Settings implements Settings_Interface {
 	/**
 	 * Prints the Polylang language → Supertext language mapping table.
 	 *
-	 * Each Polylang language gets a drop-down of the languages Supertext offers.
-	 * "Automatic" uses the language whose code equals the locale (`de_CH` →
-	 * `de-CH`); locales without one (`de_DE_formal`, `ca_valencia`, a bare `fi`)
-	 * must be mapped, otherwise translations into or from them stop with
-	 * `unsupported_language`. The status column says which. Formal/informal is
-	 * offered only where Supertext supports it for the chosen language.
+	 * Each Polylang language (the default language too: one mapping serves both
+	 * directions) gets a drop-down of the languages Supertext offers, preselected
+	 * with the saved code, else the suggestion (exact match of the locale, else the
+	 * SDK's default, else that of the locale without its formal/informal variant,
+	 * see Language_Codes::suggest()), else "— choose —". A language left on
+	 * "— choose —" stops with `unsupported_language`; the status column says so.
+	 * Formal/informal is offered only where Supertext supports it for the chosen
+	 * language (switched in the browser as the choice changes).
 	 *
 	 * @return void
 	 */
@@ -247,15 +249,16 @@ class Settings implements Settings_Interface {
 		$mapping    = isset( $this->options['languages'] ) && is_array( $this->options['languages'] ) ? $this->options['languages'] : array();
 		$politeness = isset( $this->options['politeness'] ) && is_array( $this->options['politeness'] ) ? $this->options['politeness'] : array();
 		$languages  = $this->model->get_languages_list();
-		$targets    = Language_Codes::targets();
+		$ui_locale  = function_exists( 'get_user_locale' ) ? get_user_locale() : '';
+		$targets    = Language_Codes::targets( $ui_locale );
 		?>
 		<tr>
 			<th scope="row"><?php esc_html_e( 'Language mapping', 'supertext-polylang' ); ?></th>
 			<td>
 				<p class="description" style="margin-bottom:8px;">
-					<?php esc_html_e( 'Choose the Supertext language for each Polylang language. "Automatic" uses the Supertext language whose code equals the locale (de_CH → de-CH). Locales without one, such as de_DE_formal or a bare fi, must be mapped here; until then, translations into or from them stop with an error and nothing is sent to Supertext.', 'supertext-polylang' ); ?>
+					<?php esc_html_e( 'Choose the Supertext language for each Polylang language. The suggested language is preselected: the one whose code equals the locale (de_CH → de-CH), else the usual one (de → de-DE, es_ES → es, de_DE_formal → de-DE). Languages without a suggestion, such as en_IE or gsw, show "— choose —"; until you choose one, translations into or from them stop with an error and nothing is sent to Supertext.', 'supertext-polylang' ); ?>
 				</p>
-				<table class="widefat striped" style="max-width:760px;">
+				<table class="widefat striped supertext-language-mapping" style="max-width:860px;">
 					<thead>
 						<tr>
 							<th><?php esc_html_e( 'Polylang language', 'supertext-polylang' ); ?></th>
@@ -268,19 +271,24 @@ class Settings implements Settings_Interface {
 						<?php foreach ( $languages as $language ) : ?>
 							<?php
 							$slug     = $language->slug;
-							$value    = trim( (string) ( $mapping[ $slug ] ?? '' ) );
-							$match    = Language_Codes::resolve( $language->locale );
+							$saved    = Language_Codes::known_target( trim( (string) ( $mapping[ $slug ] ?? '' ) ) );
+							$selected = $saved ?? Language_Codes::suggest( $language->locale ) ?? '';
 							try {
-								$resolved = Service::resolve_target( $language, $mapping );
+								$resolved = Service::resolve_target( $language, '' !== $selected ? array( $slug => $selected ) : array() );
 							} catch ( SupertextException $e ) {
 								$resolved = null;
 							}
-							$polite   = (string) ( $politeness[ $slug ] ?? '' );
-							$offer    = null !== $resolved && Language_Codes::supports_politeness( $resolved );
+							$polite = (string) ( $politeness[ $slug ] ?? '' );
+							if ( '' === $polite ) {
+								$polite = Language_Codes::locale_politeness( $language->locale );
+							}
+							$offer   = '' !== $selected && Language_Codes::supports_politeness( $selected );
+							$id      = 'pll-supertext-lang-' . $slug;
+							$pid     = 'pll-supertext-polite-' . $slug;
 							?>
 							<tr>
 								<td>
-									<label for="<?php echo esc_attr( 'pll-supertext-lang-' . $slug ); ?>">
+									<label for="<?php echo esc_attr( $id ); ?>">
 										<?php echo esc_html( $language->name ); ?>
 										<code><?php echo esc_html( $language->locale ); ?></code>
 									</label>
@@ -288,43 +296,44 @@ class Settings implements Settings_Interface {
 								<td>
 									<select
 										name="<?php echo esc_attr( $this->input_base_name . '[languages][' . $slug . ']' ); ?>"
-										id="<?php echo esc_attr( 'pll-supertext-lang-' . $slug ); ?>"
+										id="<?php echo esc_attr( $id ); ?>"
+										class="supertext-language-select"
+										data-politeness="<?php echo esc_attr( $pid ); ?>"
 									>
-										<option value="" <?php selected( $value, '' ); ?>>
-											<?php
-											echo esc_html(
-												null !== $match
-													/* translators: %s: the Supertext language code that equals the locale, e.g. de-CH. */
-													? sprintf( __( 'Automatic (%s)', 'supertext-polylang' ), $match )
-													: __( 'Automatic (no match: choose a language)', 'supertext-polylang' )
-											);
-											?>
-										</option>
-										<?php if ( '' !== $value && ! isset( $targets[ $value ] ) ) : ?>
-											<option value="<?php echo esc_attr( $value ); ?>" selected="selected"><?php echo esc_html( $value ); ?></option>
-										<?php endif; ?>
-										<?php foreach ( $targets as $code => $name ) : ?>
-											<option value="<?php echo esc_attr( $code ); ?>" <?php selected( $value, $code ); ?>><?php echo esc_html( $code . ' – ' . $name ); ?></option>
+										<option value="" <?php selected( $selected, '' ); ?>><?php esc_html_e( '— choose —', 'supertext-polylang' ); ?></option>
+										<?php foreach ( $targets as $code => $label ) : ?>
+											<option
+												value="<?php echo esc_attr( $code ); ?>"
+												data-politeness="<?php echo Language_Codes::supports_politeness( $code ) ? '1' : '0'; ?>"
+												<?php selected( $selected, $code ); ?>
+											><?php echo esc_html( $label ); ?></option>
 										<?php endforeach; ?>
 									</select>
 								</td>
 								<td>
-									<?php if ( $offer ) : ?>
-										<select name="<?php echo esc_attr( $this->input_base_name . '[politeness][' . $slug . ']' ); ?>" aria-label="<?php esc_attr_e( 'Formality', 'supertext-polylang' ); ?>">
-											<option value="" <?php selected( $polite, '' ); ?>><?php esc_html_e( 'Automatic', 'supertext-polylang' ); ?></option>
-											<option value="more" <?php selected( $polite, 'more' ); ?>><?php esc_html_e( 'Formal', 'supertext-polylang' ); ?></option>
-											<option value="less" <?php selected( $polite, 'less' ); ?>><?php esc_html_e( 'Informal', 'supertext-polylang' ); ?></option>
-										</select>
-									<?php else : ?>
-										<input type="hidden" name="<?php echo esc_attr( $this->input_base_name . '[politeness][' . $slug . ']' ); ?>" value="" />
-										<span class="description">&ndash;</span>
-									<?php endif; ?>
+									<select
+										name="<?php echo esc_attr( $this->input_base_name . '[politeness][' . $slug . ']' ); ?>"
+										id="<?php echo esc_attr( $pid ); ?>"
+										aria-label="<?php esc_attr_e( 'Formality', 'supertext-polylang' ); ?>"
+										<?php echo $offer ? '' : 'hidden'; ?>
+									>
+										<option value="" <?php selected( $polite, '' ); ?>><?php esc_html_e( 'Automatic', 'supertext-polylang' ); ?></option>
+										<option value="more" <?php selected( $polite, 'more' ); ?>><?php esc_html_e( 'Formal', 'supertext-polylang' ); ?></option>
+										<option value="less" <?php selected( $polite, 'less' ); ?>><?php esc_html_e( 'Informal', 'supertext-polylang' ); ?></option>
+									</select>
+									<span class="description" data-no-politeness="<?php echo esc_attr( $pid ); ?>" <?php echo $offer ? 'hidden' : ''; ?>>&ndash;</span>
 								</td>
 								<td>
-									<?php if ( null !== $resolved ) : ?>
-										<span style="color:#008a20;">&#10003; <?php echo esc_html( $resolved ); ?></span>
-									<?php else : ?>
+									<?php if ( null === $resolved ) : ?>
 										<strong style="color:#d63638;"><?php esc_html_e( 'Not mapped: Supertext can\'t translate into or from this language yet', 'supertext-polylang' ); ?></strong>
+									<?php elseif ( $resolved !== $selected ) : ?>
+										<span style="color:#996800;">&#9888; <?php echo esc_html( $resolved ); ?></span>
+										<br /><small><?php esc_html_e( 'Set by the supertext_polylang_language_code filter, which wins over this choice.', 'supertext-polylang' ); ?></small>
+									<?php elseif ( null === $saved ) : ?>
+										<span style="color:#008a20;">&#10003; <?php echo esc_html( $resolved ); ?></span>
+										<br /><small><?php esc_html_e( 'Suggested; saved with the settings.', 'supertext-polylang' ); ?></small>
+									<?php else : ?>
+										<span style="color:#008a20;">&#10003; <?php echo esc_html( $resolved ); ?></span>
 									<?php endif; ?>
 								</td>
 							</tr>
@@ -332,8 +341,27 @@ class Settings implements Settings_Interface {
 					</tbody>
 				</table>
 				<p class="description" style="margin-top:8px;">
-					<?php esc_html_e( 'Formality is offered only for the languages where Supertext supports it. "Automatic" uses formal for locales ending in _formal, informal for _informal, and lets Supertext decide otherwise. Save once after changing a language to see the formality choice for it.', 'supertext-polylang' ); ?>
+					<?php esc_html_e( 'Formality is offered only for the languages where Supertext supports it. It is preselected as formal for locales ending in _formal and informal for _informal; "Automatic" lets Supertext decide.', 'supertext-polylang' ); ?>
 				</p>
+				<script>
+				( function () {
+					document.querySelectorAll( '.supertext-language-select' ).forEach( function ( select ) {
+						select.addEventListener( 'change', function () {
+							var option = select.options[ select.selectedIndex ];
+							var offer  = !! option && '1' === option.getAttribute( 'data-politeness' );
+							var id     = select.getAttribute( 'data-politeness' );
+							var polite = document.getElementById( id );
+							var none   = document.querySelector( '[data-no-politeness="' + id + '"]' );
+							if ( polite ) {
+								polite.hidden = ! offer;
+							}
+							if ( none ) {
+								none.hidden = offer;
+							}
+						} );
+					} );
+				}() );
+				</script>
 			</td>
 		</tr>
 		<?php

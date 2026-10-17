@@ -96,6 +96,18 @@ add_action(
 	}
 );
 
+// Only Supertext's own language codes are saved in the language mapping (validated server-side).
+// The closure keeps Service unloaded without Polylang Pro (it implements Polylang Pro's interface).
+add_filter(
+	'pre_update_option_polylang',
+	function ( $value ) {
+		if ( ! interface_exists( 'WP_Syntex\\Polylang_Pro\\Modules\\Machine_Translation\\Services\\Service_Interface' ) ) {
+			return $value;
+		}
+		return \Supertext\Polylang\Machine_Translation\Service::sanitize_saved_options( $value );
+	}
+);
+
 // Version reports, the automatic API key check and the public ping (Supertext Commando Center).
 \Supertext\Polylang\Reporting\Commando::init();
 

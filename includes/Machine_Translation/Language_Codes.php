@@ -12,18 +12,21 @@ use Supertext\Polylang\Sdk\V1\Politeness;
 use Supertext\Polylang\Sdk\V1\SupertextException;
 
 /**
- * Polylang languages → Supertext language codes, without guessing.
+ * Polylang languages → Supertext language codes.
  *
  * Supertext accepts only the codes of its `GET features` list (the SDK's
  * `Languages`): the source as a bare language (`en`), the target as listed
  * (`de-CH`, `en-US`, `zh-Hans`, but `es`, `nl`). A Polylang language is
  * resolved by its locale (`de_CH`, `de_DE_formal`): the administrator's
- * mapping (Supertext → Language mapping) wins, else an exact match of the
- * locale (case and `_`/`-` ignored: `de_CH` → `de-CH`), else the SDK error
- * `unsupported_language` and nothing is sent. There are no default regions:
- * whether `de_DE_formal` or a bare `fi` should go to Supertext as `de-DE`
- * or `fi` is the administrator's decision. One mapping serves both
- * directions (a mapped `de-CH` is sent as `de` when it is the source).
+ * mapping (the drop-down under Supertext → Language mapping) wins, else an
+ * exact match of the locale (case and `_`/`-` ignored: `de_CH` → `de-CH`),
+ * else the SDK's default (`de` → `de-DE`, `es_ES` → `es`, `zh_TW` → `zh-Hant`),
+ * else, for WordPress's formal/informal locale variants (`de_DE_formal`,
+ * `de_CH_informal`, `nl_NL_formal`), the same for the locale without the
+ * variant (`de_DE` → `de-DE`), else the SDK error `unsupported_language` and
+ * nothing is sent. Nothing else is guessed (`ca_valencia`, `pt_PT_ao90`,
+ * `en_IE`, `gsw` need a mapping). One mapping serves both directions (a
+ * mapped `de-CH` is sent as `de` when it is the source).
  *
  * Has no WordPress dependency (unit-tested on its own).
  */
@@ -34,10 +37,78 @@ class Language_Codes {
 	 * @param string                $locale  The Polylang language's locale (`de_CH`, `de_DE_formal`).
 	 * @param array<string, string> $mapping Locale → Supertext code (the settings' language mapping).
 	 * @return string
-	 * @throws SupertextException `unsupported_language` (with targetLang) when the locale has neither a mapping nor a match.
+	 * @throws SupertextException `unsupported_language` (with targetLang) when the locale has neither a mapping nor a match nor a default.
 	 */
 	public static function target( string $locale, array $mapping = array() ): string {
-		return Languages::target( $locale, self::clean( $mapping ) );
+		try {
+			return Languages::target( $locale, self::clean( $mapping ) );
+		} catch ( SupertextException $e ) {
+			$suggestion = self::suggest( $locale );
+			if ( null === $suggestion ) {
+				throw $e;
+			}
+			return $suggestion;
+		}
+	}
+
+	/**
+	 * What the mapping drop-down preselects for a locale (and what is sent while
+	 * nobody has chosen one): the SDK's suggestion (exact match, else default),
+	 * else the SDK's suggestion for the locale without its WordPress
+	 * formal/informal variant (`de_DE_formal` → `de-DE`), else null ("— choose —").
+	 *
+	 * @param string $locale The WordPress locale.
+	 * @return string|null
+	 */
+	public static function suggest( string $locale ): ?string {
+		$suggestion = Languages::suggestTarget( $locale );
+		if ( null !== $suggestion ) {
+			return $suggestion;
+		}
+		$base = self::without_variant( $locale );
+
+		return null !== $base ? Languages::suggestTarget( $base ) : null;
+	}
+
+	/**
+	 * The formality a locale implies: `more` for `*_formal`, `less` for `*_informal`, else ''.
+	 *
+	 * @param string $locale The WordPress locale.
+	 * @return string
+	 */
+	public static function locale_politeness( string $locale ): string {
+		if ( preg_match( '/_formal$/i', $locale ) ) {
+			return Politeness::MORE;
+		}
+		if ( preg_match( '/_informal$/i', $locale ) ) {
+			return Politeness::LESS;
+		}
+
+		return '';
+	}
+
+	/**
+	 * Whether a code is one of Supertext's targets; returns it in Supertext's spelling (`de_ch` → `de-CH`), else null.
+	 *
+	 * @param string $code The code.
+	 * @return string|null
+	 */
+	public static function known_target( string $code ): ?string {
+		return Languages::matchTarget( $code );
+	}
+
+	/**
+	 * The locale without WordPress's formal/informal variant (`de_DE_formal` → `de_DE`), or null when it has none.
+	 *
+	 * @param string $locale The WordPress locale.
+	 * @return string|null
+	 */
+	private static function without_variant( string $locale ): ?string {
+		if ( preg_match( '/^(.+)_(?:formal|informal)$/i', trim( $locale ), $m ) ) {
+			return $m[1];
+		}
+
+		return null;
 	}
 
 	/**
@@ -95,32 +166,58 @@ class Language_Codes {
 		if ( in_array( $setting, array( Politeness::MORE, Politeness::LESS ), true ) ) {
 			return $setting;
 		}
-		if ( str_ends_with( $locale, '_formal' ) ) {
-			return Politeness::MORE;
-		}
-		if ( str_ends_with( $locale, '_informal' ) ) {
-			return Politeness::LESS;
-		}
+		$implied = self::locale_politeness( $locale );
 
-		return Politeness::DEFAULT;
+		return '' !== $implied ? $implied : Politeness::DEFAULT;
 	}
 
 	/**
-	 * The targets for the mapping drop-down: code => name.
+	 * The targets for the mapping drop-down, code => "Name (code)", sorted by name.
+	 * The name is in the given interface locale where PHP's intl extension knows it
+	 * (`de-CH` → "Deutsch (Schweiz)"), else Supertext's English name.
 	 *
+	 * @param string $ui_locale The interface locale (`de_DE`), '' for English.
 	 * @return array<string, string>
 	 */
-	public static function targets(): array {
+	public static function targets( string $ui_locale = '' ): array {
 		$out = array();
-		foreach ( Languages::TARGETS as $target ) {
-			$out[ (string) $target['code'] ] = (string) $target['name'];
+		foreach ( Languages::targetOptions() as $target ) {
+			$code         = (string) $target['code'];
+			$out[ $code ] = self::display_name( $code, (string) $target['name'], $ui_locale ) . ' (' . $code . ')';
+		}
+		if ( class_exists( \Collator::class ) && '' !== $ui_locale ) {
+			$collator = new \Collator( $ui_locale );
+			uasort( $out, static fn ( string $a, string $b ): int => (int) $collator->compare( $a, $b ) );
+		} else {
+			uasort( $out, 'strcasecmp' );
 		}
 
 		return $out;
 	}
 
 	/**
-	 * Drops blank mapping values (a blank select means "exact match").
+	 * A target's name in the interface language, else its English name.
+	 *
+	 * @param string $code      Supertext code.
+	 * @param string $english   Supertext's English name.
+	 * @param string $ui_locale Interface locale, '' for English.
+	 * @return string
+	 */
+	private static function display_name( string $code, string $english, string $ui_locale ): string {
+		// Swiss German's dialect extension (-u-sd-chzh) has no readable display name.
+		if ( '' === $ui_locale || str_starts_with( strtolower( $ui_locale ), 'en' ) || str_contains( $code, '-u-' ) || ! class_exists( \Locale::class ) ) {
+			return $english;
+		}
+		$name = \Locale::getDisplayName( $code, $ui_locale );
+		if ( ! is_string( $name ) || 0 === strcasecmp( $name, $code ) ) {
+			return $english;
+		}
+
+		return function_exists( 'mb_strtoupper' ) ? mb_strtoupper( mb_substr( $name, 0, 1 ) ) . mb_substr( $name, 1 ) : ucfirst( $name );
+	}
+
+	/**
+	 * Drops blank mapping values (a blank select means "— choose —": the suggestion, if any).
 	 *
 	 * @param array<mixed> $mapping Raw mapping.
 	 * @return array<string, string>

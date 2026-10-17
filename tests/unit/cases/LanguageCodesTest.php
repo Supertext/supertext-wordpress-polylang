@@ -10,7 +10,8 @@ use Supertext\Polylang\Machine_Translation\Language_Codes;
 use Supertext\Polylang\Sdk\V1\SupertextException;
 
 /**
- * No guessing: the mapping, else an exact match of the locale, else unsupported_language.
+ * The mapping, else an exact match of the locale, else the SDK's default, else that of the
+ * locale without its formal/informal variant, else unsupported_language.
  */
 class LanguageCodesTest extends TestCase {
 	public function test_target_exact_match_ignores_case_and_underscores(): void {
@@ -20,8 +21,28 @@ class LanguageCodesTest extends TestCase {
 		$this->assertSame( 'zh-Hant', Language_Codes::target( 'zh_hant' ) );
 	}
 
-	public function test_target_without_match_is_unsupported_and_names_the_locale(): void {
-		foreach ( array( 'de', 'de_DE_formal', 'ca_valencia', 'es_ES', 'fi_FI', 'pt_PT_ao90' ) as $locale ) {
+	public function test_target_without_match_uses_the_default(): void {
+		$this->assertSame( 'de-DE', Language_Codes::target( 'de' ) );
+		$this->assertSame( 'es', Language_Codes::target( 'es_ES' ) );
+		$this->assertSame( 'fi', Language_Codes::target( 'fi_FI' ) );
+		$this->assertSame( 'zh-Hant', Language_Codes::target( 'zh_TW' ) );
+		$this->assertSame( 'pt-PT', Language_Codes::target( 'pt' ) );
+	}
+
+	public function test_wordpress_formal_and_informal_variants_use_the_locale_without_the_variant(): void {
+		$this->assertSame( 'de-DE', Language_Codes::target( 'de_DE_formal' ) );
+		$this->assertSame( 'de-CH', Language_Codes::target( 'de_CH_informal' ) );
+		$this->assertSame( 'nl', Language_Codes::target( 'nl_NL_formal' ) );
+		$this->assertSame( 'de-DE', Language_Codes::suggest( 'de_DE_formal' ) );
+		$this->assertSame( 'de-CH', Language_Codes::suggest( 'de_CH' ) );
+		$this->assertNull( Language_Codes::suggest( 'en_IE' ) );
+		$this->assertSame( 'more', Language_Codes::locale_politeness( 'de_DE_formal' ) );
+		$this->assertSame( 'less', Language_Codes::locale_politeness( 'de_CH_informal' ) );
+		$this->assertSame( '', Language_Codes::locale_politeness( 'de_CH' ) );
+	}
+
+	public function test_target_without_match_or_default_is_unsupported_and_names_the_locale(): void {
+		foreach ( array( 'en_IE', 'gsw', 'ca_valencia', 'pt_PT_ao90', 'de_LI', 'en_IE_formal' ) as $locale ) {
 			try {
 				Language_Codes::target( $locale );
 				$this->fail( $locale . ' should not resolve without a mapping' );
@@ -30,14 +51,14 @@ class LanguageCodesTest extends TestCase {
 				$this->assertSame( $locale, $e->targetLang );
 			}
 		}
-		$this->assertNull( Language_Codes::resolve( 'de_DE_formal' ) );
+		$this->assertNull( Language_Codes::resolve( 'en_IE' ) );
 	}
 
 	public function test_mapping_wins_and_is_sent_as_given(): void {
 		$this->assertSame( 'de-DE', Language_Codes::target( 'de_DE_formal', array( 'de_DE_formal' => 'de-DE' ) ) );
 		$this->assertSame( 'de-AT', Language_Codes::target( 'de_CH', array( 'de_CH' => ' de-AT ' ) ) );
 		$this->assertSame( 'xx-YY', Language_Codes::target( 'de_CH', array( 'de_CH' => 'xx-YY' ) ), 'a code Supertext adds later works before the SDK knows it' );
-		$this->assertSame( 'de-CH', Language_Codes::target( 'de_CH', array( 'de_CH' => '  ' ) ), 'a blank mapping means automatic' );
+		$this->assertSame( 'de-CH', Language_Codes::target( 'de_CH', array( 'de_CH' => '  ' ) ), 'a blank mapping means the suggestion' );
 	}
 
 	public function test_source_is_bare_and_one_mapping_serves_both_directions(): void {
@@ -61,8 +82,18 @@ class LanguageCodesTest extends TestCase {
 
 	public function test_targets_list_for_the_drop_down(): void {
 		$targets = Language_Codes::targets();
-		$this->assertArrayHasKey( 'de-CH', $targets );
-		$this->assertArrayHasKey( 'es', $targets );
+		$this->assertSame( 'German (Switzerland) (de-CH)', $targets['de-CH'] );
+		$this->assertSame( 'Spanish (es)', $targets['es'] );
 		$this->assertArrayNotHasKey( 'es-ES', $targets );
+		$this->assertSame( 'Albanian (sq)', reset( $targets ), 'sorted by name' );
+
+		if ( class_exists( \Locale::class ) ) {
+			$german = Language_Codes::targets( 'de_DE' );
+			$this->assertSame( 'Deutsch (Schweiz) (de-CH)', $german['de-CH'] );
+			$this->assertSame( 'Swiss German (Zurich) (gsw-u-sd-chzh)', $german['gsw-u-sd-chzh'], 'no readable display name: English' );
+		}
+
+		$this->assertSame( 'de-CH', Language_Codes::known_target( 'de_ch' ) );
+		$this->assertNull( Language_Codes::known_target( 'es-ES' ) );
 	}
 }

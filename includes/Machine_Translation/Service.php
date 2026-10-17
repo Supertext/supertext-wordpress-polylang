@@ -180,7 +180,7 @@ class Service implements Service_Interface {
 			),
 			'languages'  => array(
 				'type'                 => 'object',
-				// Map of Polylang language slug => Supertext language code ('' = exact match of the locale).
+				// Map of Polylang language slug => Supertext language code ('' = the suggestion: exact match or default).
 				'additionalProperties' => array(
 					'type' => 'string',
 				),
@@ -196,11 +196,13 @@ class Service implements Service_Interface {
 	}
 
 	/**
-	 * The Supertext target code for a Polylang language, without guessing: the
-	 * settings' mapping (`$mapping[ slug ]`), else an exact match of the language's
-	 * locale (`de_CH` → `de-CH`; `de_DE_formal` or a bare `fi` have none), see
-	 * {@see Language_Codes}. The `supertext_polylang_language_code` filter can set
-	 * or change the code; '' means "not supported".
+	 * The Supertext target code for a Polylang language: the settings' mapping
+	 * (`$mapping[ slug ]`, the language's drop-down), else an exact match of the
+	 * language's locale (`de_CH` → `de-CH`), else the SDK's default (`de` → `de-DE`,
+	 * `es_ES` → `es`), else that of the locale without its formal/informal variant
+	 * (`de_DE_formal` → `de-DE`), see {@see Language_Codes}. The
+	 * `supertext_polylang_language_code` filter can set or change the code (it wins
+	 * over the drop-down); '' means "not supported".
 	 *
 	 * @param PLL_Language          $language The language.
 	 * @param array<string, string> $mapping  The settings' mapping: Polylang slug => Supertext code.
@@ -214,7 +216,7 @@ class Service implements Service_Interface {
 		/**
 		 * Filters the Supertext target code of a Polylang language.
 		 *
-		 * @param string       $code     The mapped or matching code, '' when the language has none.
+		 * @param string       $code     The mapped, matching or default code, '' when the language has none.
 		 * @param PLL_Language $language The language.
 		 */
 		$code = trim( (string) apply_filters( 'supertext_polylang_language_code', $code, $language ) );
@@ -223,5 +225,43 @@ class Service implements Service_Interface {
 		}
 
 		return $code;
+	}
+
+	/**
+	 * Keeps only valid language settings when Polylang saves its options
+	 * (`pre_update_option_polylang`): a Supertext language must be one of
+	 * Supertext's targets (stored in Supertext's spelling, anything else becomes
+	 * '' = the suggestion), formality only `more`/`less` and only for a target
+	 * that offers it.
+	 *
+	 * @param mixed $value The new value of the `polylang` option.
+	 * @return mixed
+	 */
+	public static function sanitize_saved_options( $value ) {
+		if ( ! is_array( $value ) || ! isset( $value['machine_translation_services'][ self::get_slug() ] ) || ! is_array( $value['machine_translation_services'][ self::get_slug() ] ) ) {
+			return $value;
+		}
+		$options    = $value['machine_translation_services'][ self::get_slug() ];
+		$languages  = isset( $options['languages'] ) && is_array( $options['languages'] ) ? $options['languages'] : array();
+		$politeness = isset( $options['politeness'] ) && is_array( $options['politeness'] ) ? $options['politeness'] : array();
+
+		$clean_languages = array();
+		foreach ( $languages as $slug => $code ) {
+			$clean_languages[ (string) $slug ] = is_string( $code ) ? ( Language_Codes::known_target( $code ) ?? '' ) : '';
+		}
+		$clean_politeness = array();
+		foreach ( $politeness as $slug => $setting ) {
+			$target = $clean_languages[ (string) $slug ] ?? '';
+			$ok     = in_array( $setting, array( 'more', 'less' ), true ) && ( '' === $target || Language_Codes::supports_politeness( $target ) );
+
+			$clean_politeness[ (string) $slug ] = $ok ? $setting : '';
+		}
+
+		$options['languages']  = $clean_languages;
+		$options['politeness'] = $clean_politeness;
+
+		$value['machine_translation_services'][ self::get_slug() ] = $options;
+
+		return $value;
 	}
 }

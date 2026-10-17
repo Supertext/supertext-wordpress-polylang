@@ -72,18 +72,18 @@ is a small number of file calls, comfortably under the file endpoint's 1-req-per
 |--------|---------|---------|
 | `supertext_polylang_endpoint` | `https://api.supertext.com/v1/` | API base URL (also settable in the UI) |
 | `supertext_polylang_auth_headers` | `Authorization: Supertext-Auth-Key {key}`, `Accept`, `User-Agent` | Headers of every AI request |
-| `supertext_polylang_language_code` | The mapped code, else the exact match of the locale, else `''` | The Supertext target code of a Polylang language (`''` = not supported: `unsupported_language`) |
+| `supertext_polylang_language_code` | The mapped code, else the exact match of the locale, else the SDK default (also for the locale without `_formal`/`_informal`), else `''` | The Supertext target code of a Polylang language (`''` = not supported: `unsupported_language`); wins over the mapping drop-down, which then says so |
 | `supertext_polylang_poll_interval` | `2` (seconds) | Status poll interval |
 | `supertext_polylang_poll_timeout` | `180` (seconds) | Max time to wait for `done` |
 | `supertext_polylang_screenshot_endpoint` | `https://vibeboost.me/api/screenshot` | [VibeBoost Screenshots](https://vibeboost.me) capture endpoint used to attach a page screenshot (DocumentTypeId 3) to human orders |
 
 Politeness (formal/informal) is sent only for targets where `Languages::supportsPoliteness()` is
-true: the language's *Formality* in the mapping, else `*_formal` → `more`, `*_informal` → `less`,
+true: the language's *Formality* in the mapping (preselected from the locale), else `*_formal` → `more`, `*_informal` → `less`,
 else Supertext decides.
 
 #### Language codes
 
-No guessing. Supertext accepts only the codes of its `GET features` list (the SDK's
+Supertext accepts only the codes of its `GET features` list (the SDK's
 `Supertext\Polylang\Sdk\V1\Languages`, 28 sources and 37 targets): sources bare (`en`),
 targets regional only for de/en/fr/it/pt (`de-CH`, `en-US`, `pt-BR`), a script for zh/sr
 (`zh-Hans`, `sr-Latn`), `gsw-u-sd-chzh`/`gsw-u-sd-chbe`, and bare for all others (`es`, `nl`,
@@ -93,23 +93,45 @@ A Polylang language is resolved by its **locale** (`Service::resolve_target()`,
 `Machine_Translation\Language_Codes`, no WordPress dependency,
 `tests/unit/cases/LanguageCodesTest.php`):
 
-1. the administrator's mapping (*Language mapping* in the Supertext section of Polylang's
-   machine-translation settings, stored as `machine_translation_services.supertext.languages`
-   = Polylang slug → Supertext code; the value is sent as it is, even if the SDK doesn't
-   know it yet), then the `supertext_polylang_language_code` filter;
+1. the administrator's mapping: a drop-down per Polylang language (*Language mapping* in the
+   Supertext section of Polylang's machine-translation settings, stored as
+   `machine_translation_services.supertext.languages` = Polylang slug → Supertext code), then
+   the `supertext_polylang_language_code` filter (wins; the mapping table says so);
 2. else an exact match of the locale, apart from case and `_`/`-` (`de_CH` → `de-CH`);
-3. else the SDK error `unsupported_language`: nothing is sent, and the editor gets
-   `supertext_unsupported_language` naming the language and where to map it.
+3. else the SDK default (`Languages::target()` → `defaultTarget()`, SDK 0.4.0): `de`/`en`/`fr`/
+   `it`/`pt` → `de-DE`/`en-US`/`fr-FR`/`it-IT`/`pt-PT`, `zh` → `zh-Hans`, `sr` → `sr-Latn`,
+   `zh_TW`/`zh_HK`/`zh_MO` → `zh-Hant`, `zh_CN`/`zh_SG` → `zh-Hans`, a region of a bare target
+   → the bare target (`es_ES` → `es`, `nl_NL` → `nl`);
+4. else (WordPress-specific, `Language_Codes::suggest()`) the same for the locale without its
+   formal/informal variant: `de_DE_formal` → `de-DE`, `de_CH_informal` → `de-CH`,
+   `nl_NL_formal` → `nl`;
+5. else the SDK error `unsupported_language`: nothing is sent, and the editor gets
+   `supertext_unsupported_language` naming the language and the drop-down to set.
 
-There are no default regions: `de_DE_formal`, `de_CH_informal`, `ca_valencia`, `pt_PT_ao90`,
-`es_ES`, a bare `fi` or `de` must be mapped explicitly. One mapping serves both directions:
-the source is `Languages::source()` of the language's target code (`de-CH` → `de`), so a
-source language needs no separate setting. The mapping table shows each language's status,
-and the status panel on **Supertext → Settings** lists unmapped languages.
+Nothing else is guessed: `en_IE`, `de_LI`, `fr_BE`, `gsw`, `sr_RS`, `ca_valencia`,
+`pt_PT_ao90` need a mapping. The drop-down (`Language_Codes::targets()`, the SDK's
+`targetOptions()` as *Name (code)*, names localized with PHP intl's `Locale::getDisplayName()`
+in the user's back-end language where intl is installed, else English) preselects the saved
+code, else the suggestion of steps 2–4 (`Language_Codes::suggest()`), else *— choose —*. So the
+screen and the translation always agree, and an untouched mapping behaves like the
+suggestion. Saving is validated server-side (`Service::sanitize_saved_options()` on
+`pre_update_option_polylang`): only Supertext's targets are stored (in Supertext's spelling),
+anything else becomes `''`; formality only `more`/`less` and only for a target that offers it.
+
+Upgrading from earlier versions needs no migration: the option is the same slug → code map; a blank entry
+(formerly *Automatic*, an exact match) now shows and uses the suggestion, which for every
+locale that had an exact match is the same code.
+
+One mapping serves both directions: the source is `Languages::source()` of the language's
+target code (`de-CH` → `de`), so a source language needs no separate setting. The mapping
+table shows each language's status, and the status panel on **Supertext → Settings** lists
+languages without a mapping and without a default.
 
 Formality (`machine_translation_services.supertext.politeness` = slug → `more`/`less`/`''`)
-is offered and sent only where `Languages::supportsPoliteness()` is true; otherwise nothing
-is sent (Supertext would answer `unsupported_feature`).
+is offered and sent only where `Languages::supportsPoliteness()` is true (the drop-down shows
+or hides it as the language changes); it is preselected from the locale (`*_formal` → *Formal*,
+`*_informal` → *Informal*). Otherwise nothing is sent (Supertext would answer
+`unsupported_feature`).
 
 ## Commando Center: version reports, API key check, ping
 

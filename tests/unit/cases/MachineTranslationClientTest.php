@@ -55,11 +55,11 @@ namespace Supertext\Polylang\Tests\Cases {
 			);
 
 			$client = new Client( array( 'api_key' => 'k' ) );
-			$result = $client->translate_strings( array( 'Hello' ), new \PLL_Language( 'de', 'Deutsch (Sie)', 'de_DE_formal' ), new \PLL_Language( 'en', 'English', 'en_US' ) );
+			$result = $client->translate_strings( array( 'Hello' ), new \PLL_Language( 'gsw', 'Schwiizerdütsch', 'gsw' ), new \PLL_Language( 'en', 'English', 'en_US' ) );
 
 			$this->assertInstanceOf( \WP_Error::class, $result );
 			$this->assertSame( 'supertext_unsupported_language', $result->get_error_code() );
-			$this->assertStringContainsString( 'Deutsch (Sie) (de_DE_formal)', $result->get_error_message() );
+			$this->assertStringContainsString( 'Schwiizerdütsch (gsw)', $result->get_error_message() );
 			$this->assertStringContainsString( 'Language mapping', $result->get_error_message() );
 			$this->assertFalse( $called, 'nothing is sent to Supertext' );
 		}
@@ -67,11 +67,45 @@ namespace Supertext\Polylang\Tests\Cases {
 		public function test_mapping_resolves_the_target(): void {
 			$language = new \PLL_Language( 'de', 'Deutsch (Sie)', 'de_DE_formal' );
 
-			$this->assertSame( 'de-DE', Service::resolve_target( $language, array( 'de' => 'de-DE' ) ) );
+			$this->assertSame( 'de-AT', Service::resolve_target( $language, array( 'de' => 'de-AT' ) ) );
+			$this->assertSame( 'de-DE', Service::resolve_target( $language, array( 'de' => '' ) ), 'unmapped: the default of the locale without its variant' );
 			$this->assertSame( 'de-CH', Service::resolve_target( new \PLL_Language( 'ch', 'Schweiz', 'de_CH' ), array() ) );
 
 			$this->expectException( SupertextException::class );
-			Service::resolve_target( $language, array( 'de' => '' ) );
+			Service::resolve_target( new \PLL_Language( 'ie', 'English (Ireland)', 'en_IE' ), array( 'ie' => '' ) );
+		}
+
+		public function test_saved_options_keep_only_supertext_codes(): void {
+			$value = array(
+				'default_lang'                 => 'de',
+				'machine_translation_services' => array(
+					'supertext' => array(
+						'api_key'    => 'k',
+						'languages'  => array(
+							'de' => 'de_ch',
+							'en' => 'en-US',
+							'es' => 'es-ES',
+							'xx' => array( 'nope' ),
+							'ie' => '',
+						),
+						'politeness' => array(
+							'de' => 'more',
+							'en' => 'more',
+							'es' => 'sometimes',
+							'ie' => 'less',
+						),
+					),
+				),
+			);
+
+			$clean    = Service::sanitize_saved_options( $value );
+			$supertext = $clean['machine_translation_services']['supertext'];
+
+			$this->assertSame( array( 'de' => 'de-CH', 'en' => 'en-US', 'es' => '', 'xx' => '', 'ie' => '' ), $supertext['languages'] );
+			$this->assertSame( array( 'de' => 'more', 'en' => '', 'es' => '', 'ie' => 'less' ), $supertext['politeness'] );
+			$this->assertSame( 'k', $supertext['api_key'] );
+			$this->assertSame( 'de', $clean['default_lang'] );
+			$this->assertSame( 'other', Service::sanitize_saved_options( 'other' ) );
 		}
 
 		public function test_new_sdk_errors_have_messages(): void {

@@ -112,26 +112,46 @@ click **Settings** to choose Supertext and enter the key:
 Supertext accepts only the language codes it offers: German, English, French, Italian and
 Portuguese with a region (`de-CH`, `de-DE`, `en-US`, `fr-CH`, `pt-BR`), Chinese and Serbian
 with a script (`zh-Hans`, `sr-Latn`), Swiss German as `gsw-u-sd-chzh` / `gsw-u-sd-chbe`, and
-all other languages without a region (`es`, `nl`, `sl`, `fi`, `ja`). The plugin never
-guesses a region: whether your `de` means Germany or Switzerland is your decision.
+all other languages without a region (`es`, `nl`, `sl`, `fi`, `ja`).
 
 In **Languages → Settings → Machine Translation → Supertext → Language mapping**, each
-Polylang language has:
+Polylang language (the default language too) has a row with its name and locale and:
 
-- **Supertext language** — a drop-down of the languages Supertext offers. **Automatic** uses
-  the Supertext language whose code equals the locale, apart from case and `_`/`-`
-  (`de_CH` → `de-CH`, `en_US` → `en-US`, `es` → `es`); the option shows which one, or *no
-  match*. Locales without a match must be mapped: WordPress variants such as
-  `de_DE_formal`, `de_CH_informal`, `ca_valencia` or `pt_PT_ao90`, regional locales of
-  languages Supertext offers without region (`es_ES` → choose `es`, `nl_NL` → `nl`), and bare
-  locales of the regional languages (`de` → choose `de-DE` or `de-CH`).
+- **Supertext language** — a drop-down of the languages Supertext offers, shown as
+  *Name (code)* with the name in your back-end language (*Deutsch (Schweiz) (de-CH)*). It
+  shows the language you saved; if you haven't saved one yet, the **suggested** language is
+  preselected, and that is also what is sent until you save:
+  1. the Supertext language whose code equals the locale, apart from case and `_`/`-`
+     (`de_CH` → `de-CH`, `en_US` → `en-US`, `es` → `es`);
+  2. else the usual one (see the table below);
+  3. else, for WordPress's formal and informal variants (`de_DE_formal`, `de_CH_informal`,
+     `nl_NL_formal`), the same for the locale without the variant (`de_DE` → `de-DE`,
+     `de_CH` → `de-CH`, `nl_NL` → `nl`).
+
+  A language with no suggestion shows **— choose —**: `en_IE`, `gsw`, `ca_valencia`,
+  `pt_PT_ao90`, for example. Until you choose its Supertext language, translations into or
+  from it stop with an error and nothing is sent to Supertext.
 - **Formality** — *Automatic*, *Formal* or *Informal*, only for languages where Supertext
-  offers it (not for English, Swiss German, Romansh, Albanian or Serbian, for example).
-  *Automatic* uses formal for locales ending in `_formal`, informal for `_informal`, and lets
-  Supertext decide otherwise. The choice appears once the language's Supertext language is
-  saved.
-- **Status** — the code that is sent (`✓ de-CH`), or **Not mapped**: translations into or
-  from this language stop with an error and nothing is sent to Supertext.
+  offers it (not for English, Swiss German, Romansh, Albanian or Serbian, for example); the
+  choice appears and disappears as you change the Supertext language. For locales ending in
+  `_formal` it is preselected as *Formal*, for `_informal` as *Informal*; *Automatic* lets
+  Supertext decide.
+- **Status** — the code that is sent (`✓ de-CH`; *Suggested; saved with the settings* until
+  you save), or **Not mapped**. If a developer sets the code with the
+  `supertext_polylang_language_code` filter, the status shows that code with *Set by the
+  supertext_polylang_language_code filter*: the filter wins over the drop-down.
+
+Click **Save** to store the choices. Only Supertext's own codes are saved.
+
+| Polylang locale | Suggested Supertext language |
+| --- | --- |
+| `de_CH`, `en_GB`, `fr_CH`, `pt_BR`, … (code Supertext offers) | the same code (`de-CH`, `en-GB`, …) |
+| `de`, `en`, `fr`, `it`, `pt` (no region) | `de-DE`, `en-US`, `fr-FR`, `it-IT`, `pt-PT` |
+| `zh_CN`, `zh_SG` / `zh_TW`, `zh_HK`, `zh` | `zh-Hans` / `zh-Hant`, `zh-Hans` |
+| `sr`, `sr_Latn_RS` | `sr-Latn` |
+| A region of a language Supertext offers without one (`es_ES`, `nl_NL`, `fi_FI`, `nb_NO`) | the language (`es`, `nl`, `fi`, `nb`) |
+| `de_DE_formal`, `de_CH_informal`, `nl_NL_formal` | as `de_DE`, `de_CH`, `nl_NL`, with formality preselected |
+| Regions Supertext doesn't offer (`en_IE`, `en_AU`, `fr_BE`, `de_LI`), `gsw`, `sr_RS`, `ca_valencia`, `pt_PT_ao90` | none: **— choose —** |
 
 One mapping serves both directions: when the language is the source, its code is sent
 without region (`de-CH` → `de`). The status panel on **Supertext → Settings** lists the same
@@ -366,9 +386,9 @@ order simply goes through **without** a screenshot.
 
 If a language has no Supertext language yet, AI translation into or from it stops with:
 
-> *Deutsch (Sie) (de_DE_formal) has no Supertext language, so nothing was sent to
-> Supertext. An administrator can choose its Supertext language under Languages → Settings →
-> Machine translation → Supertext → Language mapping.*
+> *English (Ireland) (en_IE) has no Supertext language, so nothing was sent to Supertext.
+> An administrator can choose it in the drop-down for this language under Languages →
+> Settings → Machine translation → Supertext → Language mapping.*
 
 Nothing was sent or billed. Ask your administrator to map the language, then translate
 again. The message appears in German, French or Italian when your WordPress profile uses
@@ -482,10 +502,11 @@ automatically, so you don’t need a manual Reset for the next round.
   clear it to use Supertext.
 - **“… has no Supertext language, so nothing was sent to Supertext”**
   (`supertext_unsupported_language`) — the Polylang language named in the message (e.g.
-  *Deutsch (Sie) (de_DE_formal)*) has neither a Supertext language in the mapping nor a
-  locale that equals one. An administrator chooses it in **Languages → Settings → Machine
-  Translation → Supertext → Language mapping** (see [Language mapping](#language-mapping));
-  the status panel on **Supertext → Settings** lists the languages that aren't mapped.
+  *English (Ireland) (en_IE)*) has no Supertext language in the mapping and no suggested
+  one (its drop-down shows *— choose —*). An administrator chooses it in **Languages →
+  Settings → Machine Translation → Supertext → Language mapping** (see
+  [Language mapping](#language-mapping)); the status panel on **Supertext → Settings** lists
+  the languages that aren't mapped.
 - **“Supertext offers this language pair, but not with the option "politeness"”**
   (`supertext_unsupported_feature`) — formal/informal was sent for a language where Supertext
   doesn't offer it. Set the language's **Formality** to *Automatic* in the language mapping.

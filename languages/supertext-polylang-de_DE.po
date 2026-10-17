@@ -91,8 +91,8 @@ msgstr "supertext.com → Integrations → API"
 msgid "Language mapping"
 msgstr "Sprachzuordnung"
 
-msgid "Choose the Supertext language for each Polylang language. \"Automatic\" uses the Supertext language whose code equals the locale (de_CH → de-CH). Locales without one, such as de_DE_formal or a bare fi, must be mapped here; until then, translations into or from them stop with an error and nothing is sent to Supertext."
-msgstr "Wählen Sie für jede Polylang-Sprache die Supertext-Sprache. «Automatisch» verwendet die Supertext-Sprache, deren Code dem Gebietsschema entspricht (de_CH → de-CH). Gebietsschemas ohne passende Sprache, etwa de_DE_formal oder ein blosses fi, müssen hier zugeordnet werden; bis dahin brechen Übersetzungen in oder aus diesen Sprachen mit einem Fehler ab und es wird nichts an Supertext gesendet."
+msgid "Choose the Supertext language for each Polylang language. The suggested language is preselected: the one whose code equals the locale (de_CH → de-CH), else the usual one (de → de-DE, es_ES → es, de_DE_formal → de-DE). Languages without a suggestion, such as en_IE or gsw, show \"— choose —\"; until you choose one, translations into or from them stop with an error and nothing is sent to Supertext."
+msgstr "Wählen Sie für jede Polylang-Sprache die Supertext-Sprache. Die vorgeschlagene Sprache ist vorausgewählt: diejenige, deren Code dem Gebietsschema entspricht (de_CH → de-CH), sonst die übliche (de → de-DE, es_ES → es, de_DE_formal → de-DE). Sprachen ohne Vorschlag, etwa en_IE oder gsw, zeigen «— wählen —»; bis Sie eine Sprache wählen, brechen Übersetzungen in oder aus diesen Sprachen mit einem Fehler ab und es wird nichts an Supertext gesendet."
 
 msgid "Polylang language"
 msgstr "Polylang-Sprache"
@@ -106,11 +106,11 @@ msgstr "Anrede"
 msgid "Status"
 msgstr "Status"
 
-msgid "Automatic (%s)"
-msgstr "Automatisch (%s)"
+msgid "— choose —"
+msgstr "— wählen —"
 
-msgid "Automatic (no match: choose a language)"
-msgstr "Automatisch (keine Entsprechung: Sprache wählen)"
+msgid "Suggested; saved with the settings."
+msgstr "Vorgeschlagen; wird mit den Einstellungen gespeichert."
 
 msgid "Automatic"
 msgstr "Automatisch"
@@ -124,8 +124,8 @@ msgstr "Informell (du)"
 msgid "Not mapped: Supertext can't translate into or from this language yet"
 msgstr "Nicht zugeordnet: Supertext kann noch nicht in oder aus dieser Sprache übersetzen"
 
-msgid "Formality is offered only for the languages where Supertext supports it. \"Automatic\" uses formal for locales ending in _formal, informal for _informal, and lets Supertext decide otherwise. Save once after changing a language to see the formality choice for it."
-msgstr "Die Anrede steht nur für Sprachen zur Wahl, in denen Supertext sie unterstützt. «Automatisch» verwendet die formelle Anrede für Gebietsschemas mit der Endung _formal, die informelle für _informal und überlässt die Wahl sonst Supertext. Speichern Sie nach dem Ändern einer Sprache einmal, damit die Auswahl für sie erscheint."
+msgid "Formality is offered only for the languages where Supertext supports it. It is preselected as formal for locales ending in _formal and informal for _informal; \"Automatic\" lets Supertext decide."
+msgstr "Die Anrede steht nur für Sprachen zur Wahl, in denen Supertext sie unterstützt. Für Gebietsschemas mit der Endung _formal ist die formelle, für _informal die informelle Anrede vorausgewählt; «Automatisch» überlässt die Wahl Supertext."
 
 msgid "No Supertext account yet? Create one at %1$s. Generate your API key at %2$s (supertext.com → Integrations → API; requires the Admin role)."
 msgstr "Noch kein Supertext-Konto? Erstellen Sie eines auf %1$s. Ihren API-Schlüssel erstellen Sie unter %2$s (supertext.com → Integrations → API; erfordert die Rolle Admin)."
@@ -136,8 +136,8 @@ msgstr "Es ist kein Supertext-API-Schlüssel eingetragen. Tragen Sie ihn unter S
 msgid "Authentication failure. Please check your Supertext API key."
 msgstr "Anmeldung fehlgeschlagen. Bitte prüfen Sie Ihren Supertext-API-Schlüssel."
 
-msgid "%s has no Supertext language, so nothing was sent to Supertext. An administrator can choose its Supertext language under Languages → Settings → Machine translation → Supertext → Language mapping."
-msgstr "%s hat keine Supertext-Sprache, deshalb wurde nichts an Supertext gesendet. Eine Administratorin oder ein Administrator kann die Supertext-Sprache unter Sprachen → Einstellungen → Maschinelle Übersetzung → Supertext → Sprachzuordnung wählen."
+msgid "%s has no Supertext language, so nothing was sent to Supertext. An administrator can choose it in the drop-down for this language under Languages → Settings → Machine translation → Supertext → Language mapping."
+msgstr "%s hat keine Supertext-Sprache, deshalb wurde nichts an Supertext gesendet. Eine Administratorin oder ein Administrator kann sie in der Auswahlliste dieser Sprache unter Sprachen → Einstellungen → Maschinelle Übersetzung → Supertext → Sprachzuordnung wählen."
 
 msgid "Supertext offers this language pair, but not with the option \"%s\". An administrator can reset the formality of this language under Languages → Settings → Machine translation → Supertext → Language mapping."
 msgstr "Supertext bietet dieses Sprachpaar an, aber nicht mit der Option «%s». Eine Administratorin oder ein Administrator kann die Anrede dieser Sprache unter Sprachen → Einstellungen → Maschinelle Übersetzung → Supertext → Sprachzuordnung zurücksetzen."
@@ -180,3 +180,6 @@ msgstr "Die Supertext-Übersetzung ist unvollständig."
 
 msgid "Supertext sent an unexpected status code %d."
 msgstr "Supertext hat mit dem unerwarteten Statuscode %d geantwortet."
+
+msgid "Set by the supertext_polylang_language_code filter, which wins over this choice."
+msgstr "Vom Filter supertext_polylang_language_code gesetzt, der Vorrang vor dieser Auswahl hat."
