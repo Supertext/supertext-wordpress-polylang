@@ -20,7 +20,7 @@ all three:
 |------|-----------|------|
 | `includes/Machine_Translation/Service.php` | `Service_Interface` | Identity, icon, language-code mapping, wiring |
 | `includes/Machine_Translation/Client.php` | `Client_Interface` | The actual `translate()` / `get_usage()` / key check |
-| `includes/Machine_Translation/Settings.php` | `Settings_Interface` | The settings form (API key, endpoint, language mapping); its key check is the Commando Center's |
+| `includes/Machine_Translation/Settings.php` | `Settings_Interface` | The settings form (API key, endpoint, language mapping with Translation review); its key check is the Commando Center's |
 
 The service is registered through the `pll_mt_services` filter (see the patch below).
 
@@ -74,6 +74,7 @@ is a small number of file calls, comfortably under the file endpoint's 1-req-per
 |--------|---------|---------|
 | `supertext_polylang_endpoint` | `https://api.supertext.com/v1/` | API base URL (also settable in the UI) |
 | `supertext_polylang_auth_headers` | `Authorization: Supertext-Auth-Key {key}`, `Accept`, `User-Agent` | Headers of every AI request |
+| `supertext_polylang_review_endpoint` | `SUPERTEXT_REVIEW_URL` (constant, else environment variable), else `https://localizationreview-production.up.railway.app/v1/` | Base URL of the review service for languages with *Translation review* on (`''` = review off for every language), see [Translation review](#translation-review) |
 | `supertext_polylang_language_code` | The mapped code, else the exact match of the locale, else the SDK default (also for the locale without `_formal`/`_informal`), else `''` | The Supertext target code of a Polylang language (`''` = not supported: `unsupported_language`); wins over the mapping drop-down, which then says so |
 | `supertext_polylang_poll_interval` | `2` (seconds) | Status poll interval |
 | `supertext_polylang_poll_timeout` | `180` (seconds) | Max time to wait for `done` |
@@ -134,6 +135,34 @@ is offered and sent only where `Languages::supportsPoliteness()` is true (the dr
 or hides it as the language changes); it is preselected from the locale (`*_formal` → *Formal*,
 `*_informal` → *Informal*). Otherwise nothing is sent (Supertext would answer
 `unsupported_feature`).
+
+#### Translation review
+
+*Translation review* is a checkbox per Polylang language in the mapping table (stored as
+`machine_translation_services.supertext.review` = slug → bool, off by default; a hidden `0`
+before each box saves an untick; `Service::sanitize_saved_options()` keeps booleans only; no
+migration: a missing entry is off). Translations **into** a language with review on go
+through Supertext's review service, the translation proxy of
+[Supertext Localization Review](https://github.com/Supertext/Localization-Review-Supertext-Translation):
+`Client::route_for()` picks the base URL per target language and `Client::sdk()` builds the
+SDK client for it with the same key, timeouts, transport (`Wp_Http_Transport`) and
+User-Agent (`supertext-wordpress-polylang/<version>`, the version of the reports). The SDK's
+`translateTexts()` does upload, status, download and delete on that one client, so a job is
+always collected where it was submitted. The proxy speaks the same API v1, forwards to the
+live Supertext API with the plugin's key, stores every segment per key and serves reviewers'
+corrections on the next upload, so nothing else changes.
+
+The review URL is `Client::review_url()`: the `SUPERTEXT_REVIEW_URL` constant, else the
+environment variable, else `Client::REVIEW_URL`, then the `supertext_polylang_review_endpoint`
+filter. `''` (or the same URL as the API) turns review off for every language. The key check,
+Commando Center reports, translation files (export/import, no API calls) and human
+(professional) translation orders never use the review service; an authentication failure through it isn't reported to the Commando Center as a key
+check result. Tests: `MachineTranslationClientTest` (a review language's four calls go to the
+review URL, others directly, the key check directly, an empty URL or the API's own URL turns it
+off, the default is the review service, saved values are booleans).
+
+Known limitations: corrections reach WordPress only with the next translation (no push); the
+review service only works with live keys.
 
 ## Translation files: export for translation / import translation
 

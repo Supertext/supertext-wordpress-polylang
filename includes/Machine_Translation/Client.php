@@ -57,6 +57,16 @@ class Client implements Client_Interface {
 	);
 
 	/**
+	 * Supertext's review service (the translation proxy of Supertext Localization Review).
+	 * It speaks the same API v1 and forwards to the live Supertext API with the plugin's
+	 * key, keeping every translation so reviewers can correct them on the website. Used for
+	 * target languages with *Translation review* on.
+	 *
+	 * @var string
+	 */
+	const REVIEW_URL = 'https://localizationreview-production.up.railway.app/v1/';
+
+	/**
 	 * The Supertext API key.
 	 *
 	 * @var string
@@ -85,6 +95,21 @@ class Client implements Client_Interface {
 	private $politeness;
 
 	/**
+	 * Map of Polylang language slug => Translation review on.
+	 *
+	 * @var array<string, bool>
+	 */
+	private $review;
+
+	/**
+	 * Base route of the review service (with trailing slash), '' when review is off
+	 * everywhere (no review URL, or the same URL as the API).
+	 *
+	 * @var string
+	 */
+	private $review_route;
+
+	/**
 	 * Constructor.
 	 *
 	 * @param array $options {
@@ -94,6 +119,8 @@ class Client implements Client_Interface {
 	 *     @type string $endpoint  Optional. Base URL of the API. Defaults to Supertext.
 	 *     @type array  $languages  Optional. Map of Polylang language slug => Supertext code.
 	 *     @type array  $politeness Optional. Map of Polylang language slug => `more`, `less` or ''.
+	 *     @type array  $review     Optional. Map of Polylang language slug => Translation review on.
+	 *     @type string $review_url Optional. The review service (default: self::review_url()); '' = review off.
 	 * }
 	 */
 	public function __construct( array $options ) {
@@ -105,6 +132,48 @@ class Client implements Client_Interface {
 		/** @var string $endpoint */
 		$endpoint    = apply_filters( 'supertext_polylang_endpoint', $endpoint, $options );
 		$this->route = trailingslashit( $endpoint );
+
+		$this->review = array();
+		foreach ( ( isset( $options['review'] ) && is_array( $options['review'] ) ? $options['review'] : array() ) as $slug => $on ) {
+			$this->review[ (string) $slug ] = (bool) $on;
+		}
+		$review_url         = trim( (string) ( array_key_exists( 'review_url', $options ) ? $options['review_url'] : self::review_url() ) );
+		$this->review_route = '' === $review_url || rtrim( $review_url, '/' ) === rtrim( $this->route, '/' ) ? '' : trailingslashit( $review_url );
+	}
+
+	/**
+	 * The review service for languages with *Translation review* on: the `SUPERTEXT_REVIEW_URL`
+	 * constant (wp-config.php), else the environment variable of that name, else Supertext's
+	 * review service (self::REVIEW_URL); then the `supertext_polylang_review_endpoint` filter.
+	 * '' turns review off for every language.
+	 *
+	 * @return string
+	 */
+	public static function review_url(): string {
+		if ( defined( 'SUPERTEXT_REVIEW_URL' ) ) {
+			$url = (string) constant( 'SUPERTEXT_REVIEW_URL' );
+		} else {
+			$env = getenv( 'SUPERTEXT_REVIEW_URL' );
+			$url = false === $env ? self::REVIEW_URL : $env;
+		}
+
+		/**
+		 * Filters the review service's base URL ('' = Translation review off for every language).
+		 *
+		 * @param string $url The review service's base URL.
+		 */
+		return trim( (string) apply_filters( 'supertext_polylang_review_endpoint', $url ) );
+	}
+
+	/**
+	 * The base route for translations into a language: the review service when its
+	 * *Translation review* is on (same key, same protocol), else the API.
+	 *
+	 * @param PLL_Language $language The target language.
+	 * @return string
+	 */
+	public function route_for( PLL_Language $language ): string {
+		return '' !== $this->review_route && ! empty( $this->review[ $language->slug ] ) ? $this->review_route : $this->route;
 	}
 
 	/**
@@ -210,7 +279,9 @@ class Client implements Client_Interface {
 			$target_language->locale
 		);
 
-		return $this->translate_segments( $sources, $target_code, $source_code, $politeness );
+		// Languages with Translation review go through the review service; upload, status,
+		// download and delete all run on that one SDK client.
+		return $this->translate_segments( $sources, $target_code, $source_code, $politeness, $this->route_for( $target_language ) );
 	}
 
 	/**
@@ -221,9 +292,10 @@ class Client implements Client_Interface {
 	 * @param string                    $target_lang Target code (regional).
 	 * @param string                    $source_lang Source code, empty for auto-detection.
 	 * @param string                    $politeness  `default`, `more`, or `less`.
+	 * @param string                    $route       Base URL: the API or the review service.
 	 * @return array<int|string, string>|WP_Error
 	 */
-	private function translate_segments( array $sources, string $target_lang, string $source_lang, string $politeness ) {
+	private function translate_segments( array $sources, string $target_lang, string $source_lang, string $politeness, string $route ) {
 		$segments = array();
 		foreach ( $sources as $key => $source ) {
 			$segments[ $key ] = Segment::html( (string) $source );
@@ -238,9 +310,11 @@ class Client implements Client_Interface {
 		}
 
 		try {
-			$result = $this->sdk( $timeout )->translateTexts( $segments, $target_lang, '' !== $source_lang ? $source_lang : null, $politeness );
+			$result = $this->sdk( $timeout, $route )->translateTexts( $segments, $target_lang, '' !== $source_lang ? $source_lang : null, $politeness );
 		} catch ( SupertextException $e ) {
-			if ( SupertextException::AUTHENTICATION_FAILURE === $e->errorCode ) {
+			// A key rejected through the review service isn't the key check's result (the check
+			// always goes directly to Supertext), so only a direct rejection is reported.
+			if ( SupertextException::AUTHENTICATION_FAILURE === $e->errorCode && $route === $this->route ) {
 				// Tell the Commando Center the key was rejected (once, when its status changes).
 				Commando::authentication_failed( in_array( (int) $e->status, array( 401, 403 ), true ) ? (int) $e->status : 401 );
 			} else {
@@ -254,18 +328,19 @@ class Client implements Client_Interface {
 	}
 
 	/**
-	 * The SDK client for one call.
+	 * The SDK client for one call. The key check always goes directly to Supertext.
 	 *
-	 * @param int $timeout Seconds to wait for a translation.
+	 * @param int         $timeout Seconds to wait for a translation.
+	 * @param string|null $route   Base URL (the review service for review languages), null = the API.
 	 * @return SdkClient
 	 */
-	private function sdk( int $timeout = 180 ): SdkClient {
+	private function sdk( int $timeout = 180, ?string $route = null ): SdkClient {
 		/** @var int $interval */
 		$interval = max( 1, (int) apply_filters( 'supertext_polylang_poll_interval', 2 ) );
 
 		return new SdkClient(
 			$this->api_key,
-			baseUrl: $this->route,
+			baseUrl: $route ?? $this->route,
 			pollInterval: (float) $interval,
 			timeout: (float) max( $interval, $timeout ),
 			requestTimeout: 30.0,

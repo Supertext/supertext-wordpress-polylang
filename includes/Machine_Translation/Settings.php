@@ -241,13 +241,16 @@ class Settings implements Settings_Interface {
 	 * see Language_Codes::suggest()), else "— choose —". A language left on
 	 * "— choose —" stops with `unsupported_language`; the status column says so.
 	 * Formal/informal is offered only where Supertext supports it for the chosen
-	 * language (switched in the browser as the choice changes).
+	 * language (switched in the browser as the choice changes). *Translation review*
+	 * (a checkbox per language, off by default) sends translations into that language
+	 * through Supertext's review service (see Client::route_for()).
 	 *
 	 * @return void
 	 */
 	private function print_language_mapping() {
 		$mapping    = isset( $this->options['languages'] ) && is_array( $this->options['languages'] ) ? $this->options['languages'] : array();
 		$politeness = isset( $this->options['politeness'] ) && is_array( $this->options['politeness'] ) ? $this->options['politeness'] : array();
+		$review     = isset( $this->options['review'] ) && is_array( $this->options['review'] ) ? $this->options['review'] : array();
 		$languages  = $this->model->get_languages_list();
 		$ui_locale  = function_exists( 'get_user_locale' ) ? get_user_locale() : '';
 		$targets    = Language_Codes::targets( $ui_locale );
@@ -264,6 +267,7 @@ class Settings implements Settings_Interface {
 							<th><?php esc_html_e( 'Polylang language', 'supertext-polylang' ); ?></th>
 							<th><?php esc_html_e( 'Supertext language', 'supertext-polylang' ); ?></th>
 							<th><?php esc_html_e( 'Formality', 'supertext-polylang' ); ?></th>
+							<th><?php esc_html_e( 'Translation review', 'supertext-polylang' ); ?></th>
 							<th><?php esc_html_e( 'Status', 'supertext-polylang' ); ?></th>
 						</tr>
 					</thead>
@@ -285,6 +289,7 @@ class Settings implements Settings_Interface {
 							$offer   = '' !== $selected && Language_Codes::supports_politeness( $selected );
 							$id      = 'pll-supertext-lang-' . $slug;
 							$pid     = 'pll-supertext-polite-' . $slug;
+							$rid     = 'pll-supertext-review-' . $slug;
 							?>
 							<tr>
 								<td>
@@ -324,6 +329,18 @@ class Settings implements Settings_Interface {
 									<span class="description" data-no-politeness="<?php echo esc_attr( $pid ); ?>" <?php echo $offer ? 'hidden' : ''; ?>>&ndash;</span>
 								</td>
 								<td>
+									<?php // The hidden 0 is sent when the box is unticked, so turning review off is saved too. ?>
+									<input type="hidden" name="<?php echo esc_attr( $this->input_base_name . '[review][' . $slug . ']' ); ?>" value="0" />
+									<input
+										type="checkbox"
+										name="<?php echo esc_attr( $this->input_base_name . '[review][' . $slug . ']' ); ?>"
+										id="<?php echo esc_attr( $rid ); ?>"
+										value="1"
+										aria-label="<?php echo esc_attr( sprintf( /* translators: %s: language name, e.g. "Deutsch". */ __( 'Translation review: %s', 'supertext-polylang' ), $language->name ) ); ?>"
+										<?php checked( ! empty( $review[ $slug ] ) ); ?>
+									/>
+								</td>
+								<td>
 									<?php if ( null === $resolved ) : ?>
 										<strong style="color:#d63638;"><?php esc_html_e( 'Not mapped: Supertext can\'t translate into or from this language yet', 'supertext-polylang' ); ?></strong>
 									<?php elseif ( $resolved !== $selected ) : ?>
@@ -342,6 +359,9 @@ class Settings implements Settings_Interface {
 				</table>
 				<p class="description" style="margin-top:8px;">
 					<?php esc_html_e( 'Formality is offered only for the languages where Supertext supports it. It is preselected as formal for locales ending in _formal and informal for _informal; "Automatic" lets Supertext decide.', 'supertext-polylang' ); ?>
+				</p>
+				<p class="description">
+					<?php esc_html_e( 'Translation review: translations into a language with this box ticked go through Supertext\'s review service, so reviewers can check and correct them on the website with the Supertext Localization Review extension. Their corrections are used the next time the content is translated.', 'supertext-polylang' ); ?>
 				</p>
 				<script>
 				( function () {

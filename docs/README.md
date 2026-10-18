@@ -28,6 +28,7 @@ translation** service in **Polylang Pro**.
   - [AI / Machine Translation](#ai--machine-translation)
   - [Human (professional) translation](#human-professional-translation)
   - [Language mapping](#language-mapping)
+  - [Translation review](#translation-review)
   - [Version information and the API key check](#version-information-and-the-api-key-check)
   - [Checking the status](#checking-the-status)
 - [Usage](#usage)
@@ -55,6 +56,9 @@ translation** service in **Polylang Pro**.
 - A **Supertext** account — [create one (or log in)](https://www.supertext.com/person/en/account/signin)
   - an **AI translation API key** (for AI), and/or
   - an **account email + Order API Key** (for human translation orders)
+- The server must reach `https://api.supertext.com` over HTTPS (and, for
+  [Translation review](#translation-review), Supertext's review service
+  `https://localizationreview-production.up.railway.app`)
 
 ---
 
@@ -140,6 +144,8 @@ Polylang language (the default language too) has a row with its name and locale 
   choice appears and disappears as you change the Supertext language. For locales ending in
   `_formal` it is preselected as *Formal*, for `_informal` as *Informal*; *Automatic* lets
   Supertext decide.
+- **Translation review** — a checkbox, off by default: translations into this language go
+  through Supertext's review service (see [Translation review](#translation-review)).
 - **Status** — the code that is sent (`✓ de-CH`; *Suggested; saved with the settings* until
   you save), or **Not mapped**. If a developer sets the code with the
   `supertext_polylang_language_code` filter, the status shows that code with *Set by the
@@ -160,6 +166,39 @@ Click **Save** to store the choices. Only Supertext's own codes are saved.
 One mapping serves both directions: when the language is the source, its code is sent
 without region (`de-CH` → `de`). The status panel on **Supertext → Settings** lists the same
 languages with their codes.
+
+### Translation review
+
+With **Translation review**, people check the translations on the website itself and
+correct them there: customers or Supertext linguists open the original and the translated
+page side by side in Chrome with the *Supertext Localization Review* extension and fix texts
+in a side panel. Their corrections come back into WordPress.
+
+Turn it on per language that is translated **into**: **Languages → Settings → Machine
+Translation → Supertext → Language mapping** → tick **Translation review** in that
+language's row → **Save**. Untick it to turn it off again; nothing else changes.
+
+- AI translations into that language then go through Supertext's review service instead of
+  directly to Supertext. It answers exactly like Supertext and passes everything on with your
+  API key, so billing, languages, formality and error messages stay the same. Other languages
+  keep going directly to Supertext.
+- The review service keeps every translation of your account. A text it has translated
+  before gets the same translation again (without a new Supertext call), and once a reviewer
+  has corrected it, the corrected text.
+- **Corrections arrive with the next translation:** after a review, translate the posts or
+  strings again to write the corrections into WordPress. As always, translating again replaces
+  manual changes in the translated texts.
+- Reviewers get a review link for your site from Supertext; nothing to set up in WordPress.
+- The review service works with keys of the **live** Supertext API. With the *Staging* or
+  *Testing* environment, leave review off.
+- Only AI translation uses it: human (professional) translation orders and the automatic API
+  key check always go directly to Supertext, and *Export for translation* / *Import
+  translation* don't use it.
+
+The review service's address can be changed with the constant or environment variable
+`SUPERTEXT_REVIEW_URL` (e.g. `define( 'SUPERTEXT_REVIEW_URL', '' );` in `wp-config.php`);
+an empty value turns review off for every language. Only change it when Supertext gives you
+another address.
 
 ### Version information and the API key check
 
@@ -258,6 +297,12 @@ logo marks the action.)
 Each selected item is translated and a linked translation is created. A notice reports how
 many translations were created. (Items already translated, or whose source language equals
 the target, are skipped.)
+
+**Translation review:** if your administrator turned on *Translation review* for a language,
+reviewers (your colleagues or Supertext linguists) check and correct the translations on the
+website. Their corrections come into WordPress the next time you translate the content into
+that language: after a review, translate it again. Texts reviewed once keep their corrected
+wording in later translations.
 
 ### Bulk human translation
 
@@ -587,6 +632,12 @@ automatically, so you don’t need a manual Reset for the next round.
 - **“The API key couldn't be checked …”** — Supertext couldn't be reached (network, firewall,
   proxy) or answered with an error (the HTTP status is in the message). The settings are
   saved; click **Test connection** later.
+- **“Authentication failure” only for languages with Translation review** — the review service
+  only works with keys of the live Supertext API: with the *Staging* or *Testing* environment,
+  untick *Translation review* in the language mapping.
+- **Reviewers' corrections don't show up in WordPress** — they arrive with the next
+  translation: translate the content into that language again. Check that the language's
+  *Translation review* is ticked.
 - **“source and target language are the same”** — you can't translate a post into its own
   language; pick a different target.
 - **Human order placed but nothing comes back** — check **Supertext → Debug** for the most

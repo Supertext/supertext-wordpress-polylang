@@ -54,6 +54,7 @@ class Service implements Service_Interface {
 				'endpoint'   => '',
 				'languages'  => array(),
 				'politeness' => array(),
+				'review'     => array(),
 			),
 			is_array( $options ) ? $options : array()
 		);
@@ -192,6 +193,13 @@ class Service implements Service_Interface {
 					'type' => 'string',
 				),
 			),
+			'review'     => array(
+				'type'                 => 'object',
+				// Map of Polylang language slug => Translation review on (translations into it go through the review service).
+				'additionalProperties' => array(
+					'type' => 'boolean',
+				),
+			),
 		);
 	}
 
@@ -232,7 +240,7 @@ class Service implements Service_Interface {
 	 * (`pre_update_option_polylang`): a Supertext language must be one of
 	 * Supertext's targets (stored in Supertext's spelling, anything else becomes
 	 * '' = the suggestion), formality only `more`/`less` and only for a target
-	 * that offers it.
+	 * that offers it, Translation review a boolean per language.
 	 *
 	 * @param mixed $value The new value of the `polylang` option.
 	 * @return mixed
@@ -257,8 +265,15 @@ class Service implements Service_Interface {
 			$clean_politeness[ (string) $slug ] = $ok ? $setting : '';
 		}
 
+		$review       = isset( $options['review'] ) && is_array( $options['review'] ) ? $options['review'] : array();
+		$clean_review = array();
+		foreach ( $review as $slug => $on ) {
+			$clean_review[ (string) $slug ] = true === $on || 1 === $on || ( is_string( $on ) && in_array( strtolower( $on ), array( '1', 'true', 'on', 'yes' ), true ) );
+		}
+
 		$options['languages']  = $clean_languages;
 		$options['politeness'] = $clean_politeness;
+		$options['review']     = $clean_review;
 
 		$value['machine_translation_services'][ self::get_slug() ] = $options;
 

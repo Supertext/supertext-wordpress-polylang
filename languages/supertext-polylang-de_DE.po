@@ -263,3 +263,12 @@ msgstr "Eine HTML-Datei enthält genau eine Zielsprache."
 
 msgid "Choose at least one target language."
 msgstr "Wählen Sie mindestens eine Zielsprache."
+
+msgid "Translation review"
+msgstr "Übersetzungsprüfung"
+
+msgid "Translation review: %s"
+msgstr "Übersetzungsprüfung: %s"
+
+msgid "Translation review: translations into a language with this box ticked go through Supertext's review service, so reviewers can check and correct them on the website with the Supertext Localization Review extension. Their corrections are used the next time the content is translated."
+msgstr "Übersetzungsprüfung: Übersetzungen in eine Sprache, bei der dieses Kästchen angekreuzt ist, laufen über den Prüfdienst von Supertext, damit Prüferinnen und Prüfer sie mit der Erweiterung Supertext Localization Review direkt auf der Website kontrollieren und korrigieren können. Ihre Korrekturen werden beim nächsten Übersetzen der Inhalte übernommen."
