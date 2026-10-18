@@ -183,3 +183,83 @@ msgstr "Supertext hat mit dem unerwarteten Statuscode %d geantwortet."
 
 msgid "Set by the supertext_polylang_language_code filter, which wins over this choice."
 msgstr "Vom Filter supertext_polylang_language_code gesetzt, der Vorrang vor dieser Auswahl hat."
+
+# Translation files (export for translation / import translation)
+
+msgid "Translation files"
+msgstr "Übersetzungsdateien"
+
+msgid "Export posts as XLIFF or HTML files for translation tools, translators or Supertext’s web app, and import the translated files."
+msgstr "Exportieren Sie Beiträge als XLIFF- oder HTML-Dateien für Übersetzungstools, Übersetzer oder die Web-App von Supertext, und importieren Sie die übersetzten Dateien."
+
+msgid "Export for translation"
+msgstr "Für Übersetzung exportieren"
+
+msgid "File format"
+msgstr "Dateiformat"
+
+msgid "XLIFF 1.2 (for translation tools)"
+msgstr "XLIFF 1.2 (für Übersetzungstools)"
+
+msgid "HTML (one language per file)"
+msgstr "HTML (eine Sprache pro Datei)"
+
+msgid "Target languages"
+msgstr "Zielsprachen"
+
+msgid "Download file"
+msgstr "Datei herunterladen"
+
+msgid "Import translation"
+msgstr "Übersetzung importieren"
+
+msgid "To export a post, use “Export for translation” in the posts or pages list."
+msgstr "Um einen Beitrag zu exportieren, verwenden Sie „Für Übersetzung exportieren“ in der Liste der Beiträge oder Seiten."
+
+msgid "Translated file (XLIFF or HTML)"
+msgstr "Übersetzte Datei (XLIFF oder HTML)"
+
+msgid "Also import texts whose source changed since the export"
+msgstr "Auch Texte importieren, deren Ausgangstext sich seit dem Export geändert hat"
+
+msgid "Imported: %d"
+msgstr "Importiert: %d"
+
+msgid "Skipped, source changed since the export: %d"
+msgstr "Übersprungen, Ausgangstext seit dem Export geändert: %d"
+
+msgid "Not translated in the file: %d"
+msgstr "In der Datei nicht übersetzt: %d"
+
+msgid "Formatting changed, not imported: %d"
+msgstr "Formatierung verändert, nicht importiert: %d"
+
+msgid "Not in the file: %d"
+msgstr "Nicht in der Datei: %d"
+
+msgid "This file isn't a valid XLIFF or HTML translation file."
+msgstr "Diese Datei ist keine gültige XLIFF- oder HTML-Übersetzungsdatei."
+
+msgid "This file wasn't exported by the Supertext plugin, or its header was removed."
+msgstr "Diese Datei wurde nicht vom Supertext-Plugin exportiert, oder ihr Kopfbereich wurde entfernt."
+
+msgid "The file is too large (at most 10 MB)."
+msgstr "Die Datei ist zu gross (höchstens 10 MB)."
+
+msgid "Nothing to translate."
+msgstr "Nichts zu übersetzen."
+
+msgid "This file belongs to another system (%s)."
+msgstr "Diese Datei gehört zu einem anderen System (%s)."
+
+msgid "The post this file was exported from no longer exists."
+msgstr "Der Beitrag, aus dem diese Datei exportiert wurde, existiert nicht mehr."
+
+msgid "The site has no language %s."
+msgstr "Die Website hat keine Sprache %s."
+
+msgid "An HTML file holds exactly one target language."
+msgstr "Eine HTML-Datei enthält genau eine Zielsprache."
+
+msgid "Choose at least one target language."
+msgstr "Wählen Sie mindestens eine Zielsprache."

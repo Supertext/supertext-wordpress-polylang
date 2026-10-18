@@ -183,3 +183,83 @@ msgstr "Supertext ha restituito un codice di stato inatteso %d."
 
 msgid "Set by the supertext_polylang_language_code filter, which wins over this choice."
 msgstr "Impostata dal filtro supertext_polylang_language_code, che prevale su questa scelta."
+
+# Translation files (export for translation / import translation)
+
+msgid "Translation files"
+msgstr "File di traduzione"
+
+msgid "Export posts as XLIFF or HTML files for translation tools, translators or Supertext’s web app, and import the translated files."
+msgstr "Esporti gli articoli come file XLIFF o HTML per strumenti di traduzione, traduttori o l'app web di Supertext, e importi i file tradotti."
+
+msgid "Export for translation"
+msgstr "Esporta per la traduzione"
+
+msgid "File format"
+msgstr "Formato del file"
+
+msgid "XLIFF 1.2 (for translation tools)"
+msgstr "XLIFF 1.2 (per strumenti di traduzione)"
+
+msgid "HTML (one language per file)"
+msgstr "HTML (una lingua per file)"
+
+msgid "Target languages"
+msgstr "Lingue di destinazione"
+
+msgid "Download file"
+msgstr "Scarica il file"
+
+msgid "Import translation"
+msgstr "Importa traduzione"
+
+msgid "To export a post, use “Export for translation” in the posts or pages list."
+msgstr "Per esportare un articolo, usi «Esporta per la traduzione» nell'elenco degli articoli o delle pagine."
+
+msgid "Translated file (XLIFF or HTML)"
+msgstr "File tradotto (XLIFF o HTML)"
+
+msgid "Also import texts whose source changed since the export"
+msgstr "Importa anche i testi il cui testo di partenza è cambiato dopo l'esportazione"
+
+msgid "Imported: %d"
+msgstr "Importati: %d"
+
+msgid "Skipped, source changed since the export: %d"
+msgstr "Saltati, testo di partenza modificato dopo l'esportazione: %d"
+
+msgid "Not translated in the file: %d"
+msgstr "Non tradotti nel file: %d"
+
+msgid "Formatting changed, not imported: %d"
+msgstr "Formattazione modificata, non importati: %d"
+
+msgid "Not in the file: %d"
+msgstr "Non presenti nel file: %d"
+
+msgid "This file isn't a valid XLIFF or HTML translation file."
+msgstr "Questo file non è un file di traduzione XLIFF o HTML valido."
+
+msgid "This file wasn't exported by the Supertext plugin, or its header was removed."
+msgstr "Questo file non è stato esportato dal plugin Supertext oppure la sua intestazione è stata rimossa."
+
+msgid "The file is too large (at most 10 MB)."
+msgstr "Il file è troppo grande (al massimo 10 MB)."
+
+msgid "Nothing to translate."
+msgstr "Niente da tradurre."
+
+msgid "This file belongs to another system (%s)."
+msgstr "Questo file appartiene a un altro sistema (%s)."
+
+msgid "The post this file was exported from no longer exists."
+msgstr "L'articolo da cui è stato esportato questo file non esiste più."
+
+msgid "The site has no language %s."
+msgstr "Il sito non ha la lingua %s."
+
+msgid "An HTML file holds exactly one target language."
+msgstr "Un file HTML contiene esattamente una lingua di destinazione."
+
+msgid "Choose at least one target language."
+msgstr "Scelga almeno una lingua di destinazione."

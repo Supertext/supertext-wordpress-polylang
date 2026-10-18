@@ -84,6 +84,7 @@ class TranslationFilesTest extends TestCase {
 			'/includes/Reporting/Commando.php',
 			'/includes/Machine_Translation/Settings.php',
 			'/includes/Machine_Translation/Client.php',
+			'/includes/Admin/Files_Page.php',
 		);
 		foreach ( $files as $file ) {
 			$source = (string) file_get_contents( $root . $file );

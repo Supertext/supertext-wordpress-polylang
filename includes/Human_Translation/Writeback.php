@@ -96,7 +96,68 @@ class Writeback {
 			return;
 		}
 
-		// Rebuild the export container for the source post and fill in the translations.
+		$saved  = self::save_map( $post, $target, $map );
+		$filled = $saved['filled'];
+		foreach ( $saved['errors'] as $error ) {
+			self::debug_log( 'writeback save errors: ' . $error );
+		}
+
+		// Apply the configured status to the translated post. Processor::save() always
+		// saves as draft, so publish here if the setting says so.
+		if ( 'publish' === Settings::writeback_status() ) {
+			$tr_id = (int) $model->post->get_translation( (int) $post_id, $lang );
+			if ( $tr_id ) {
+				wp_update_post( array( 'ID' => $tr_id, 'post_status' => 'publish' ) );
+			}
+		}
+
+		self::debug_log( sprintf( 'writeback done: post=%d lang=%s filled=%d status=%s', (int) $post_id, $lang, $filled, Settings::writeback_status() ) );
+
+		// Update the order registry status (from the callback body if present).
+		$status = is_array( $body ) && ! empty( $body['Status'] ) ? (string) $body['Status'] : 'Completed';
+		foreach ( (array) $order_ids as $oid ) {
+			Orders::update( (int) $oid, array( 'status' => $status, 'completed_at' => gmdate( 'c' ) ) );
+		}
+
+		update_post_meta(
+			(int) $post_id,
+			'_supertext_order_completed_' . $lang,
+			wp_json_encode(
+				array(
+					'order_ids'   => array_map( 'intval', (array) $order_ids ),
+					'file_ids'    => array_map( static fn( $f ) => (int) $f['Id'], $files ),
+					'strings'     => $filled,
+					'completed_at' => gmdate( 'c' ),
+				)
+			)
+		);
+
+		// Delivery is done: drop the open-order lock so this page + language can be
+		// ordered again without a manual Reset on the Orders page. The
+		// `_supertext_order_completed_<lang>` marker set above still guards against a
+		// re-sent callback for THIS order overwriting the result.
+		delete_post_meta( (int) $post_id, '_supertext_order_' . $lang );
+	}
+
+	/**
+	 * Writes translations into a post's translation: rebuilds the export container
+	 * for the source post (Polylang's export pipeline, as for AI translation), fills
+	 * in the translations by translation context and saves through Polylang's MT
+	 * processor, which creates or updates the linked translation (as a draft) and
+	 * runs the YOOtheme/ACF write-back integrations. Used by human-translation
+	 * orders and by translation file imports.
+	 *
+	 * @since 0.11.0
+	 *
+	 * @param WP_Post               $post   Source post.
+	 * @param \PLL_Language         $target Target language.
+	 * @param array<string, string> $map    Translation context => translated string.
+	 * @return array{filled: int, errors: string[]}
+	 */
+	public static function save_map( WP_Post $post, $target, array $map ): array {
+		$polylang = PLL();
+		$model    = $polylang->model;
+
 		$curlang_backup    = $polylang->curlang;
 		$polylang->curlang = null;
 
@@ -135,45 +196,15 @@ class Writeback {
 
 		$polylang->curlang = $curlang_backup;
 
+		$errors = array();
 		if ( is_wp_error( $result ) && $result->has_errors() ) {
-			self::debug_log( 'writeback save errors: ' . $result->get_error_message() );
+			$errors[] = $result->get_error_message();
 		}
 
-		// Apply the configured status to the translated post. Processor::save() always
-		// saves as draft, so publish here if the setting says so.
-		if ( 'publish' === Settings::writeback_status() ) {
-			$tr_id = (int) $model->post->get_translation( (int) $post_id, $lang );
-			if ( $tr_id ) {
-				wp_update_post( array( 'ID' => $tr_id, 'post_status' => 'publish' ) );
-			}
-		}
-
-		self::debug_log( sprintf( 'writeback done: post=%d lang=%s filled=%d status=%s', (int) $post_id, $lang, $filled, Settings::writeback_status() ) );
-
-		// Update the order registry status (from the callback body if present).
-		$status = is_array( $body ) && ! empty( $body['Status'] ) ? (string) $body['Status'] : 'Completed';
-		foreach ( (array) $order_ids as $oid ) {
-			Orders::update( (int) $oid, array( 'status' => $status, 'completed_at' => gmdate( 'c' ) ) );
-		}
-
-		update_post_meta(
-			(int) $post_id,
-			'_supertext_order_completed_' . $lang,
-			wp_json_encode(
-				array(
-					'order_ids'   => array_map( 'intval', (array) $order_ids ),
-					'file_ids'    => array_map( static fn( $f ) => (int) $f['Id'], $files ),
-					'strings'     => $filled,
-					'completed_at' => gmdate( 'c' ),
-				)
-			)
+		return array(
+			'filled' => $filled,
+			'errors' => $errors,
 		);
-
-		// Delivery is done: drop the open-order lock so this page + language can be
-		// ordered again without a manual Reset on the Orders page. The
-		// `_supertext_order_completed_<lang>` marker set above still guards against a
-		// re-sent callback for THIS order overwriting the result.
-		delete_post_meta( (int) $post_id, '_supertext_order_' . $lang );
 	}
 
 	/**

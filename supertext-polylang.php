@@ -139,6 +139,9 @@ add_filter(
 // Register the "Tools" submenu (ACF field translation overview, …).
 \Supertext\Polylang\Admin\Tools_Page::init();
 
+// Register the "Translation files" submenu and the "Export for translation" row action (XLIFF / HTML export and import).
+\Supertext\Polylang\Admin\Files_Page::init();
+
 // Plugin detection (Settings-page button) and the enabled third-party integrations.
 \Supertext\Polylang\Admin\Integrations::init();
 

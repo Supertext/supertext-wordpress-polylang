@@ -10,6 +10,9 @@ translation** service in **Polylang Pro**.
 - **Page screenshots for translators** — each page sent for human translation is captured
   through its secret preview link and attached to the order, giving the translator the page
   in its real layout (via [VibeBoost Screenshots](https://vibeboost.me) — optional, on by default).
+- **Translation files** — export a post as an XLIFF 1.2 or HTML file for a translation tool,
+  a translator or Supertext's web app, and import the translated file again
+  (*Export for translation* / *Import translation*).
 - **Secret preview links** — share an unpublished draft (or hand it to an external tool)
   through a private, expiring URL, without publishing it. Toggle the whole feature on/off in
   Supertext → Settings; enable and manage each page's link from the editor sidebar.
@@ -35,6 +38,7 @@ translation** service in **Polylang Pro**.
   - [YOOtheme pages](#yootheme-pages)
   - [Gravity Forms](#gravity-forms)
   - [Page screenshots (VibeBoost)](#page-screenshots-vibeboost-screenshots)
+  - [Translation files (XLIFF or HTML)](#translation-files-xliff-or-html)
   - [When a translation can't start](#when-a-translation-cant-start)
 - [Compatibility](#compatibility)
 - [How it works](#how-it-works)
@@ -381,6 +385,67 @@ order simply goes through **without** a screenshot.
 > - Ordering a translation **auto‑enables** the source page's secret preview link (with the
 >   default expiry) so the page can be captured; you can turn it back off per page from the
 >   editor.
+
+### Translation files (XLIFF or HTML)
+
+Instead of translating with Supertext right away, export a post as a file, have it
+translated elsewhere — in a translation tool (Trados, memoQ, Phrase …), by a translator, or
+by uploading it to Supertext's web app — and import the translated file again. Polylang Pro
+has an XLIFF export of its own (*Languages → Translations → Export*); this one is Supertext's
+format, which the other Supertext plugins share, checks each text on import and also offers
+HTML.
+
+**Export for translation**
+
+1. In **Posts** (or **Pages**), hover the post and click **Export for translation**. The
+   *Supertext → Translation files* page opens with the post.
+2. Choose the **File format**:
+   - **XLIFF 1.2 (for translation tools)** — the better choice for translation tools, which
+     protect the formatting. Several target languages go into one file.
+   - **HTML (one language per file)** — for Supertext's web app and anyone who translates
+     HTML. Translators must leave the file's head and the `data-st-id` attributes alone.
+3. Tick the **Target languages** (the site's other languages) and click **Download file**
+   (`wordpress-<post id>-<language>.xlf`, or `wordpress-<post id>.xlf` for several languages).
+
+The file holds exactly the texts the AI translation would send (title, content, excerpt, the
+custom fields and ACF fields set to *Translate*, YOOtheme texts). A post with nothing to
+translate gives *Nothing to translate.* and no file.
+
+**Import translation**
+
+1. Open **Supertext → Translation files**.
+2. Choose the **Translated file (XLIFF or HTML)** (at most 10 MB).
+3. Tick **Also import texts whose source changed since the export** only if you want those
+   too (see below). Click **Import translation**.
+
+The texts are written into the post's translation in that language, exactly as an AI
+translation is written: the translation is created (linked to the original) if it doesn't
+exist yet and saved as a **draft** for review; YOOtheme and ACF texts go back into their
+fields. An existing translation's texts are replaced by the file's. You need to be allowed to
+edit the original and its translation (or to create one).
+
+A summary per post and language follows:
+
+| Line | Meaning |
+|------|---------|
+| **Imported** | Written into the translation. |
+| **Skipped, source changed since the export** | Someone edited the original after the export, so the translation may be out of date. Not written unless you tick *Also import texts whose source changed since the export*. |
+| **Not translated in the file** | The translator left the text empty. |
+| **Formatting changed, not imported** | The translation broke or added formatting (tags) the original doesn't have. |
+| **Not in the file** | Texts added to the post after the export. Export again to translate them. |
+
+An HTML file imported unchanged writes the original text into the translation (HTML can't
+mark a text as untranslated), so only import HTML files that have been translated.
+
+| Message | What it means |
+|---------|---------------|
+| *This file isn't a valid XLIFF or HTML translation file.* | The file is damaged or isn't XLIFF or HTML. |
+| *This file wasn't exported by the Supertext plugin, or its header was removed.* | Use a file from *Export for translation*; in HTML files the head must stay as it was. |
+| *This file belongs to another system (…).* | The file comes from another Supertext plugin (another CMS). |
+| *The post this file was exported from no longer exists.* | The post was deleted after the export. |
+| *The site has no language ….* | The language was removed from Polylang after the export. |
+| *The file is too large (at most 10 MB).* | Export fewer languages per file. |
+| *Sorry, you are not allowed to edit this post.* | You may not edit the original or its translation. |
 
 ### When a translation can't start
 

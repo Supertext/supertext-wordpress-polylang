@@ -3,7 +3,9 @@
 Adds **Supertext** as a native machine-translation service in **Polylang Pro**, so it
 appears in *Languages → Settings → Machine Translation* right next to DeepL. Content is
 translated directly through Supertext — **no DeepL proxy required**. It also adds
-**human (professional)** translation orders directly from WordPress.
+**human (professional)** translation orders directly from WordPress, and
+**translation files**: export for translation (XLIFF 1.2 or HTML) and import of translated
+files (Supertext SDK 0.5.0).
 
 > 📘 **Looking for installation & usage instructions (with screenshots)?**
 > See the **[User Guide](docs/README.md)**. This README covers the developer/architecture
@@ -132,6 +134,29 @@ is offered and sent only where `Languages::supportsPoliteness()` is true (the dr
 or hides it as the language changes); it is preselected from the locale (`*_formal` → *Formal*,
 `*_informal` → *Informal*). Otherwise nothing is sent (Supertext would answer
 `unsupported_feature`).
+
+## Translation files: export for translation / import translation
+
+*Export for translation* (XLIFF 1.2 or HTML) and *Import translation* with the SDK's
+`TranslationFiles` (SDK 0.5.0, `Supertext\Polylang\Sdk\Files`; integration guide →
+*Translation files: XLIFF and HTML*). Nothing here calls the API, and no API key is needed.
+
+| File | Role |
+|------|------|
+| `includes/Admin/Files_Page.php` | *Supertext → Translation files* (`edit_posts`): the export form (opened from the **Export for translation** row action in the posts/pages lists, next to the Supertext bulk actions), the download (`admin-post.php?action=supertext_polylang_export_file`, nonce, `edit_post`), the upload (`…_import_file`, nonce; over 10 MB refused before reading; parsed in memory, never stored) and the summary (kept 60 s in a per-user transient for the redirect). Registered only with Polylang Pro. |
+| `includes/Files/Translation_File_Glue.php` | No WordPress dependency (unit-tested with a fake store, `tests/unit/cases/FileExportImportTest.php`): builds the jobs, checks imported jobs, counts the results, hands `ok` texts (and `source_changed` ones with the option) to the store. |
+| `includes/Files/Polylang_File_Store.php` | Segments from `Human_Translation\Content::collect()` (Polylang's export pipeline with `include_translated_items`, the entries the AI client sends, all as HTML like the AI client), keyed by Polylang's translation context; permissions; write-back through `Human_Translation\Writeback::save_map()` (Polylang's MT `Processor::save()`, shared with human orders: creates or updates the linked translation as a draft, YOOtheme/ACF write-back). |
+
+- **Job metadata:** `plugin` = `supertext-wordpress-polylang`; `reference` = `post:<post id>:<Polylang language slug>`
+  (e.g. `post:42:de`; anything else is *not found*); `targetLanguage` = `Service::resolve_target()` (the mapping,
+  an exact match, the default; the `supertext_polylang_language_code` filter applies), `sourceLanguage` = the post
+  language's code in its source form (as the AI client sends it); a language without a Supertext code is sent as
+  its locale with `-` for `_` (`en_IE` → `en-IE`), so it doesn't block an export. File names
+  `wordpress-<post id>-<target>.xlf` / `.html`, `wordpress-<post id>.xlf` for several languages.
+- **Import checks per job:** `plugin` is ours (else *other system*), the reference parses and the post exists with a
+  Polylang language (*not found*), the language exists and isn't the post's own (*no language*), the user may
+  `edit_post` the original and its translation, or create a post of its type (WordPress's *Sorry, you are not
+  allowed to edit this post.*). `untranslated`, `invalid_markup` and `missing` are only counted.
 
 ## Commando Center: version reports, API key check, ping
 
