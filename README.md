@@ -137,6 +137,16 @@ or hides it as the language changes); it is preselected from the locale (`*_form
 
 ## Translation files: export for translation / import translation
 
+Besides AI and human translation, editors can export a post or page as a file, have it translated elsewhere and
+import the result: the **Export for translation** row action in the posts and pages lists opens *Supertext →
+Translation files*, where they choose XLIFF 1.2 (for translation tools such as Trados, memoQ or Phrase; several
+languages in one file) or HTML (one language per file, for translators or Supertext's web app, which keeps the
+file's head and `data-st-id` attributes), and later upload the translated file. The import saves drafts through the
+same write-back as human orders and shows what was imported and what was skipped (source changed since the export,
+not translated, formatting changed, not in the file). Files over 10 MB, files from another system and translations
+that add markup the source doesn't have are refused; uploads aren't stored. No screenshot yet: the screenshots come
+from a live site with Polylang Pro.
+
 *Export for translation* (XLIFF 1.2 or HTML) and *Import translation* with the SDK's
 `TranslationFiles` (SDK 0.5.0, `Supertext\Polylang\Sdk\Files`; integration guide →
 *Translation files: XLIFF and HTML*). Nothing here calls the API, and no API key is needed.
