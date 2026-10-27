@@ -376,7 +376,7 @@ class Settings {
 							<?php
 							printf(
 								/* translators: %d is the default ServiceID. */
-								esc_html__( 'The Supertext service whose translation types (BASIC / PREMIUM / CREATIVE) are offered when ordering a human translation. Default %d. The list is cached for 12 hours.', 'supertext-polylang' ),
+								esc_html__( 'The Supertext ServiceId for your translation services that are offered when ordering a human translation. Default %d. The list is cached for 12 hours.', 'supertext-polylang' ),
 								(int) self::DEFAULT_SERVICE_ID
 							);
 							?>
