@@ -90,6 +90,7 @@ require_once $root . '/includes/Integrations/GravityForms/Fields.php';
 require_once $root . '/includes/Human_Translation/Callback.php';
 require_once $root . '/includes/Human_Translation/Client.php';
 require_once $root . '/includes/Human_Translation/Writeback.php';
+require_once $root . '/includes/Human_Translation/Services.php';
 require_once $root . '/includes/Admin/Settings.php';
 require_once $root . '/includes/Preview/Draft_Preview.php';
 require_once $root . '/includes/Integrations/VibeBoost/Client.php';

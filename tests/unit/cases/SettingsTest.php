@@ -66,4 +66,58 @@ class SettingsTest extends TestCase {
 
 		$this->assertFalse( Settings::preview_links_enabled() );
 	}
+
+	public function test_defaults_use_the_default_service_id(): void {
+		$this->assertSame( 46, Settings::defaults()['service_id'] );
+		$this->assertSame( 46, Settings::DEFAULT_SERVICE_ID );
+	}
+
+	public function test_sanitize_keeps_a_custom_service_id(): void {
+		Functions\when( 'sanitize_email' )->returnArg();
+		Functions\when( 'sanitize_text_field' )->returnArg();
+
+		$out = Settings::sanitize( array( 'service_id' => '51' ) );
+
+		$this->assertSame( 51, $out['service_id'] );
+	}
+
+	/**
+	 * @dataProvider provide_unusable_service_ids
+	 */
+	public function test_sanitize_falls_back_to_the_default_service_id( $input ): void {
+		Functions\when( 'sanitize_email' )->returnArg();
+		Functions\when( 'sanitize_text_field' )->returnArg();
+
+		// A blank or negative ServiceID would leave the dropdown with nothing to offer.
+		$out = Settings::sanitize( array( 'service_id' => $input ) );
+
+		$this->assertSame( Settings::DEFAULT_SERVICE_ID, $out['service_id'] );
+	}
+
+	public static function provide_unusable_service_ids(): array {
+		return array(
+			'empty string' => array( '' ),
+			'zero'         => array( '0' ),
+			'negative'     => array( '-3' ),
+			'not a number' => array( 'abc' ),
+		);
+	}
+
+	public function test_service_id_falls_back_when_the_option_is_absent(): void {
+		Functions\when( 'get_option' )->justReturn( array() );
+
+		$this->assertSame( 46, Settings::service_id() );
+	}
+
+	public function test_service_id_falls_back_when_the_stored_value_is_empty(): void {
+		Functions\when( 'get_option' )->justReturn( array( 'service_id' => 0 ) );
+
+		$this->assertSame( 46, Settings::service_id() );
+	}
+
+	public function test_service_id_reads_the_stored_value(): void {
+		Functions\when( 'get_option' )->justReturn( array( 'service_id' => 51 ) );
+
+		$this->assertSame( 51, Settings::service_id() );
+	}
 }

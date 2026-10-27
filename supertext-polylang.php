@@ -3,7 +3,7 @@
  * Plugin Name:       Supertext for Polylang
  * Plugin URI:        https://github.com/Supertext/supertext-wordpress-polylang
  * Description:       Adds Supertext as a native machine-translation and human translation service in Polylang Pro.
- * Version:           0.10.0
+ * Version:           0.11.0
  * Requires PHP:      8.1
  * Author:            Supertext
  * Author URI:        https://www.supertext.com
@@ -15,7 +15,7 @@
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'SUPERTEXT_POLYLANG_VERSION', '0.10.0' );
+define( 'SUPERTEXT_POLYLANG_VERSION', '0.11.0' );
 define( 'SUPERTEXT_POLYLANG_FILE', __FILE__ );
 define( 'SUPERTEXT_POLYLANG_DIR', plugin_dir_path( __FILE__ ) );
 
@@ -156,6 +156,10 @@ add_filter(
 
 // General "String Translation" page over all Polylang strings (Supertext submenu).
 \Supertext\Polylang\Admin\String_Translations_Page::init();
+
+// Human translation product types, loaded from the configured Supertext ServiceID
+// (flushes its cache when the settings change).
+\Supertext\Polylang\Human_Translation\Services::init();
 
 // Human (professional) translation of arbitrary Polylang strings: order + callback
 // writeback into Polylang.

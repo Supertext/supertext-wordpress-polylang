@@ -79,6 +79,8 @@ is a small number of file calls, comfortably under the file endpoint's 1-req-per
 | `supertext_polylang_poll_interval` | `2` (seconds) | Status poll interval |
 | `supertext_polylang_poll_timeout` | `180` (seconds) | Max time to wait for `done` |
 | `supertext_polylang_screenshot_endpoint` | `https://vibeboost.me/api/screenshot` | [VibeBoost Screenshots](https://vibeboost.me) capture endpoint used to attach a page screenshot (DocumentTypeId 3) to human orders |
+| `supertext_polylang_human_services` | the list loaded from `api/v1/util/ordertype/{ServiceID}` | Override/extend the human **translation types** offered when ordering (see below) |
+| `supertext_polylang_quote_currency` | `''` (account default) | Currency to request on the human-order price quote |
 
 Politeness (formal/informal) is sent only for targets where `Languages::supportsPoliteness()` is
 true: the language's *Formality* in the mapping (preselected from the locale), else `*_formal` → `more`, `*_informal` → `less`,
@@ -330,6 +332,46 @@ with Polylang, and swaps them at render time.
 - **Render** — `Integration::translate_form()` hooks `gform_pre_render` and
   `gform_pre_validation`, and on a non-default language rewrites each visible string through
   `Fields::apply_callback()` with `pll__()`. Untranslated strings fall back to the source.
+
+## Human translation types (loaded, not hardcoded)
+
+The **Translation type** dropdown (Posts/Pages bulk action and the String Translations
+grid) is loaded from the Supertext account rather than hardcoded, by
+`includes/Human_Translation/Services.php`. Like the rest of the human/order API (orders,
+quotes, file upload/download) this call goes through `Human_Translation\Client`, not the
+Supertext SDK — the SDK covers the AI translation API only:
+
+```
+GET api/v1/util/ordertype/{ServiceID}      # Basic auth, same credential as orders
+```
+
+```json
+[
+  {
+    "Name": "Translation BASIC",
+    "DeliveryOptions": null,
+    "Description": "Machine translation with full post-editing by a qualified translator. …",
+    "ShortDescription": "For general texts with a limited reach",
+    "OrderTypeConfigurationId": 166,
+    "OrderTypeId": 54
+  }
+]
+```
+
+`Services::parse()` keys the response by **`OrderTypeConfigurationId`** (the id sent as the
+order's and the quote's `OrderTypeConfigurationId`) and keeps the matching **`OrderTypeId`**
+(sent as the quote's `OrderTypeId`), plus `Name` → the option label and `ShortDescription`
+→ its tooltip. The API's own ordering is preserved.
+
+| Concern | Behaviour |
+|---------|-----------|
+| **ServiceID** | Settings → **ServiceID** (`service_id` in `supertext_polylang_settings`), default `46`. A blank/invalid value falls back to the default rather than emptying the dropdown. |
+| **Caching** | A `supertext_polylang_order_types_{env}_{ServiceID}` transient, 12 h, plus a per-request memo. Saving the settings flushes it for the old *and* new env/ServiceID pair (`Services::on_settings_saved()`); `Services::flush()` does it on demand. |
+| **Failure** | On a transport/HTTP error — or an empty list — `Services::FALLBACK` (the three standard types of ServiceID 46) is used and cached for 5 minutes, so ordering keeps working and the next page load retries. The request uses a 15 s timeout so a slow API can't stall the posts list. |
+| **Validation** | `Services::exists()` gates every order and quote: a type the ServiceID doesn't offer is rejected. `Services::label()` falls back to `FALLBACK`, then to the raw id, so historical orders still render on the Orders page. |
+
+`Bulk_Actions::service_label()` / `::order_type_id()` remain as thin delegates to
+`Services`.
 
 ## Required Polylang patch (one line)
 

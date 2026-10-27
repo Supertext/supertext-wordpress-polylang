@@ -183,6 +183,37 @@ class Client {
 	}
 
 	/**
+	 * Fetches the translation product types (order-type configurations) offered for
+	 * a Supertext ServiceID.
+	 *
+	 * `GET api/v1/util/ordertype/{service_id}` returns a flat list of objects, each
+	 * carrying `Name`, `Description`, `ShortDescription`,
+	 * `OrderTypeConfigurationId` and `OrderTypeId`.
+	 *
+	 * Uses a short timeout: this feeds an admin dropdown that has a built-in
+	 * fallback, so it must never stall the posts list for long.
+	 *
+	 * @param int $service_id The Supertext ServiceID (order-type group).
+	 * @return array|WP_Error The decoded list on success.
+	 */
+	public function get_order_types( int $service_id ) {
+		$response = $this->request(
+			'GET',
+			'api/v1/util/ordertype/' . $service_id,
+			array( 'headers' => array( 'Content-Type' => 'application/json; charset=UTF-8' ) ),
+			15
+		);
+
+		if ( is_wp_error( $response ) ) {
+			return $response;
+		}
+
+		$data = json_decode( (string) wp_remote_retrieve_body( $response ), true );
+
+		return is_array( $data ) ? $data : array();
+	}
+
+	/**
 	 * Fetches an order (with its current status and files).
 	 *
 	 * @param int $order_id The order id.
@@ -223,10 +254,14 @@ class Client {
 	 *
 	 * @param string $method   HTTP method.
 	 * @param string $endpoint Endpoint relative to the environment base.
-	 * @param array  $args     Request args (headers, body).
+	 * @param array  $args     Request args (headers, body). Must NOT contain
+	 *                         `timeout` — the args are merged recursively, so a
+	 *                         second scalar would turn it into an array. Pass
+	 *                         $timeout instead.
+	 * @param int    $timeout  Request timeout in seconds.
 	 * @return array|WP_Error
 	 */
-	private function request( string $method, string $endpoint, array $args = array() ) {
+	private function request( string $method, string $endpoint, array $args = array(), int $timeout = 60 ) {
 		if ( '' === $this->email || '' === $this->api_key ) {
 			return new WP_Error( 'supertext_human_not_configured', __( 'The Supertext human-translation credentials are not configured.', 'supertext-polylang' ) );
 		}
@@ -235,7 +270,7 @@ class Client {
 		$args = array_merge_recursive(
 			array(
 				'method'  => $method,
-				'timeout' => 60,
+				'timeout' => $timeout,
 				'headers' => array(
 					'Authorization' => 'Basic ' . base64_encode( $this->email . ':' . $this->api_key ),
 					'Accept'        => 'application/json',

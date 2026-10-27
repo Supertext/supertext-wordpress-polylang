@@ -9,6 +9,7 @@ defined( 'ABSPATH' ) || exit;
 
 use PLL_Admin_Strings;
 use Supertext\Polylang\Human_Translation\Human_Strings;
+use Supertext\Polylang\Human_Translation\Services as Human_Services;
 use Supertext\Polylang\Integrations\GravityForms\Strings as GF_Strings;
 use Supertext\Polylang\Polylang\String_Store;
 
@@ -229,7 +230,7 @@ class String_Translations_Page {
 					'translations'    => $translations,
 					'show_group'      => true,
 					'human'           => Settings::is_configured(),
-					'human_services'  => Bulk_Actions::HUMAN_SERVICES,
+					'human_services'  => Human_Services::all(),
 					'express_options' => Bulk_Actions::EXPRESS_OPTIONS,
 					'filter_html'     => $filter_html,
 					'intro'           => sprintf(

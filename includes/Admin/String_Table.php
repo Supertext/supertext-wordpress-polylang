@@ -131,7 +131,7 @@ class String_Table {
 							<select name="service_id" id="st-service" form="<?php echo esc_attr( $fid ); ?>" class="st-select" title="<?php esc_attr_e( 'Translation type', 'supertext-polylang' ); ?>">
 								<option value=""><?php esc_html_e( 'Translation type', 'supertext-polylang' ); ?></option>
 								<?php foreach ( (array) ( $args['human_services'] ?? array() ) as $id => $service ) : ?>
-									<option value="<?php echo esc_attr( (string) $id ); ?>"><?php echo esc_html( (string) ( $service['label'] ?? $id ) ); ?></option>
+									<option value="<?php echo esc_attr( (string) $id ); ?>" title="<?php echo esc_attr( (string) ( $service['short'] ?? '' ) ); ?>"><?php echo esc_html( (string) ( $service['label'] ?? $id ) ); ?></option>
 								<?php endforeach; ?>
 							</select>
 							<span class="dashicons dashicons-arrow-down-alt2 st-select-chevron"></span>

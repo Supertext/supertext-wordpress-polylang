@@ -27,6 +27,7 @@ translation** service in **Polylang Pro**.
 - [Configuration](#configuration)
   - [AI / Machine Translation](#ai--machine-translation)
   - [Human (professional) translation](#human-professional-translation)
+    - [Translation types](#translation-types)
   - [Language mapping](#language-mapping)
   - [Translation review](#translation-review)
   - [Version information and the API key check](#version-information-and-the-api-key-check)
@@ -258,15 +259,33 @@ plugin's own settings page.
 3. Enter your **Account email** and **Order API Key** — find the Order API Key in your
    **[Supertext account settings](https://www.supertext.com/services/customer/accountsettings)** (the field links to it). No Supertext account yet?
    [Create one at supertext.com](https://www.supertext.com/person/en/account/signin).
-4. Choose the **Write‑back** behaviour:
+4. Leave **ServiceID** at **46** unless Supertext told you otherwise. It selects which
+   service's translation types are offered in the **Translation type** dropdown; the list
+   is loaded live from your Supertext account (see
+   [Translation types](#translation-types)).
+5. Choose the **Write‑back** behaviour:
    - **Allow multiple write‑backs** — re‑apply the translation on every completed‑order
      callback (off by default, so the first result wins and your manual edits are kept).
    - **Translation status** — whether the written‑back translation is a **Draft** or
      **Published**.
-5. Optionally review the **Secret preview links** and **Page screenshots** switches (both on
+6. Optionally review the **Secret preview links** and **Page screenshots** switches (both on
    by default). *Page screenshots* attaches a snapshot of each ordered page to the order for
    the translator — see [Page screenshots (VibeBoost)](#page-screenshots-vibeboost-screenshots).
-6. Save.
+7. Save.
+
+#### Translation types
+
+The **Translation type** options (BASIC / PREMIUM / CREATIVE) are **not** hardcoded in the
+plugin — they are loaded from your Supertext account for the configured **ServiceID**, so
+the names, descriptions and available products are always the ones your account actually
+offers. Each option's short description shows as a tooltip.
+
+- The list is cached for **12 hours**. Saving the settings page clears the cache, so change
+  the ServiceID (or just re-save) to pick up a change immediately.
+- If Supertext can't be reached, the plugin falls back to the three standard types of
+  ServiceID 46 so ordering keeps working, and retries a few minutes later.
+- Ordering is restricted to the types in that list: a type your ServiceID doesn't offer is
+  rejected before any order or quote is placed.
 
 ### Checking the status
 
@@ -308,7 +327,8 @@ wording in later translations.
 
 1. Select items in the **Posts**/**Pages** list.
 2. Choose **Supertext Human Translation**.
-3. Pick the **target language** and the **translation type** (BASIC / PREMIUM / CREATIVE).
+3. Pick the **target language** and the **translation type** (BASIC / PREMIUM / CREATIVE —
+   whichever your account offers, see [Translation types](#translation-types)).
 4. The plugin fetches a **live price quote** from Supertext and fills the **delivery**
    dropdown with the available options **and their prices** (e.g. *“Express — 90.00 CHF”*).
    Pick a delivery option.
@@ -652,7 +672,7 @@ automatically, so you don’t need a manual Reset for the next round.
 
 See the [project README](../README.md) for the full list of filters
 (`supertext_polylang_*`, including the YOOtheme field list, endpoint/auth overrides, poll
-interval/timeout, and the write‑back options).
+interval/timeout, the human translation type list, and the write‑back options).
 
 ## Support triage
 

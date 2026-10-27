@@ -44,6 +44,14 @@ class Settings {
 	);
 
 	/**
+	 * Default Supertext ServiceID — the order-type group whose translation types
+	 * (BASIC / PREMIUM / CREATIVE) are offered when ordering.
+	 *
+	 * @var int
+	 */
+	const DEFAULT_SERVICE_ID = 46;
+
+	/**
 	 * Registers the setting.
 	 *
 	 * @return void
@@ -79,6 +87,7 @@ class Settings {
 			'environment'               => 'live',
 			'human_email'               => '',
 			'human_api_key'             => '',
+			'service_id'                => self::DEFAULT_SERVICE_ID,
 			'allow_multiple_writebacks' => false,
 			'writeback_status'          => 'draft',
 			'preview_links_enabled'     => true,
@@ -103,6 +112,10 @@ class Settings {
 
 		$out['human_email']   = sanitize_email( (string) ( $input['human_email'] ?? '' ) );
 		$out['human_api_key'] = sanitize_text_field( (string) ( $input['human_api_key'] ?? '' ) );
+
+		// A blank or nonsensical ServiceID would empty the translation-type dropdown.
+		$service_id        = (int) ( $input['service_id'] ?? 0 );
+		$out['service_id'] = $service_id > 0 ? $service_id : self::DEFAULT_SERVICE_ID;
 
 		$out['allow_multiple_writebacks'] = ! empty( $input['allow_multiple_writebacks'] );
 
@@ -187,6 +200,17 @@ class Settings {
 	 */
 	public static function api_key(): string {
 		return (string) self::get()['human_api_key'];
+	}
+
+	/**
+	 * Returns the configured Supertext ServiceID (order-type group).
+	 *
+	 * @return int
+	 */
+	public static function service_id(): int {
+		$service_id = (int) ( self::get()['service_id'] ?? 0 );
+
+		return $service_id > 0 ? $service_id : self::DEFAULT_SERVICE_ID;
 	}
 
 	/**
@@ -332,6 +356,33 @@ class Settings {
 									esc_html__( 'supertext.com', 'supertext-polylang' )
 								)
 							); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- link built from escaped parts.
+							?>
+						</p>
+					</td>
+				</tr>
+				<tr>
+					<th scope="row"><label for="supertext-service-id"><?php esc_html_e( 'ServiceID', 'supertext-polylang' ); ?></label></th>
+					<td>
+						<input
+							name="<?php echo esc_attr( self::OPTION . '[service_id]' ); ?>"
+							id="supertext-service-id"
+							type="number"
+							min="1"
+							step="1"
+							class="small-text"
+							value="<?php echo esc_attr( (string) $current['service_id'] ); ?>"
+						/>
+						<p class="description">
+							<?php
+							printf(
+								/* translators: 1: default ServiceID, 2: the API endpoint the list is loaded from. */
+								esc_html__( 'The Supertext service whose translation types (BASIC / PREMIUM / CREATIVE) are offered when ordering a human translation. Default %1$d. The list is loaded from %2$s and cached for 12 hours.', 'supertext-polylang' ),
+								(int) self::DEFAULT_SERVICE_ID,
+								sprintf(
+									'<code>%s</code>',
+									esc_html( 'api/v1/util/ordertype/' . (int) $current['service_id'] )
+								)
+							); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- built from escaped parts.
 							?>
 						</p>
 					</td>

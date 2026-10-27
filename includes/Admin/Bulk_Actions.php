@@ -16,6 +16,7 @@ use Supertext\Polylang\Human_Translation\Callback as Human_Callback;
 use Supertext\Polylang\Human_Translation\Client as Human_Client;
 use Supertext\Polylang\Human_Translation\Content as Human_Content;
 use Supertext\Polylang\Human_Translation\Orders as Human_Orders;
+use Supertext\Polylang\Human_Translation\Services as Human_Services;
 use WP_Syntex\Polylang_Pro\Modules\Machine_Translation\Data;
 use WP_Syntex\Polylang_Pro\Modules\Machine_Translation\Factory;
 use WP_Syntex\Polylang_Pro\Modules\Machine_Translation\Processor;
@@ -42,16 +43,8 @@ class Bulk_Actions {
 	/** AJAX action name for fetching a live price quote. */
 	const QUOTE_ACTION = 'supertext_polylang_quote';
 
-	/**
-	 * Human translation product types, keyed by Supertext OrderTypeConfigurationId.
-	 * Each entry carries the display label and the matching OrderTypeId (used by the
-	 * quote endpoint, and echoed by /translation/quote's Options).
-	 */
-	const HUMAN_SERVICES = array(
-		166 => array( 'label' => 'Übersetzung BASIC',    'order_type_id' => 54 ),
-		167 => array( 'label' => 'Übersetzung PREMIUM',  'order_type_id' => 55 ),
-		168 => array( 'label' => 'Übersetzung CREATIVE', 'order_type_id' => 56 ),
-	);
+	// Human translation product types (the "Translation type" dropdown) are loaded
+	// from the configured Supertext ServiceID — see Human_Services.
 
 	/** Human translation delivery options (Supertext DeliveryId => label). */
 	const EXPRESS_OPTIONS = array(
@@ -169,11 +162,12 @@ class Bulk_Actions {
 			<label for="supertext_service_id" class="screen-reader-text"><?php esc_html_e( 'Translation type', 'supertext-polylang' ); ?></label>
 			<select name="supertext_service_id" id="supertext_service_id">
 				<option value=""><?php esc_html_e( 'Translation type', 'supertext-polylang' ); ?></option>
-				<?php foreach ( self::HUMAN_SERVICES as $id => $service ) : ?>
+				<?php foreach ( Human_Services::all() as $id => $service ) : ?>
 					<option
 						value="<?php echo esc_attr( (string) $id ); ?>"
 						data-order-type-configuration-id="<?php echo esc_attr( (string) $id ); ?>"
 						data-order-type-id="<?php echo esc_attr( (string) $service['order_type_id'] ); ?>"
+						title="<?php echo esc_attr( (string) ( $service['short'] ?? '' ) ); ?>"
 						<?php selected( $sel_service, $id ); ?>
 					><?php echo esc_html( $service['label'] ); ?></option>
 				<?php endforeach; ?>
@@ -196,7 +190,7 @@ class Bulk_Actions {
 	 * @return string
 	 */
 	public static function service_label( int $config_id ): string {
-		return (string) ( self::HUMAN_SERVICES[ $config_id ]['label'] ?? $config_id );
+		return Human_Services::label( $config_id );
 	}
 
 	/**
@@ -206,7 +200,7 @@ class Bulk_Actions {
 	 * @return int
 	 */
 	public static function order_type_id( int $config_id ): int {
-		return (int) ( self::HUMAN_SERVICES[ $config_id ]['order_type_id'] ?? 0 );
+		return Human_Services::order_type_id( $config_id );
 	}
 
 	/**
@@ -276,7 +270,7 @@ class Bulk_Actions {
 				return add_query_arg( 'supertext_error', 'human_not_configured', $redirect_url );
 			}
 			$service_id = (int) ( $_REQUEST['supertext_service_id'] ?? 0 ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended
-			if ( ! isset( self::HUMAN_SERVICES[ $service_id ] ) ) {
+			if ( ! Human_Services::exists( $service_id ) ) {
 				return add_query_arg( 'supertext_error', 'no_service', $redirect_url );
 			}
 			$express = sanitize_key( wp_unslash( $_REQUEST['supertext_express'] ?? '' ) ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended
@@ -703,7 +697,7 @@ class Bulk_Actions {
 		$post_ids    = array_values( array_unique( array_filter( array_map( 'intval', (array) ( $_POST['post_ids'] ?? array() ) ) ) ) );
 		// phpcs:enable WordPress.Security.NonceVerification.Missing
 
-		if ( '' === $target_lang || ! isset( self::HUMAN_SERVICES[ $service_id ] ) || empty( $post_ids ) ) {
+		if ( '' === $target_lang || ! Human_Services::exists( $service_id ) || empty( $post_ids ) ) {
 			wp_send_json_error( array( 'message' => __( 'Select a translation type, a target language, and at least one post.', 'supertext-polylang' ) ) );
 		}
 

@@ -10,7 +10,6 @@ defined( 'ABSPATH' ) || exit;
 use DOMDocument;
 use DOMXPath;
 use WP_Error;
-use Supertext\Polylang\Admin\Bulk_Actions;
 use Supertext\Polylang\Admin\Settings;
 use Supertext\Polylang\Polylang\String_Store;
 
@@ -66,7 +65,7 @@ class Human_Strings {
 
 		$sources = array_values( array_filter( array_map( 'strval', (array) $sources ), static fn( $s ) => '' !== trim( $s ) ) );
 
-		if ( '' === $target_lang || ! isset( Bulk_Actions::HUMAN_SERVICES[ $service_id ] ) || empty( $sources ) ) {
+		if ( '' === $target_lang || ! Services::exists( $service_id ) || empty( $sources ) ) {
 			wp_send_json_error( array( 'message' => __( 'Select a translation type, a target language, and at least one row.', 'supertext-polylang' ) ) );
 		}
 
@@ -114,7 +113,7 @@ class Human_Strings {
 
 		$body = array(
 			'OrderTypeConfigurationId' => $service_id,
-			'OrderTypeId'              => Bulk_Actions::order_type_id( $service_id ),
+			'OrderTypeId'              => Services::order_type_id( $service_id ),
 			'SourceLang'               => (string) $source->w3c,
 			'TargetLanguages'          => array( (string) $target->w3c ),
 			'Files'                    => array( array( 'Id' => (int) $document_id, 'Comment' => 'Polylang strings' ) ),
