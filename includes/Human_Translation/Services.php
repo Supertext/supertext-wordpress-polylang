@@ -122,13 +122,15 @@ class Services {
 		/**
 		 * Filters the human translation product types offered in the order dropdowns.
 		 *
+		 * A callback must keep the entry shape: an array keyed by
+		 * OrderTypeConfigurationId, each entry with `label`, `order_type_id`,
+		 * `description` and `short`.
+		 *
 		 * @param array $services   Entries keyed by OrderTypeConfigurationId, each
 		 *                          with `label`, `order_type_id`, `description`, `short`.
 		 * @param int   $service_id The Supertext ServiceID the list was loaded for.
 		 */
-		$services = apply_filters( 'supertext_polylang_human_services', $services, $service_id );
-
-		self::$memo[ $key ] = is_array( $services ) ? $services : array();
+		self::$memo[ $key ] = apply_filters( 'supertext_polylang_human_services', $services, $service_id );
 
 		return self::$memo[ $key ];
 	}

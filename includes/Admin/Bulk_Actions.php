@@ -167,7 +167,7 @@ class Bulk_Actions {
 						value="<?php echo esc_attr( (string) $id ); ?>"
 						data-order-type-configuration-id="<?php echo esc_attr( (string) $id ); ?>"
 						data-order-type-id="<?php echo esc_attr( (string) $service['order_type_id'] ); ?>"
-						title="<?php echo esc_attr( (string) ( $service['short'] ?? '' ) ); ?>"
+						title="<?php echo esc_attr( $service['short'] ); ?>"
 						<?php selected( $sel_service, $id ); ?>
 					><?php echo esc_html( $service['label'] ); ?></option>
 				<?php endforeach; ?>
