@@ -294,9 +294,10 @@ class Client {
 			return new WP_Error(
 				'supertext_human_http_error',
 				sprintf(
-					/* translators: 1: HTTP status code, 2: server message. */
-					__( 'Supertext order API returned status %1$d. %2$s', 'supertext-polylang' ),
+					/* translators: 1: HTTP status code, 2: request URL, 3: server message. */
+					__( 'Supertext order API returned status %1$d for %2$s. %3$s', 'supertext-polylang' ),
 					$code,
+					$url,
 					'' !== $detail ? mb_substr( $detail, 0, 200 ) : ''
 				)
 			);

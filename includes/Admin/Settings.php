@@ -375,14 +375,10 @@ class Settings {
 						<p class="description">
 							<?php
 							printf(
-								/* translators: 1: default ServiceID, 2: the API endpoint the list is loaded from. */
-								esc_html__( 'The Supertext service whose translation types (BASIC / PREMIUM / CREATIVE) are offered when ordering a human translation. Default %1$d. The list is loaded from %2$s and cached for 12 hours.', 'supertext-polylang' ),
-								(int) self::DEFAULT_SERVICE_ID,
-								sprintf(
-									'<code>%s</code>',
-									esc_html( 'api/v1/util/ordertype/' . (int) $current['service_id'] )
-								)
-							); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- built from escaped parts.
+								/* translators: %d is the default ServiceID. */
+								esc_html__( 'The Supertext service whose translation types (BASIC / PREMIUM / CREATIVE) are offered when ordering a human translation. Default %d. The list is cached for 12 hours.', 'supertext-polylang' ),
+								(int) self::DEFAULT_SERVICE_ID
+							);
 							?>
 						</p>
 					</td>
