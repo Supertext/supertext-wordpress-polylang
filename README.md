@@ -270,9 +270,11 @@ regional locales falling back to their language (`de_CH`, `de_DE_formal` → `de
 changing a `.po`, run `php scripts/compile-translations.php` (no gettext tools needed);
 `tests/unit/cases/TranslationFilesTest.php` checks that the three files have the same
 strings, placeholders and URLs, that the `.mo` files are current, and that every string of
-the Supertext machine-translation settings, the AI error messages and the Commando Center
-is translated. New or changed strings get all three translations in the same commit. Older
-screens (orders, human translation, integrations) are still English only.
+the Supertext machine-translation settings, the **Supertext settings page** (environment,
+order credentials, ServiceID, write-back, preview links, screenshots), the AI error
+messages, the translation files page and the Commando Center is translated. New or changed
+strings get all three translations in the same commit. The remaining screens (status page,
+orders, bulk actions, integrations) are still English only.
 
 ## YOOtheme Pro page-builder integration
 

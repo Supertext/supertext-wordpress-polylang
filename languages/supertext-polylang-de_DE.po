@@ -272,3 +272,87 @@ msgstr "Übersetzungsprüfung: %s"
 
 msgid "Translation review: translations into a language with this box ticked go through Supertext's review service, so reviewers can check and correct them on the website with the Supertext Localization Review extension. Their corrections are used the next time the content is translated."
 msgstr "Übersetzungsprüfung: Übersetzungen in eine Sprache, bei der dieses Kästchen angekreuzt ist, laufen über den Prüfdienst von Supertext, damit Prüferinnen und Prüfer sie mit der Erweiterung Supertext Localization Review direkt auf der Website kontrollieren und korrigieren können. Ihre Korrekturen werden beim nächsten Übersetzen der Inhalte übernommen."
+
+msgid "Live (www.supertext.com)"
+msgstr "Live (www.supertext.com)"
+
+msgid "Staging (staging.supertext.com)"
+msgstr "Staging (staging.supertext.com)"
+
+msgid "Testing (testing.supertext.com)"
+msgstr "Testing (testing.supertext.com)"
+
+msgid "Supertext environment used for professional (human) translation orders."
+msgstr "Supertext-Umgebung für Aufträge für professionelle (menschliche) Übersetzung."
+
+msgid "Account email"
+msgstr "Konto-E-Mail-Adresse"
+
+msgid "The email (username) of your Supertext account."
+msgstr "Die E-Mail-Adresse (der Benutzername) Ihres Supertext-Kontos."
+
+msgid "Order API Key"
+msgstr "Order-API-Schlüssel"
+
+msgid "Your Supertext \"Order API Key\" (used with the account email, via HTTP Basic auth, for order requests). Find it in your %1$s. No Supertext account yet? Create one at %2$s."
+msgstr "Ihr Supertext-„Order-API-Schlüssel“ (wird mit der Konto-E-Mail-Adresse über HTTP-Basic-Authentifizierung für Auftragsanfragen verwendet). Sie finden ihn in %1$s. Noch kein Supertext-Konto? Erstellen Sie eines auf %2$s."
+
+msgid "Supertext account settings"
+msgstr "Ihren Supertext-Kontoeinstellungen"
+
+msgid "ServiceID"
+msgstr "ServiceID"
+
+msgid "The Supertext ServiceId for your translation services that are offered when ordering a human translation. Default %d. The list is cached for 12 hours."
+msgstr "Die Supertext-ServiceId für Ihre Übersetzungsdienste, die beim Bestellen einer menschlichen Übersetzung angeboten werden. Standard %d. Die Liste wird 12 Stunden zwischengespeichert."
+
+msgid "Write-back"
+msgstr "Rückschreiben"
+
+msgid "Allow multiple write-backs"
+msgstr "Mehrfaches Rückschreiben erlauben"
+
+msgid "Re-apply the translation each time a completed-order callback arrives. When off, only the first write-back is applied (later callbacks are ignored), protecting manual edits."
+msgstr "Die Übersetzung bei jedem eintreffenden Callback für einen abgeschlossenen Auftrag erneut anwenden. Ist die Option aus, wird nur das erste Rückschreiben angewendet (spätere Callbacks werden ignoriert), womit manuelle Bearbeitungen geschützt bleiben."
+
+msgid "Translation status"
+msgstr "Status der Übersetzung"
+
+msgid "Draft"
+msgstr "Entwurf"
+
+msgid "Published"
+msgstr "Veröffentlicht"
+
+msgid "Status applied to the translated post when a translation is written back."
+msgstr "Status, den der übersetzte Beitrag erhält, wenn eine Übersetzung zurückgeschrieben wird."
+
+msgid "Secret preview links"
+msgstr "Geheime Vorschau-Links"
+
+msgid "Enable secret public preview links for unpublished posts/pages"
+msgstr "Geheime öffentliche Vorschau-Links für unveröffentlichte Beiträge/Seiten aktivieren"
+
+msgid "Master switch for the \"Public preview link\" box on the post/page editor: a private, expiring URL that shows an unpublished draft without logging in. When off, the box is hidden and any existing links stop working. Page screenshots (below) rely on this to capture draft pages."
+msgstr "Hauptschalter für das Feld „Öffentlicher Vorschau-Link“ im Beitrags-/Seiteneditor: eine private URL mit Ablaufdatum, die einen unveröffentlichten Entwurf ohne Anmeldung anzeigt. Ist die Option aus, wird das Feld ausgeblendet und bestehende Links funktionieren nicht mehr. Seiten-Screenshots (unten) brauchen sie, um Entwurfsseiten aufzunehmen."
+
+msgid "Page screenshots"
+msgstr "Seiten-Screenshots"
+
+msgid "Attach a page screenshot to each human-translation order (VibeBoost Screenshots)"
+msgstr "Jedem Auftrag für menschliche Übersetzung einen Seiten-Screenshot beilegen (VibeBoost Screenshots)"
+
+msgid "When enabled, each page sent for human translation is captured through its secret preview link and uploaded to the order as a visual reference for the translator. Powered by %s (still in development); heavier use may require a subscription. Best-effort — an order still goes through if the screenshot cannot be produced."
+msgstr "Ist die Option aktiviert, wird jede zur menschlichen Übersetzung gesendete Seite über ihren geheimen Vorschau-Link aufgenommen und dem Auftrag als visuelle Referenz für die Übersetzerin oder den Übersetzer beigelegt. Ermöglicht durch %s (noch in Entwicklung); bei stärkerer Nutzung kann ein Abonnement erforderlich sein. Nach bestem Bemühen — ein Auftrag geht auch dann durch, wenn der Screenshot nicht erstellt werden kann."
+
+msgid "VibeBoost Screenshots"
+msgstr "VibeBoost Screenshots"
+
+msgid "Screenshot API key"
+msgstr "Screenshot-API-Schlüssel"
+
+msgid "Your personal VibeBoost API key (starts with \"vibe_\"). Required for page screenshots — the capture options the plugin uses need an authenticated key. Create one in your %s."
+msgstr "Ihr persönlicher VibeBoost-API-Schlüssel (beginnt mit „vibe_“). Für Seiten-Screenshots erforderlich — die Aufnahmeoptionen, die das Plugin verwendet, brauchen einen authentifizierten Schlüssel. Erstellen Sie einen in %s."
+
+msgid "VibeBoost account"
+msgstr "Ihrem VibeBoost-Konto"
