@@ -77,23 +77,45 @@ class TranslationFilesTest extends TestCase {
 		}
 	}
 
-	public function test_new_interface_strings_are_translated(): void {
+	public function test_all_interface_strings_are_translated(): void {
 		$root    = dirname( __DIR__, 3 );
 		$entries = self::po( 'de_DE' );
-		$files   = array(
-			'/includes/Reporting/Commando.php',
-			'/includes/Machine_Translation/Settings.php',
-			'/includes/Machine_Translation/Client.php',
-			'/includes/Admin/Files_Page.php',
-			'/includes/Admin/Settings.php',
-		);
-		foreach ( $files as $file ) {
-			$source = (string) file_get_contents( $root . $file );
+
+		foreach ( self::plugin_files( $root ) as $file ) {
+			$source = (string) file_get_contents( $file );
 			preg_match_all( "/(?:__|esc_html__|esc_html_e|esc_attr_e|esc_attr__)\\(\\s*'((?:[^'\\\\]|\\\\.)*)',\\s*'supertext-polylang'/", $source, $m );
 			foreach ( $m[1] as $literal ) {
 				$id = str_replace( array( "\\'", '\\\\' ), array( "'", '\\' ), $literal );
-				$this->assertArrayHasKey( $id, $entries, "$file: untranslated string: $id" );
+				$this->assertArrayHasKey( $id, $entries, str_replace( $root, '', $file ) . ": untranslated string: $id" );
 			}
 		}
+	}
+
+	/**
+	 * The plugin's own PHP files: the main file plus everything under includes/,
+	 * without the vendored copies (Sdk, PluginHealth), which carry no strings of
+	 * their own.
+	 *
+	 * @param string $root The repository root.
+	 * @return string[]
+	 */
+	private static function plugin_files( string $root ): array {
+		$files    = array( $root . '/supertext-polylang.php' );
+		$iterator = new \RecursiveIteratorIterator(
+			new \RecursiveDirectoryIterator( $root . '/includes', \FilesystemIterator::SKIP_DOTS )
+		);
+
+		foreach ( $iterator as $file ) {
+			$path = str_replace( '\\', '/', (string) $file );
+			if ( 'php' === pathinfo( $path, PATHINFO_EXTENSION )
+				&& false === strpos( $path, '/includes/Sdk/' )
+				&& false === strpos( $path, '/includes/PluginHealth/' ) ) {
+				$files[] = $path;
+			}
+		}
+
+		sort( $files );
+
+		return $files;
 	}
 }

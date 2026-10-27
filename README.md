@@ -269,12 +269,12 @@ Lei); the plugin loads the matching `.mo` on `init` for each user's back-end lan
 regional locales falling back to their language (`de_CH`, `de_DE_formal` → `de_DE`). After
 changing a `.po`, run `php scripts/compile-translations.php` (no gettext tools needed);
 `tests/unit/cases/TranslationFilesTest.php` checks that the three files have the same
-strings, placeholders and URLs, that the `.mo` files are current, and that every string of
-the Supertext machine-translation settings, the **Supertext settings page** (environment,
-order credentials, ServiceID, write-back, preview links, screenshots), the AI error
-messages, the translation files page and the Commando Center is translated. New or changed
-strings get all three translations in the same commit. The remaining screens (status page,
-orders, bulk actions, integrations) are still English only.
+strings, placeholders and URLs, that the `.mo` files are current, and that **every
+translatable string of the plugin** is translated — it walks the main file plus all of
+`includes/` (minus the vendored `Sdk/` and `PluginHealth/`), so a new string cannot ship
+without all three translations. The whole back end is covered: menu entries, the status
+page, both settings pages, orders, bulk actions, the string-translation grid, tools, the
+Gravity Forms page, the preview-link box and every error message.
 
 ## YOOtheme Pro page-builder integration
 

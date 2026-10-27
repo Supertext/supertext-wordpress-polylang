@@ -356,3 +356,618 @@ msgstr "Votre clé API VibeBoost personnelle (commence par « vibe_ »). Néce
 
 msgid "VibeBoost account"
 msgstr "votre compte VibeBoost"
+
+msgid "Getting price…"
+msgstr "Calcul du prix…"
+
+msgid "words"
+msgstr "mots"
+
+msgid "from"
+msgstr "à partir de"
+
+msgid "Could not get a price."
+msgstr "Impossible d'obtenir un prix."
+
+msgid "Delivery"
+msgstr "Délai"
+
+msgid "No delivery options"
+msgstr "Aucun délai disponible"
+
+msgid "Submitting order…"
+msgstr "Envoi de la commande…"
+
+msgid "Submitting…"
+msgstr "Envoi…"
+
+msgid "Supertext AI Translation"
+msgstr "Traduction IA Supertext"
+
+msgid "Supertext Human Translation"
+msgstr "Traduction humaine Supertext"
+
+msgid "Target language"
+msgstr "Langue cible"
+
+msgid "Translation type"
+msgstr "Type de traduction"
+
+msgid "\"%1$s\": source and target language are the same (%2$s)."
+msgstr "« %1$s » : la langue source et la langue cible sont identiques (%2$s)."
+
+msgid "Polylang is not available."
+msgstr "Polylang n'est pas disponible."
+
+msgid "Invalid post, or missing source/target language."
+msgstr "Article non valide ou langue source/cible manquante."
+
+msgid "No translatable content found in this post. (source=%1$s, target=%2$s, builder=%3$s, content=%4$d bytes, title=%5$d chars)"
+msgstr "Aucun contenu traduisible trouvé dans cet article. (source=%1$s, cible=%2$s, builder=%3$s, contenu=%4$d octets, titre=%5$d caractères)"
+
+msgid "An order already exists for \"%1$s\" (%2$s)."
+msgstr "Une commande existe déjà pour « %1$s » (%2$s)."
+
+msgid "Supertext human-translation credentials are not configured."
+msgstr "Les identifiants Supertext pour la traduction humaine ne sont pas configurés."
+
+msgid "Select a translation type, a target language, and at least one post."
+msgstr "Sélectionnez un type de traduction, une langue cible et au moins un article."
+
+msgid "Nothing to quote."
+msgstr "Rien à chiffrer."
+
+msgid "Please select a target language before applying a Supertext translation action."
+msgstr "Sélectionnez une langue cible avant d'appliquer une action de traduction Supertext."
+
+msgid "Please select a translation type before applying Supertext Human Translation."
+msgstr "Sélectionnez un type de traduction avant d'appliquer Traduction humaine Supertext."
+
+msgid "Please select a delivery option before applying Supertext Human Translation."
+msgstr "Sélectionnez un délai avant d'appliquer Traduction humaine Supertext."
+
+msgid "No active Supertext machine-translation service. Configure it in Polylang → Languages → Settings → Machine Translation."
+msgstr "Aucun service de traduction automatique Supertext actif. Configurez-le dans Polylang → Langues → Réglages → Traduction automatique."
+
+msgid "Supertext human-translation credentials are not configured. Add your account email and Order API Key on the Supertext settings page."
+msgstr "Les identifiants Supertext pour la traduction humaine ne sont pas configurés. Saisissez l'adresse e-mail de votre compte et la clé API de commande sur la page de réglages Supertext."
+
+msgid "AI Translation"
+msgstr "Traduction IA"
+
+msgid "Human Translation"
+msgstr "Traduction humaine"
+
+msgid "Gravity Forms"
+msgstr "Gravity Forms"
+
+msgid "Detected and enabled: %s. Its menu is now available under Supertext."
+msgstr "Détecté et activé : %s. Son menu est désormais disponible sous Supertext."
+
+msgid "No supported plugins were detected."
+msgstr "Aucun plugin pris en charge n'a été détecté."
+
+msgid "Integrations"
+msgstr "Intégrations"
+
+msgid "Some page builders and form plugins store content outside of posts, so Supertext integrates with them directly. Click detect to scan for supported plugins; each one found gets its own entry under the Supertext menu."
+msgstr "Certains constructeurs de pages et plugins de formulaires stockent le contenu en dehors des articles ; Supertext s'y intègre donc directement. Cliquez sur détecter pour rechercher les plugins pris en charge ; chaque plugin trouvé obtient sa propre entrée dans le menu Supertext."
+
+msgid "Detected & enabled"
+msgstr "Détecté et activé"
+
+msgid "Active — click detect to enable"
+msgstr "Actif — cliquez sur détecter pour l'activer"
+
+msgid "Not detected"
+msgstr "Non détecté"
+
+msgid "Detect plugins"
+msgstr "Détecter les plugins"
+
+msgid "Orders"
+msgstr "Commandes"
+
+msgid "Order not found."
+msgstr "Commande introuvable."
+
+msgid "Order reset locally. You can order this post again. (The Supertext order was not cancelled.)"
+msgstr "Commande réinitialisée localement. Vous pouvez commander cet article à nouveau. (La commande Supertext n'a pas été annulée.)"
+
+msgid "Refreshed %d order(s)."
+msgstr "%d commande(s) actualisée(s)."
+
+msgid "Supertext Orders"
+msgstr "Commandes Supertext"
+
+msgid "Human-translation orders placed from WordPress through this plugin."
+msgstr "Commandes de traduction humaine passées depuis WordPress via ce plugin."
+
+msgid "This list shows only translation orders placed from WordPress through this plugin. For a list of all your orders, go to %s."
+msgstr "Cette liste n'affiche que les commandes de traduction passées depuis WordPress via ce plugin. Pour la liste de toutes vos commandes, rendez-vous sur %s."
+
+msgid "your Supertext orders"
+msgstr "vos commandes Supertext"
+
+msgid "Refresh statuses"
+msgstr "Actualiser les statuts"
+
+msgid "Refreshes each order's status from the Supertext system."
+msgstr "Actualise le statut de chaque commande depuis le système Supertext."
+
+msgid "No orders yet."
+msgstr "Aucune commande pour l'instant."
+
+msgid "In progress"
+msgstr "En cours"
+
+msgid "All"
+msgstr "Toutes"
+
+msgid "Order"
+msgstr "Commande"
+
+msgid "Post"
+msgstr "Article"
+
+msgid "Target"
+msgstr "Cible"
+
+msgid "Type"
+msgstr "Type"
+
+msgid "Ordered"
+msgstr "Commandé"
+
+msgid "Actions"
+msgstr "Actions"
+
+msgid "No orders to show in this view."
+msgstr "Aucune commande à afficher dans cette vue."
+
+msgid "Reset"
+msgstr "Réinitialiser"
+
+msgid "Debug only: removes the local lock so the post can be ordered again. Does not cancel the Supertext order."
+msgstr "Débogage uniquement : supprime le verrou local afin que l'article puisse être commandé à nouveau. N'annule pas la commande Supertext."
+
+msgid "Supertext"
+msgstr "Supertext"
+
+msgid "Settings"
+msgstr "Réglages"
+
+msgid "Debug"
+msgstr "Débogage"
+
+msgid "Polylang was patched successfully. Supertext can now register as a machine-translation service."
+msgstr "Polylang a été patché avec succès. Supertext peut désormais s'enregistrer comme service de traduction automatique."
+
+msgid "Version %s"
+msgstr "Version %s"
+
+msgid "Everything is connected and running."
+msgstr "Tout est connecté et fonctionne."
+
+msgid "Polylang Pro (Machine Translation)"
+msgstr "Polylang Pro (traduction automatique)"
+
+msgid "Active"
+msgstr "Actif"
+
+msgid "Not active"
+msgstr "Pas actif"
+
+msgid "Polylang patched (pll_mt_services filter)"
+msgstr "Polylang patché (filtre pll_mt_services)"
+
+msgid "Patched"
+msgstr "Patché"
+
+msgid "Not patched"
+msgstr "Non patché"
+
+msgid "Supertext service configured & active"
+msgstr "Service Supertext configuré et actif"
+
+msgid "Inactive (enter an API key in Polylang settings)"
+msgstr "Inactif (saisissez une clé API dans les réglages de Polylang)"
+
+msgid "Features & integrations"
+msgstr "Fonctionnalités et intégrations"
+
+msgid "Page screenshots (VibeBoost)"
+msgstr "Captures d'écran de pages (VibeBoost)"
+
+msgid "On — but no VibeBoost API key is set, so captures will fail"
+msgstr "Activé — mais aucune clé API VibeBoost n'est renseignée, les captures échoueront donc"
+
+msgid "On — but Secret preview links are off, so drafts cannot be captured"
+msgstr "Activé — mais les liens d'aperçu secrets sont désactivés, les brouillons ne peuvent donc pas être saisis"
+
+msgid "Active — click “Detect plugins” to enable"
+msgstr "Actif — cliquez sur « Détecter les plugins » pour l'activer"
+
+msgid "Integration: %s"
+msgstr "Intégration : %s"
+
+msgid "Supertext for Polylang"
+msgstr "Supertext pour Polylang"
+
+msgid "Machine & professional translation, wired straight into Polylang."
+msgstr "Traduction automatique et professionnelle, directement intégrée à Polylang."
+
+msgid "Setup"
+msgstr "Configuration"
+
+msgid "Two steps to get translations flowing."
+msgstr "Deux étapes pour lancer les traductions."
+
+msgid "Patch Polylang"
+msgstr "Patcher Polylang"
+
+msgid "Polylang Pro keeps its translation services in a fixed list. This adds a small filter so Supertext can register itself. It backs up the original file and is safe to run again after a Polylang update."
+msgstr "Polylang Pro conserve ses services de traduction dans une liste fixe. Ceci ajoute un petit filtre pour que Supertext puisse s'enregistrer. Le fichier d'origine est sauvegardé et l'opération peut être relancée sans risque après une mise à jour de Polylang."
+
+msgid "Activate Polylang Pro first."
+msgstr "Activez d'abord Polylang Pro."
+
+msgid "Polylang is already patched."
+msgstr "Polylang est déjà patché."
+
+msgid "Re-apply patch"
+msgstr "Réappliquer le patch"
+
+msgid "Configure the AI service"
+msgstr "Configurer le service IA"
+
+msgid "Enable Machine Translation, choose Supertext, enter your API key, and map your languages in the Polylang settings."
+msgstr "Activez la traduction automatique, choisissez Supertext, saisissez votre clé API et faites correspondre vos langues dans les réglages de Polylang."
+
+msgid "No Supertext account yet? Create one at %1$s. Generate your API key at %2$s (requires the Admin role)."
+msgstr "Pas encore de compte Supertext ? Créez-en un sur %1$s. Générez votre clé API sur %2$s (nécessite le rôle Admin)."
+
+msgid "Open Polylang → Languages → Settings → Machine Translation → Supertext"
+msgstr "Ouvrir Polylang → Langues → Réglages → Traduction automatique → Supertext"
+
+msgid "Translation Services (human)"
+msgstr "Services de traduction (humaine)"
+
+msgid "Professional (human) translation orders use a separate credential from the AI translation API key. Enter your Supertext account email and Order API Key below."
+msgstr "Les commandes de traduction professionnelle (humaine) utilisent des identifiants distincts de la clé API de traduction IA. Saisissez ci-dessous l'adresse e-mail de votre compte Supertext et la clé API de commande."
+
+msgid "Supertext Debug"
+msgstr "Débogage Supertext"
+
+msgid "Order-callback log & diagnostics."
+msgstr "Journal des callbacks de commande et diagnostics."
+
+msgid "Order callbacks (debug)"
+msgstr "Callbacks de commande (débogage)"
+
+msgid "The most recent payload Supertext POSTed to the callback URL is recorded here, so we can see exactly what the system sends when an order completes."
+msgstr "La dernière charge utile envoyée par Supertext en POST à l'URL de callback est enregistrée ici, afin de voir exactement ce que le système envoie lorsqu'une commande est terminée."
+
+msgid "No callbacks recorded yet."
+msgstr "Aucun callback enregistré pour l'instant."
+
+msgid "Clear callback log"
+msgstr "Effacer le journal des callbacks"
+
+msgid "Polylang Pro (with the Machine Translation module) is not active."
+msgstr "Polylang Pro (avec le module de traduction automatique) n'est pas actif."
+
+msgid "Could not locate Polylang's Factory.php."
+msgstr "Impossible de localiser le fichier Factory.php de Polylang."
+
+msgid "Polylang's Factory.php is not readable."
+msgstr "Le fichier Factory.php de Polylang n'est pas lisible."
+
+msgid "Could not read Polylang's Factory.php."
+msgstr "Impossible de lire le fichier Factory.php de Polylang."
+
+msgid "The expected code was not found in Polylang's Factory.php — it may already differ from the supported version."
+msgstr "Le code attendu n'a pas été trouvé dans le fichier Factory.php de Polylang — il diffère peut-être déjà de la version prise en charge."
+
+msgid "Polylang's Factory.php is not writable by the web server: %s"
+msgstr "Le fichier Factory.php de Polylang n'est pas accessible en écriture pour le serveur web : %s"
+
+msgid "Failed to write the patched Factory.php."
+msgstr "Impossible d'écrire le fichier Factory.php patché."
+
+msgid "Select at least one row."
+msgstr "Sélectionnez au moins une ligne."
+
+msgid "Select a target language."
+msgstr "Sélectionnez une langue cible."
+
+msgid "Select a translation type."
+msgstr "Sélectionnez un type de traduction."
+
+msgid "Select a delivery option."
+msgstr "Sélectionnez un délai."
+
+msgid "Translate"
+msgstr "Traduire"
+
+msgid "Apply"
+msgstr "Appliquer"
+
+msgid "Tick at least one row to see delivery options and the price."
+msgstr "Cochez au moins une ligne pour voir les délais et le prix."
+
+msgid "Ordering…"
+msgstr "Commande en cours…"
+
+msgid "Translating…"
+msgstr "Traduction en cours…"
+
+msgid "Start a Fused translation order for the checked rows?"
+msgstr "Lancer une commande de traduction Fused pour les lignes cochées ?"
+
+msgid "Add at least one non-default language in Polylang to translate strings."
+msgstr "Ajoutez au moins une langue autre que la langue par défaut dans Polylang pour traduire les chaînes."
+
+msgid "Bulk actions"
+msgstr "Actions groupées"
+
+msgid "No strings to translate."
+msgstr "Aucune chaîne à traduire."
+
+msgid "Select all"
+msgstr "Tout sélectionner"
+
+msgid "Field"
+msgstr "Champ"
+
+msgid "Group"
+msgstr "Groupe"
+
+msgid "Source"
+msgstr "Source"
+
+msgid "Add %s translation…"
+msgstr "Ajouter la traduction %s…"
+
+msgid "Save translations"
+msgstr "Enregistrer les traductions"
+
+msgid "Changes apply to the strings shown under Languages → String translations."
+msgstr "Les modifications s'appliquent aux chaînes affichées sous Langues → Traductions des chaînes."
+
+msgid "String Translation"
+msgstr "Traduction des chaînes"
+
+msgid "Translate any Polylang string with Supertext AI or human translation."
+msgstr "Traduisez n'importe quelle chaîne Polylang avec la traduction IA ou humaine de Supertext."
+
+msgid "All groups"
+msgstr "Tous les groupes"
+
+msgid "Search strings…"
+msgstr "Rechercher des chaînes…"
+
+msgid "Empty translation only"
+msgstr "Traductions vides uniquement"
+
+msgid "Filter"
+msgstr "Filtrer"
+
+msgid "All translatable strings registered with Polylang. Tick the rows you want, then translate them with Supertext AI or order human translation — or edit a translation directly and Save. These are the same translations as %s."
+msgstr "Toutes les chaînes traduisibles enregistrées auprès de Polylang. Cochez les lignes souhaitées, puis traduisez-les avec la traduction IA de Supertext ou commandez une traduction humaine — ou modifiez une traduction directement et enregistrez. Il s'agit des mêmes traductions que %s."
+
+msgid "Languages → String translations"
+msgstr "Langues → Traductions des chaînes"
+
+msgid "Translations saved."
+msgstr "Traductions enregistrées."
+
+msgid "Supertext → Orders"
+msgstr "Supertext → Commandes"
+
+msgid "Translation order submitted to Supertext. It will be written back automatically when complete; track it under"
+msgstr "Commande de traduction envoyée à Supertext. Elle sera réécrite automatiquement une fois terminée ; suivez-la sous"
+
+msgid "Something went wrong."
+msgstr "Une erreur s'est produite."
+
+msgid "Select at least one row to translate."
+msgstr "Sélectionnez au moins une ligne à traduire."
+
+msgid "Polylang strings"
+msgstr "Chaînes Polylang"
+
+msgid "Tools"
+msgstr "Outils"
+
+msgid "Supertext Tools"
+msgstr "Outils Supertext"
+
+msgid "Field-translation overview & utilities."
+msgstr "Vue d'ensemble de la traduction des champs et utilitaires."
+
+msgid "ACF fields"
+msgstr "Champs ACF"
+
+msgid "Every ACF field and whether Polylang translates it."
+msgstr "Chaque champ ACF et si Polylang le traduit."
+
+msgid "Advanced Custom Fields is not active, so there are no ACF fields to show."
+msgstr "Advanced Custom Fields n'est pas actif, il n'y a donc aucun champ ACF à afficher."
+
+msgid "No ACF field groups found."
+msgstr "Aucun groupe de champs ACF trouvé."
+
+msgid "Translation setting per ACF field, as configured for Polylang. “Translate” / “Translate once” fields are sent for translation; “Copy”, “Synchronize” and “Ignore” fields are not. Set this in the ACF field group editor (each field’s “Translation” option)."
+msgstr "Réglage de traduction par champ ACF, tel que configuré pour Polylang. Les champs « Traduire » / « Traduire une fois » sont envoyés en traduction ; les champs « Copier », « Synchroniser » et « Ignorer » non. Cela se règle dans l'éditeur de groupe de champs ACF (option « Traduction » de chaque champ)."
+
+msgid "Field group"
+msgstr "Groupe de champs"
+
+msgid "Name"
+msgstr "Nom"
+
+msgid "Translatable"
+msgstr "Traduisible"
+
+msgid "Setting"
+msgstr "Réglage"
+
+msgid "Yes"
+msgstr "Oui"
+
+msgid "No"
+msgstr "Non"
+
+msgid "Supertext did not return a document id for the uploaded file. Response: %s"
+msgstr "Supertext n'a pas renvoyé d'identifiant de document pour le fichier téléversé. Réponse : %s"
+
+msgid "The Supertext human-translation credentials are not configured."
+msgstr "Les identifiants Supertext pour la traduction humaine ne sont pas configurés."
+
+msgid "Supertext order API returned status %1$d for %2$s. %3$s"
+msgstr "L'API de commande Supertext a renvoyé le statut %1$d pour %2$s. %3$s"
+
+msgid "Select a translation type, a target language, and at least one row."
+msgstr "Sélectionnez un type de traduction, une langue cible et au moins une ligne."
+
+msgid "Unknown source or target language."
+msgstr "Langue source ou cible inconnue."
+
+msgid "No strings selected to translate."
+msgstr "Aucune chaîne sélectionnée pour la traduction."
+
+msgid "This page has a Supertext human translation order in progress, so it can’t be deleted until the translation is delivered. You can still edit it."
+msgstr "Une commande de traduction humaine Supertext est en cours pour cette page ; elle ne peut donc pas être supprimée avant la livraison de la traduction. Vous pouvez toujours la modifier."
+
+msgid "Gravity Forms — Supertext"
+msgstr "Gravity Forms — Supertext"
+
+msgid "Translate your Gravity Forms forms into every language."
+msgstr "Traduisez vos formulaires Gravity Forms dans toutes les langues."
+
+msgid "Forms are authored in your default language (%s). Translate each form into the other languages manually or with Supertext; the translation is shown automatically on the front end for that language."
+msgstr "Les formulaires sont créés dans votre langue par défaut (%s). Traduisez chaque formulaire dans les autres langues manuellement ou avec Supertext ; la traduction s'affiche automatiquement côté public pour cette langue."
+
+msgid "Translate each form into your other languages manually or with Supertext."
+msgstr "Traduisez chaque formulaire dans vos autres langues manuellement ou avec Supertext."
+
+msgid "Translations are stored in %1$s and can be reviewed, edited or ordered from Supertext under %2$s."
+msgstr "Les traductions sont stockées dans %1$s et peuvent être vérifiées, modifiées ou commandées auprès de Supertext sous %2$s."
+
+msgid "Polylang"
+msgstr "Polylang"
+
+msgid "Supertext → String Translations"
+msgstr "Supertext → Traductions des chaînes"
+
+msgid "Add at least one non-default language in Polylang to translate forms."
+msgstr "Ajoutez au moins une langue autre que la langue par défaut dans Polylang pour traduire les formulaires."
+
+msgid "No Gravity Forms forms found."
+msgstr "Aucun formulaire Gravity Forms trouvé."
+
+msgid "Form"
+msgstr "Formulaire"
+
+msgid "Translated"
+msgstr "Traduit"
+
+msgid "Partly translated"
+msgstr "Partiellement traduit"
+
+msgid "Translate (AI)"
+msgstr "Traduire (IA)"
+
+msgid "Form strings are in the String Translations list."
+msgstr "Les chaînes du formulaire figurent dans la liste des traductions des chaînes."
+
+msgid "Your Gravity Forms strings are listed under String Translations, ready to translate. Remove them to keep the list focused on other strings — existing translations are kept either way."
+msgstr "Vos chaînes Gravity Forms sont répertoriées sous Traductions des chaînes, prêtes à être traduites. Retirez-les pour que la liste reste centrée sur les autres chaînes — les traductions existantes sont conservées dans les deux cas."
+
+msgid "Add form strings to String Translations"
+msgstr "Ajouter les chaînes du formulaire aux traductions des chaînes"
+
+msgid "Gravity Forms text is not in the String Translations list yet. Add it to translate your form fields, labels and buttons alongside your other strings."
+msgstr "Le texte de Gravity Forms ne figure pas encore dans la liste des traductions des chaînes. Ajoutez-le pour traduire les champs, les étiquettes et les boutons de vos formulaires avec vos autres chaînes."
+
+msgid "Remove from String Translations"
+msgstr "Retirer des traductions des chaînes"
+
+msgid "Add to String Translations"
+msgstr "Ajouter aux traductions des chaînes"
+
+msgid "Gravity Forms strings added to String Translations."
+msgstr "Chaînes Gravity Forms ajoutées aux traductions des chaînes."
+
+msgid "Gravity Forms strings removed from String Translations."
+msgstr "Chaînes Gravity Forms retirées des traductions des chaînes."
+
+msgid "Form #%1$d translated to %2$s."
+msgstr "Formulaire #%1$d traduit en %2$s."
+
+msgid "Gravity Forms or Polylang is not available."
+msgstr "Gravity Forms ou Polylang n'est pas disponible."
+
+msgid "Unknown target language."
+msgstr "Langue cible inconnue."
+
+msgid "Form not found."
+msgstr "Formulaire introuvable."
+
+msgid "This form has no translatable text."
+msgstr "Ce formulaire ne contient aucun texte traduisible."
+
+msgid "No active Supertext AI service. Configure it in Polylang → Languages → Settings → Machine Translation."
+msgstr "Aucun service IA Supertext actif. Configurez-le dans Polylang → Langues → Réglages → Traduction automatique."
+
+msgid "The active machine-translation client does not support string translation."
+msgstr "Le client de traduction automatique actif ne prend pas en charge la traduction des chaînes."
+
+msgid "No URL to capture."
+msgstr "Aucune URL à capturer."
+
+msgid "VibeBoost Screenshots returned status %d."
+msgstr "VibeBoost Screenshots a renvoyé le statut %d."
+
+msgid "VibeBoost Screenshots did not return an image."
+msgstr "VibeBoost Screenshots n'a pas renvoyé d'image."
+
+msgid "Nothing to translate, or no target language."
+msgstr "Rien à traduire, ou aucune langue cible."
+
+msgid "No active Supertext AI service."
+msgstr "Aucun service IA Supertext actif."
+
+msgid "The active service cannot translate strings."
+msgstr "Le service actif ne peut pas traduire les chaînes."
+
+msgid "Supertext — Public preview link"
+msgstr "Supertext — Lien d'aperçu public"
+
+msgid "Enable public preview link"
+msgstr "Activer le lien d'aperçu public"
+
+msgid "Expires"
+msgstr "Expire le"
+
+msgid "Default: two weeks from now."
+msgstr "Par défaut : dans deux semaines."
+
+msgid "This link has expired — save with a future date to reactivate it."
+msgstr "Ce lien a expiré — enregistrez-le avec une date future pour le réactiver."
+
+msgid "Preview link"
+msgstr "Lien d'aperçu"
+
+msgid "Turn on to generate a secret link that shows this page to anyone, even while it is a draft."
+msgstr "Activez l'option pour générer un lien secret qui montre cette page à tout le monde, même à l'état de brouillon."
+
+msgid "Supertext for Polylang requires Polylang Pro (with the Machine Translation module) to be active."
+msgstr "Supertext pour Polylang nécessite que Polylang Pro (avec le module de traduction automatique) soit actif."
+
+msgid "Supertext for Polylang: Polylang Pro is active but has not been patched to expose the \"pll_mt_services\" filter, so Supertext cannot register as a translation service yet."
+msgstr "Supertext pour Polylang : Polylang Pro est actif mais n'a pas été patché pour exposer le filtre « pll_mt_services », Supertext ne peut donc pas encore s'enregistrer comme service de traduction."
+
+msgid "Patch Polylang now →"
+msgstr "Patcher Polylang maintenant →"
