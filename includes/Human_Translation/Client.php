@@ -250,6 +250,41 @@ class Client {
 	}
 
 	/**
+	 * The Accept-Language header sent with every order-API request.
+	 *
+	 * The API answers in the requested language, which is what makes the order
+	 * dropdowns readable: the translation types of `util/ordertype` (`Name`,
+	 * `Description`) and the delivery options of `translation/quote` (`Name`) come
+	 * back localized, as do its error messages.
+	 *
+	 * Built from the back-end language of the current user (the same language the
+	 * plugin's own strings are shown in), as BCP-47 with the bare language as a
+	 * fallback: `de_CH` becomes `de-CH,de;q=0.9`.
+	 *
+	 * @return string
+	 */
+	public static function accept_language(): string {
+		$locale = function_exists( 'get_user_locale' ) ? (string) get_user_locale() : (string) get_locale();
+		$parts  = explode( '_', $locale );
+		$lang   = strtolower( $parts[0] );
+		$region = ( isset( $parts[1] ) && 1 === preg_match( '/^[A-Z]{2}$/', $parts[1] ) ) ? $parts[1] : '';
+
+		if ( '' === $lang ) {
+			$lang = 'en';
+		}
+
+		$value = '' !== $region ? $lang . '-' . $region . ',' . $lang . ';q=0.9' : $lang;
+
+		/**
+		 * Filters the Accept-Language header sent to the Supertext order API.
+		 *
+		 * @param string $value  Header value, e.g. `de-CH,de;q=0.9`.
+		 * @param string $locale The WordPress locale it was built from.
+		 */
+		return (string) apply_filters( 'supertext_polylang_accept_language', $value, $locale );
+	}
+
+	/**
 	 * Performs an authenticated request against the human/order API.
 	 *
 	 * @param string $method   HTTP method.
@@ -272,8 +307,9 @@ class Client {
 				'method'  => $method,
 				'timeout' => $timeout,
 				'headers' => array(
-					'Authorization' => 'Basic ' . base64_encode( $this->email . ':' . $this->api_key ),
-					'Accept'        => 'application/json',
+					'Authorization'   => 'Basic ' . base64_encode( $this->email . ':' . $this->api_key ),
+					'Accept'          => 'application/json',
+					'Accept-Language' => self::accept_language(),
 				),
 			),
 			$args

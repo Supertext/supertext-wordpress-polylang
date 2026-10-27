@@ -81,6 +81,7 @@ is a small number of file calls, comfortably under the file endpoint's 1-req-per
 | `supertext_polylang_screenshot_endpoint` | `https://vibeboost.me/api/screenshot` | [VibeBoost Screenshots](https://vibeboost.me) capture endpoint used to attach a page screenshot (DocumentTypeId 3) to human orders |
 | `supertext_polylang_human_services` | the list loaded from `api/v1/util/ordertype/{ServiceID}` | Override/extend the human **translation types** offered when ordering (see below) |
 | `supertext_polylang_quote_currency` | `''` (account default) | Currency to request on the human-order price quote |
+| `supertext_polylang_accept_language` | BCP-47 of the user's back-end language (`de-CH,de;q=0.9`) | `Accept-Language` sent to the order API, which decides the language of the translation types, delivery options and error messages |
 
 Politeness (formal/informal) is sent only for targets where `Languages::supportsPoliteness()` is
 true: the language's *Formality* in the mapping (preselected from the locale), else `*_formal` → `more`, `*_informal` → `less`,
@@ -345,6 +346,7 @@ Supertext SDK — the SDK covers the AI translation API only:
 
 ```
 GET api/v1/util/ordertype/{ServiceID}      # Basic auth, same credential as orders
+Accept-Language: de-CH,de;q=0.9            # the language the names come back in
 ```
 
 ```json
@@ -368,7 +370,8 @@ order's and the quote's `OrderTypeConfigurationId`) and keeps the matching **`Or
 | Concern | Behaviour |
 |---------|-----------|
 | **ServiceID** | Settings → **ServiceID** (`service_id` in `supertext_polylang_settings`), default `46`. A blank/invalid value falls back to the default rather than emptying the dropdown. |
-| **Caching** | A `supertext_polylang_order_types_{env}_{ServiceID}` transient, 12 h, plus a per-request memo. Saving the settings flushes it for the old *and* new env/ServiceID pair (`Services::on_settings_saved()`); `Services::flush()` does it on demand. |
+| **Language** | Every order-API request carries `Accept-Language`, built from the current user's back-end language (`Client::accept_language()`): `de_CH` → `de-CH,de;q=0.9`. That is what makes the dropdowns readable — the type `Name`/`Description` here *and* the delivery option `Name` of `translation/quote` come back localized, as do the API's error messages. Override it with the `supertext_polylang_accept_language` filter. |
+| **Caching** | A `supertext_polylang_order_types_{env}_{ServiceID}_{language}` transient, 12 h, plus a per-request memo. The language is part of the key, so a German and a French admin never share a list. Saving the settings flushes it for the old *and* new env/ServiceID pair (`Services::on_settings_saved()`); `Services::flush()` does it on demand. |
 | **Failure** | On a transport/HTTP error — or an empty list — `Services::FALLBACK` (the three standard types of ServiceID 46) is used and cached for 5 minutes, so ordering keeps working and the next page load retries. The request uses a 15 s timeout so a slow API can't stall the posts list. |
 | **Validation** | `Services::exists()` gates every order and quote: a type the ServiceID doesn't offer is rejected. `Services::label()` falls back to `FALLBACK`, then to the raw id, so historical orders still render on the Orders page. |
 

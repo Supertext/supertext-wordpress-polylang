@@ -15,6 +15,21 @@ class ClientTest extends TestCase {
 	const KEY   = 'legacy-key';
 
 	/**
+	 * The back-end language the stubbed WordPress reports. A test may change it
+	 * before acting; the stub is registered once, in setUp.
+	 *
+	 * @var string
+	 */
+	protected $locale = 'en_US';
+
+	protected function setUp(): void {
+		parent::setUp();
+
+		Functions\when( 'get_user_locale' )->alias( fn() => $this->locale );
+		Functions\when( 'get_locale' )->alias( fn() => $this->locale );
+	}
+
+	/**
 	 * Stubs wp_remote_request to capture the request and return a canned response.
 	 *
 	 * @param int    $code Response status code.
@@ -110,5 +125,39 @@ class ClientTest extends TestCase {
 
 		$this->assertInstanceOf( \WP_Error::class, $result );
 		$this->assertFalse( $called, 'No HTTP request should be made without credentials' );
+	}
+
+	/**
+	 * @dataProvider provide_locales
+	 */
+	public function test_requests_ask_for_the_back_end_language( string $locale, string $expected ): void {
+		$this->locale = $locale;
+		$cap          = $this->captureRequest( 200, '[]' );
+		$client       = new Client( self::BASE, self::EMAIL, self::KEY );
+
+		$client->get_order_types( 46 );
+
+		// The API returns the type and delivery names in this language.
+		$this->assertSame( $expected, $cap->headers['Accept-Language'] );
+	}
+
+	public static function provide_locales(): array {
+		return array(
+			'language and region' => array( 'de_CH', 'de-CH,de;q=0.9' ),
+			'formal variant'      => array( 'de_DE_formal', 'de-DE,de;q=0.9' ),
+			'language only'       => array( 'de', 'de' ),
+			'empty locale'        => array( '', 'en' ),
+		);
+	}
+
+	public function test_get_order_types_requests_the_service_id(): void {
+		$cap    = $this->captureRequest( 200, '[{"Name":"Translation BASIC","OrderTypeConfigurationId":166,"OrderTypeId":54}]' );
+		$client = new Client( self::BASE, self::EMAIL, self::KEY );
+
+		$result = $client->get_order_types( 51 );
+
+		$this->assertSame( self::BASE . 'api/v1/util/ordertype/51', $cap->url );
+		$this->assertSame( 'GET', $cap->method );
+		$this->assertSame( 166, $result[0]['OrderTypeConfigurationId'] );
 	}
 }

@@ -280,8 +280,12 @@ plugin — they are loaded from your Supertext account for the configured **Serv
 the names, descriptions and available products are always the ones your account actually
 offers. Each option's short description shows as a tooltip.
 
-- The list is cached for **12 hours**. Saving the settings page clears the cache, so change
-  the ServiceID (or just re-save) to pick up a change immediately.
+- The names and descriptions arrive in **your WordPress back-end language**: the plugin
+  asks the API for it (`Accept-Language`), so a German admin sees the German type names and
+  delivery options, a French admin the French ones. Whatever Supertext has no translation
+  for falls back to English.
+- The list is cached for **12 hours**, per language. Saving the settings page clears the
+  cache, so change the ServiceID (or just re-save) to pick up a change immediately.
 - If Supertext can't be reached, the plugin falls back to the three standard types of
   ServiceID 46 so ordering keeps working, and retries a few minutes later.
 - Ordering is restricted to the types in that list: a type your ServiceID doesn't offer is

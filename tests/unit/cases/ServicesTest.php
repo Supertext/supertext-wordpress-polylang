@@ -38,6 +38,14 @@ class ServicesTest extends TestCase {
 		),
 	);
 
+	/**
+	 * The back-end language the stubbed WordPress reports (the order types are
+	 * cached per language). A test may change it before acting.
+	 *
+	 * @var string
+	 */
+	protected $locale = 'en_US';
+
 	protected function setUp(): void {
 		parent::setUp();
 
@@ -45,6 +53,9 @@ class ServicesTest extends TestCase {
 		$memo = new \ReflectionProperty( Services::class, 'memo' );
 		$memo->setAccessible( true );
 		$memo->setValue( null, array() );
+
+		Functions\when( 'get_user_locale' )->alias( fn() => $this->locale );
+		Functions\when( 'get_locale' )->alias( fn() => $this->locale );
 	}
 
 	/**
@@ -254,5 +265,35 @@ class ServicesTest extends TestCase {
 
 		$this->assertSame( 'Translation BASIC', Services::label( 166 ) );
 		$this->assertSame( '999', Services::label( 999 ) );
+	}
+
+	public function test_the_cached_list_is_per_language(): void {
+		// The API localizes the type names, so one admin's German list must not be
+		// served to an admin working in French.
+		$this->stub_settings();
+		$keys = array();
+		Functions\when( 'get_transient' )->alias(
+			static function ( $key ) use ( &$keys ) {
+				$keys[] = $key;
+				return false;
+			}
+		);
+		Functions\when( 'set_transient' )->justReturn( true );
+		Functions\when( 'wp_remote_request' )->justReturn(
+			array( 'response' => array( 'code' => 200 ), 'body' => '[]' )
+		);
+
+		$this->locale = 'de_DE';
+		Services::all();
+
+		// A different language means a different key, so this re-reads rather than
+		// hitting the memo of the call above.
+		$this->locale = 'fr_FR';
+		Services::all();
+
+		$this->assertSame(
+			array( 'supertext_polylang_order_types_live_46_de-de', 'supertext_polylang_order_types_live_46_fr-fr' ),
+			$keys
+		);
 	}
 }

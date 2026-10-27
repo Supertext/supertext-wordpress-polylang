@@ -248,11 +248,18 @@ class Services {
 	/**
 	 * Builds the transient key for an environment + ServiceID pair.
 	 *
+	 * The language is part of the key: the API returns the type names and
+	 * descriptions in the language of the Accept-Language header, so a German and
+	 * a French admin must not share one cached list.
+	 *
 	 * @param int         $service_id The Supertext ServiceID.
 	 * @param string|null $env        Environment slug (default: the configured one).
 	 * @return string
 	 */
 	private static function cache_key( int $service_id, ?string $env = null ): string {
-		return self::CACHE_PREFIX . ( null !== $env ? $env : Settings::environment() ) . '_' . $service_id;
+		// The primary language tag of the header, e.g. `de-ch` out of `de-CH,de;q=0.9`.
+		$language = strtolower( (string) strtok( Client::accept_language(), ',' ) );
+
+		return self::CACHE_PREFIX . ( null !== $env ? $env : Settings::environment() ) . '_' . $service_id . '_' . $language;
 	}
 }
