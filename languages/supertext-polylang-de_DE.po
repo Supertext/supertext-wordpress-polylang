@@ -778,10 +778,10 @@ msgid "Polylang strings"
 msgstr "Polylang-Strings"
 
 msgid "Tools"
-msgstr "Werkzeuge"
+msgstr "Tools"
 
 msgid "Supertext Tools"
-msgstr "Supertext-Werkzeuge"
+msgstr "Supertext Tools"
 
 msgid "Field-translation overview & utilities."
 msgstr "Übersicht der Feldübersetzung & Hilfsmittel."
