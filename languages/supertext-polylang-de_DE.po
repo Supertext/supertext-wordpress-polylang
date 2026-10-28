@@ -307,13 +307,13 @@ msgid "The Supertext ServiceId for your translation services that are offered wh
 msgstr "Die Supertext-ServiceId für Ihre Übersetzungsdienste, die beim Bestellen einer menschlichen Übersetzung angeboten werden. Standard %d. Die Liste wird 12 Stunden zwischengespeichert."
 
 msgid "Write-back"
-msgstr "Rückschreiben"
+msgstr "Write-back"
 
 msgid "Allow multiple write-backs"
-msgstr "Mehrfaches Rückschreiben erlauben"
+msgstr "Mehrfache Write-backs erlauben"
 
 msgid "Re-apply the translation each time a completed-order callback arrives. When off, only the first write-back is applied (later callbacks are ignored), protecting manual edits."
-msgstr "Die Übersetzung bei jedem eintreffenden Callback für einen abgeschlossenen Auftrag erneut anwenden. Ist die Option aus, wird nur das erste Rückschreiben angewendet (spätere Callbacks werden ignoriert), womit manuelle Bearbeitungen geschützt bleiben."
+msgstr "Die Übersetzung bei jedem eintreffenden Callback für einen abgeschlossenen Auftrag erneut anwenden. Ist die Option aus, wird nur der erste Write-back angewendet (spätere Callbacks werden ignoriert), womit manuelle Bearbeitungen geschützt bleiben."
 
 msgid "Translation status"
 msgstr "Status der Übersetzung"
